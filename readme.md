@@ -4,7 +4,8 @@
 ## How to build
 
 1. We don't use cmake around these parts.
-1. Install msys2/mingw32 from https://www.msys2.org
+1. Install msys2/mingw32 from https://www.msys2.org. We had success downloading this:
+https://repo.msys2.org/distrib/msys2-i686-latest.exe
    1. FYI I installed mine on c:\m, and since there are hardcoded paths in the
 build system as of now you might want to install there too. I'll fix the paths
 soon in any case.

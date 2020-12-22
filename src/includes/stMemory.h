@@ -11,7 +11,7 @@
 #include "main.h"
 #include "sysdeps.h"
 #include "maccess.h"
-#include "memory.h"
+#include "uae-cpu/memory.h"
 
 
 #if ENABLE_SMALL_MEM

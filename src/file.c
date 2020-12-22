@@ -14,7 +14,7 @@ const char File_fileid[] = "Hatari file.c";
 #if HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <fcntl.h>
+//#include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
@@ -22,7 +22,7 @@ const char File_fileid[] = "Hatari file.c";
 #include <zlib.h>
 #endif
 #if defined(WIN32) && !defined(_VCWIN_)
-#include <winsock2.h>
+//#include <winsock2.h>
 #endif
 
 #include "dialog.h"
@@ -1015,8 +1015,8 @@ void File_HandleDotDirs(char *path)
 
 
 #if defined(WIN32)
+#include <minwindef.h>
 static TCHAR szTempFileName[MAX_PATH];
-
 /*-----------------------------------------------------------------------*/
 /**
  * Get temporary filename for Windows
@@ -1028,7 +1028,7 @@ char* WinTmpFile(void)
 	TCHAR lpTempPathBuffer[MAX_PATH];
 
 	/* Gets the temp path env string (no guarantee it's a valid path) */
-	dwRetVal = GetTempPath(MAX_PATH,		/* length of the buffer */
+	dwRetVal = GetTempPathA(MAX_PATH,		/* length of the buffer */
 	                       lpTempPathBuffer);	/* buffer for path */
 	if (dwRetVal > MAX_PATH || (dwRetVal == 0))
 	{
@@ -1037,7 +1037,7 @@ char* WinTmpFile(void)
 	}
 
 	/* Generates a temporary file name */
-	uRetVal = GetTempFileName(lpTempPathBuffer,	/* directory for tmp files */
+	uRetVal = GetTempFileNameA(lpTempPathBuffer,	/* directory for tmp files */
 	                          TEXT("HATARI"),	/* temp file name prefix */
 	                          0,			/* create unique name */
 	                          szTempFileName);	/* buffer for name */

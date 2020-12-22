@@ -306,7 +306,7 @@ extern void to_upper (TCHAR *s, int len);
 
 #elif defined __MINGW32__
 
-//#include <winsock.h>
+#include <winsock.h>
 
 #define O_NDELAY 0
 
@@ -323,7 +323,7 @@ extern void to_upper (TCHAR *s, int len);
 #elif defined _MSC_VER
 
 #ifdef HAVE_GETTIMEOFDAY
-//#include <winsock.h> // for 'struct timeval' definition
+#include <winsock.h> // for 'struct timeval' definition
 extern void gettimeofday( struct timeval *tv, void *blah );
 #endif
 

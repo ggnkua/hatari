@@ -14,7 +14,7 @@ const char File_fileid[] = "Hatari file.c";
 #if HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-//#include <fcntl.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
@@ -22,7 +22,7 @@ const char File_fileid[] = "Hatari file.c";
 #include <zlib.h>
 #endif
 #if defined(WIN32) && !defined(_VCWIN_)
-//#include <winsock2.h>
+#include <winsock2.h>
 #endif
 
 #include "dialog.h"
@@ -1015,7 +1015,6 @@ void File_HandleDotDirs(char *path)
 
 
 #if defined(WIN32)
-#include <minwindef.h>
 static TCHAR szTempFileName[MAX_PATH];
 /*-----------------------------------------------------------------------*/
 /**

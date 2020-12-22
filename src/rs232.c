@@ -15,7 +15,6 @@
 */
 const char RS232_fileid[] = "Hatari rs232.c";
 
-#define __WIN32__
 #include <SDL.h>
 #include <SDL_thread.h>
 #include <errno.h>

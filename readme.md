@@ -28,7 +28,7 @@ fbuild
 
 This should compile hatari at full speed (all CPU cores used).
 
-1. If the above went well, then type the following:
+6. If the above went well, then type the following:
 ```
 cd ../tools/hrdb
 qmake

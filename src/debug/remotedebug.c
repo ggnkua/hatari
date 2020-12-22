@@ -16,6 +16,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define HAVE_WINSOCK_SOCKETS 1
+
 #if HAVE_UNIX_DOMAIN_SOCKETS
 #include <sys/types.h>
 #include <sys/socket.h>

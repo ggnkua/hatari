@@ -1,5 +1,4 @@
-# Highly opinionated Windows build system for Hatari plus Tat's debugger
-extensions
+# Highly opinionated Windows build system for Hatari plus Tat's debugger extensions
 # (deal with it)
 
 ## How to build
@@ -25,7 +24,10 @@ like.
 cd fastbuild
 fbuild
 ```
+(yes, we ship binaries with the source code. Deal.)
+
 This should compile hatari at full speed (all CPU cores used).
+
 1. If the above went well, then type the following:
 ```
 cd ../tools/hrdb

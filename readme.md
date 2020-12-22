@@ -12,11 +12,12 @@ soon in any case.
 in the prompt type ```pacman -S make mingw32/mingw-w64-i686-attica-qt5
 mingw-w64-i686-gcc mingw-w64-i686-SDL2```. You might want to install git while
 you're at it. I don't.
+   1. Check your /usr/include folder for ```memory.h```. If such a file is not present then create one that contains the following single line: ```#include <string.h>```.
 1. Checkout this repository and switch to the proper branch using ```git
 checkout debugger-extensions```.
 1. Open ```fastbuild\fbuild.bff``` in a text editor and change the hardcoded
 paths from ```c:\m``` to your mingw install. Again sorry about this, will fix
-soon. Also change ```SRC_DIR``` to where the repository is and ```OUTDIR``` to
+soon. Also change ```SRC_DIR``` to where the repository is and ~~```OUTDIR```~~ (never mind, this is gone) to
 where you plan to have the build files. It could be inside ```fastbuild``` if you
 like.
 1. In your mingw32 prompt ```cd``` to the repo's root directory and then type:

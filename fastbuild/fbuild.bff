@@ -1,9 +1,15 @@
-.OUTDIR="C:\m\home\ggn\build_hatari_fbuild"
-.GCC="C:\m\mingw32\bin\gcc.exe"
-.AR="C:\m\mingw32\bin\ar.exe"
+; You need to define these 3 things depending on your install.
+; They cannot be derived easily sadly
+.GCC_BIN_DIR="C:\m\mingw32\bin"
 .SRC_DIR="C:\m\home\ggn\hatari"
-.RANLIB="C:\m\mingw32\bin\ranlib.exe"
-.WINDRES="C:\m\mingw32\bin\windres.exe"
+.MINGW_ROOT="c:\m\"
+
+; Derived variables
+.GCC="$GCC_BIN_DIR$\gcc.exe"
+.AR="$GCC_BIN_DIR$\ar.exe"
+.RANLIB="$GCC_BIN_DIR$\ranlib.exe"
+.WINDRES="$GCC_BIN_DIR$\windres.exe"
+.SDL2_INCLUDES_FOLDER="$MINGW_ROOT$/mingw32/include/SDL2"
 
 Compiler( 'gcc' )              ; Alias
 {
@@ -39,19 +45,19 @@ Exec( "run_build68k" )  ; (optional) Alias
 }
 
 ; gencpu
-ObjectList( "gencpu_obj" )         ; Alias
+ObjectList( "gencpu_obj" )                                                                                ; Alias
 {
-  .Compiler                 ="gcc"                                                                          ; Compiler to use
-  .CompilerOptions          ="-I$SRC_DIR$/src/cpu -c %1 -o %2"                                              ; Options for compiler
-  .CompilerOutputPath       ="cpu/gencpu"                                                                   ; Path to store intermediate objects
-  .CompilerInputFiles       ={"cpu/cpudefs.c", "$SRC_DIR$/src/cpu/gencpu.c", "$SRC_DIR$/src/cpu/readcpu.c"} ; (optional) Explicit array of files to build
+.Compiler                 ="gcc"                                                                          ; Compiler to use
+.CompilerOptions          ="-I$SRC_DIR$/src/cpu -c %1 -o %2"                                              ; Options for compiler
+.CompilerOutputPath       ="cpu/gencpu"                                                                   ; Path to store intermediate objects
+.CompilerInputFiles       ={"cpu/cpudefs.c", "$SRC_DIR$/src/cpu/gencpu.c", "$SRC_DIR$/src/cpu/readcpu.c"} ; (optional) Explicit array of files to build
 }
-Executable( "gencpu_exe" )        ; (optional) Alias
+Executable( "gencpu_exe" )                 ; (optional) Alias
 {
-  .Linker                  =.GCC             ; Linker executable to use
-  .LinkerOutput            ="cpu/gencpu.exe" ; Output from linker
-  .LinkerOptions           ="%1 -o %2"       ; Options to pass to linker
-  .Libraries               ="gencpu_obj"     ; Libraries to link into executable
+.Linker                  =.GCC             ; Linker executable to use
+.LinkerOutput            ="cpu/gencpu.exe" ; Output from linker
+.LinkerOptions           ="%1 -o %2"       ; Options to pass to linker
+.Libraries               ="gencpu_obj"     ; Libraries to link into executable
 }
 
 
@@ -66,21 +72,23 @@ Exec( "run_gencpu" )  ; (optional) Alias
 }
 
 ; UaeCpu
-.INCLUDES_UAECPU="-Ic:/m/usr/include -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu/. -I$SRC_DIR$/src/cpu/../.. -I$SRC_DIR$/src/cpu/../includes -I$SRC_DIR$/src/cpu/softfloat -I$SRC_DIR$/build/src/cpu -I. -Ic:/m/mingw32/include/SDL2 -Icpu"
-.INCLUDES_FLOPPY="-Ic:/m/usr/include -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -Ic:/m/mingw32/include/SDL2 -I. -I/mingw32/include/SDL2"
-.INCLUDES_DEBUG ="-Ic:/m/usr/include -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build  -I$SRC_DIR$/src/cpu  -I. -Ic:/m/mingw32/include/SDL2"
-.INCLUDES_FALCON="-Ic:/m/usr/include -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu  -I. -Ic:/m/mingw32/include/SDL2"
-.INCLUDES_GUISDL="-Ic:/m/usr/include -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build  -I$SRC_DIR$/src/cpu -I. -Ic:/m/mingw32/include/SDL2"
-.INCLUDES_HATARI="-Ic:/m/mingw32/i686-w64-mingw32/include -Ic:/m/usr/include -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I. -Ic:/m/mingw32/include/SDL2"
-.CFLAGS_COMMON='-DCONFDIR=\".\" -DWITH_SDL2 -D_REENTRANT'
-.CFLAGS_UAE_CPU1=.CFLAGS_COMMON+" -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG   -Wno-sign-compare -Wno-shadow -Wno-unused-variable -Wno-unused-but-set-variable"
-.CFLAGS_UAE_CPU2=.CFLAGS_COMMON+" -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG   -Wno-unused-variable -Wno-unused-function -Wno-unused-label -Wno-missing-braces -Wno-sign-compare -Wno-unused-but-set-variable -Wno-bad-function-cast -Wno-maybe-uninitialized"
-.CFLAGS_UAE_CPU3=.CFLAGS_COMMON+" -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG"
-.CFLAGS_FLOPPY=.CFLAGS_COMMON+" -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG"
-.CFLAGS_DEBUG =.CFLAGS_COMMON+" -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG"
-.CFLAGS_FALCON=.CFLAGS_COMMON+" -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG"
-.CFLAGS_GUISDL=.CFLAGS_COMMON+" -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wno-write-strings -O3 -DNDEBUG"
-.CFLAGS_HATARI=.CFLAGS_COMMON+" -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG -Dmain=SDL_main"
+.INCLUDES_COMMON="-I$MINGW_ROOT$/usr/include"
+.INCLUDES_UAECPU=.INCLUDES_COMMON+" -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I$SRC_DIR$/src/cpu/softfloat -I. -I$SDL2_INCLUDES_FOLDER$ -Icpu"
+.INCLUDES_FLOPPY=.INCLUDES_COMMON+" -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ -I."
+.INCLUDES_DEBUG =.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+.INCLUDES_FALCON=.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+.INCLUDES_GUISDL=.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+.INCLUDES_HATARI="-I$MINGW_ROOT$/mingw32/i686-w64-mingw32/include $INCLUDES_COMMON$ -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+
+.CFLAGS_COMMON='-DCONFDIR=\".\" -DWITH_SDL2 -D_REENTRANT -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG'
+.CFLAGS_UAE_CPU1=.CFLAGS_COMMON+" -Wno-sign-compare -Wno-shadow -Wno-unused-variable -Wno-unused-but-set-variable"
+.CFLAGS_UAE_CPU2=.CFLAGS_COMMON+" -Wno-unused-variable -Wno-unused-function -Wno-unused-label -Wno-missing-braces -Wno-sign-compare -Wno-unused-but-set-variable -Wno-bad-function-cast -Wno-maybe-uninitialized"
+.CFLAGS_UAE_CPU3=.CFLAGS_COMMON
+.CFLAGS_FLOPPY=.CFLAGS_COMMON
+.CFLAGS_DEBUG =.CFLAGS_COMMON
+.CFLAGS_FALCON=.CFLAGS_COMMON
+.CFLAGS_GUISDL=.CFLAGS_COMMON+" -Wno-write-strings"
+.CFLAGS_HATARI=.CFLAGS_COMMON+" -Dmain=SDL_main"
 
 .UAECPU_SRC_1=
 {

@@ -1,8 +1,8 @@
 ; You need to define these 3 things depending on your install.
 ; They cannot be derived easily sadly
-.GCC_BIN_DIR="C:\m\mingw32\bin"
-.SRC_DIR="C:\m\home\ggn\hatari"
-.MINGW_ROOT="c:\m\"
+.GCC_BIN_DIR="C:\msys32\mingw32\bin"
+.SRC_DIR="C:\svn\hatari"
+.MINGW_ROOT="C:\msys32"
 
 ; Derived variables
 .GCC="$GCC_BIN_DIR$\gcc.exe"
@@ -385,7 +385,7 @@ Exec( "run_windres" )  ; (optional) Alias
   .ExecWorkingDir         ="."                                                                               ; (optional) Working dir to set for executable
 }
 
-.LIBS_HATARI="-lmingw32 c:/m/mingw32/bin/SDL2.dll -lpthread c:/m/mingw32/lib/libSDL2main.a -lws2_32 -lpthread -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lkernel32 -Xlinker -Map=output.map"
+.LIBS_HATARI="-lmingw32 $MINGW_ROOT$/mingw32/bin/SDL2.dll -lpthread $MINGW_ROOT$/mingw32/lib/libSDL2main.a -lws2_32 -lpthread -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lkernel32 -Xlinker -Map=output.map"
 Executable( "hatari_exe" )        ; (optional) Alias
 {
   .Linker                  =.GCC         ; Linker executable to use

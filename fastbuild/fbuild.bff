@@ -391,7 +391,7 @@ Executable( "hatari_exe" )        ; (optional) Alias
   .Linker                  =.GCC         ; Linker executable to use
   .LinkerOutput            ="hatari.exe" ; Output from linker
   .LinkerOptions           ="-std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG   -mwindows -Wl,--whole-archive libhatari.a -Wl,--no-whole-archive -Wl,--out-implib,libhatari.dll.a -Wl,--major-image-version,0,--minor-image-version,0 %1 $LIBS_HATARI$ Hatari/hatari-winicon.rc.res -o %2 "; Options to pass to linker
-  .Libraries               ={"falcon_lib","UAECPU_lib","guisdl_lib","floppy_lib","debug_lib"}; Libraries to link into executable
+  .Libraries               ={"falcon_lib","UAECPU_lib","guisdl_lib","floppy_lib","debug_lib","hatari_lib"}; Libraries to link into executable
   
   .PreBuildDependencies     ={"hatari_lib","run_windres"} ; (optional) Force targets to be built before this Executable (Rarely needed,
 }

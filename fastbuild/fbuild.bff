@@ -1,8 +1,8 @@
 ; You need to define these 3 things depending on your install.
 ; They cannot be derived easily sadly
-.GCC_BIN_DIR="C:\msys32\mingw32\bin"
+.GCC_BIN_DIR="C:\msys64\mingw32\bin"
 .SRC_DIR="C:\svn\hatari"
-.MINGW_ROOT="C:\msys32"
+.MINGW_ROOT="C:\msys64"
 
 ; Derived variables
 .GCC="$GCC_BIN_DIR$\gcc.exe"

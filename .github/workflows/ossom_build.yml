@@ -74,6 +74,6 @@ jobs:
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
         with:
-          name: hatari-debugger-${{ GITHUB_REF }}-${{ GITHUB_SHA }}
+          name: hatari-debugger-${{ github.ref }}-${{ github.sha }}
           path: |
               hrdb/

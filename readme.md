@@ -1,6 +1,10 @@
 # Highly opinionated Windows build system for Hatari plus Tat's debugger extensions
 # (deal with it)
 
+## Automated builds
+
+They're now a thing. Grab them from https://github.com/ggnkua/hatari/actions
+
 ## How to build
 
 1. We don't use cmake around these parts.

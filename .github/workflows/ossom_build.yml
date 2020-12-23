@@ -37,25 +37,25 @@ jobs:
           make
           windeployqt release/
           cd release
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libgcc_s_dw2-1.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libstdc++-6.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libbrotlicommon.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libbrotlidec.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libharfbuzz-0.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libglib-2.0-0.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libfreetype-6.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libwinpthread-1.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libgraphite2.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libzstd.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libpcre2-16-0.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libicudt67.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libicuin67.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libicuuc67.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libpcre-1.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libbz2-1.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libdouble-conversion.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/zlib1.dll .
-          cp /C/MINGW_INSTALLS=${{ matrix.msystem }}/libpng16-16.dll .
+          cp /C/${{ matrix.msystem }}/libgcc_s_dw2-1.dll .
+          cp /C/${{ matrix.msystem }}/libstdc++-6.dll .
+          cp /C/${{ matrix.msystem }}/libbrotlicommon.dll .
+          cp /C/${{ matrix.msystem }}/libbrotlidec.dll .
+          cp /C/${{ matrix.msystem }}/libharfbuzz-0.dll .
+          cp /C/${{ matrix.msystem }}/libglib-2.0-0.dll .
+          cp /C/${{ matrix.msystem }}/libfreetype-6.dll .
+          cp /C/${{ matrix.msystem }}/libwinpthread-1.dll .
+          cp /C/${{ matrix.msystem }}/libgraphite2.dll .
+          cp /C/${{ matrix.msystem }}/libzstd.dll .
+          cp /C/${{ matrix.msystem }}/libpcre2-16-0.dll .
+          cp /C/${{ matrix.msystem }}/libicudt67.dll .
+          cp /C/${{ matrix.msystem }}/libicuin67.dll .
+          cp /C/${{ matrix.msystem }}/libicuuc67.dll .
+          cp /C/${{ matrix.msystem }}/libpcre-1.dll .
+          cp /C/${{ matrix.msystem }}/libbz2-1.dll .
+          cp /C/${{ matrix.msystem }}/libdouble-conversion.dll .
+          cp /C/${{ matrix.msystem }}/zlib1.dll .
+          cp /C/${{ matrix.msystem }}/libpng16-16.dll .
           rm *.cpp
           rm *.o
           zip ../hrdb.zip -r *        

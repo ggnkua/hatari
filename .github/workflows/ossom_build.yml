@@ -66,14 +66,10 @@ jobs:
         run: |
           cd fastbuild
           fbuild
-      - name: "Upload hatari binary"
+      - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.msystem }}-packages
-          path: fastbuild/hatari.exe
-      - name: "Upload GUI binary and supporting libs"
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.msystem }}-packages
-          path: fastbuild/hatari.exe
-          path: tools/hrdb/hrdb.zip
+          path: |
+              fastbuild/hatari.exe
+              tools/hrdb/hrdb.zip

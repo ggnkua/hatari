@@ -37,28 +37,30 @@ jobs:
           make
           windeployqt release/
           cd release
-          #cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
-          #cp /C/msys64/mingw32/bin/libstdc++-6.dll .
-          #cp /C/msys64/mingw32/bin/libbrotlicommon.dll .
-          #cp /C/msys64/mingw32/bin/libbrotlidec.dll .
-          #cp /C/msys64/mingw32/bin/libharfbuzz-0.dll .
-          #cp /C/msys64/mingw32/bin/libglib-2.0-0.dll .
-          #cp /C/msys64/mingw32/bin/libfreetype-6.dll .
-          #cp /C/msys64/mingw32/bin/libwinpthread-1.dll .
-          #cp /C/msys64/mingw32/bin/libgraphite2.dll .
-          #cp /C/msys64/mingw32/bin/libzstd.dll .
-          #cp /C/msys64/mingw32/bin/libpcre2-16-0.dll .
-          #cp /C/msys64/mingw32/bin/libicudt67.dll .
-          #cp /C/msys64/mingw32/bin/libicuin67.dll .
-          #cp /C/msys64/mingw32/bin/libicuuc67.dll .
-          #cp /C/msys64/mingw32/bin/libpcre-1.dll .
-          #cp /C/msys64/mingw32/bin/libbz2-1.dll .
-          #cp /C/msys64/mingw32/bin/libdouble-conversion.dll .
-          #cp /C/msys64/mingw32/bin/zlib1.dll .
-          #cp /C/msys64/mingw32/bin/libpng16-16.dll .
+          cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
+          cp /C/msys64/mingw32/bin/libstdc++-6.dll .
+          cp /C/msys64/mingw32/bin/libbrotlicommon.dll .
+          cp /C/msys64/mingw32/bin/libbrotlidec.dll .
+          cp /C/msys64/mingw32/bin/libharfbuzz-0.dll .
+          cp /C/msys64/mingw32/bin/libglib-2.0-0.dll .
+          cp /C/msys64/mingw32/bin/libfreetype-6.dll .
+          cp /C/msys64/mingw32/bin/libwinpthread-1.dll .
+          cp /C/msys64/mingw32/bin/libgraphite2.dll .
+          cp /C/msys64/mingw32/bin/libzstd.dll .
+          cp /C/msys64/mingw32/bin/libpcre2-16-0.dll .
+          cp /C/msys64/mingw32/bin/libicudt67.dll .
+          cp /C/msys64/mingw32/bin/libicuin67.dll .
+          cp /C/msys64/mingw32/bin/libicuuc67.dll .
+          cp /C/msys64/mingw32/bin/libpcre-1.dll .
+          cp /C/msys64/mingw32/bin/libbz2-1.dll .
+          cp /C/msys64/mingw32/bin/libdouble-conversion.dll .
+          cp /C/msys64/mingw32/bin/zlib1.dll .
+          cp /C/msys64/mingw32/bin/libpng16-16.dll .
           rm *.cpp
           rm *.o
-          zip ../hrdb.zip -r *
+          cd ..
+          mv release hrdb
+          mv hrdb ../..
           # This is for the hatari build, but echo in cmd.exe does weird stuff with >
           echo '#include <string.h>' > /C/msys64//usr/include/memory.h
 
@@ -67,11 +69,11 @@ jobs:
         run: |
           cd fastbuild
           fbuild
+          move hatari.exe ..\hrdb
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.msystem }}-packages
+          name: hatari-debugger-${{ GITHUB_REF }}-${{ GITHUB_SHA }}
           path: |
-              fastbuild/hatari.exe
-              tools/hrdb/hrdb.zip
+              hrdb/

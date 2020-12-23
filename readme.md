@@ -13,6 +13,7 @@ soon in any case.~~
 in the prompt type ```pacman -S make mingw32/mingw-w64-i686-attica-qt5
 mingw-w64-i686-gcc mingw-w64-i686-SDL2```. You might want to install git while
 you're at it. I don't.
+   1. You can now close the mingw32 command line
    1. Check your /usr/include folder for ```memory.h```. If such a file is not present then create one that contains the following single line: ```#include <string.h>```.
 1. ~~Checkout this repository and switch to the proper branch using ```git
 checkout debugger-extensions```.~~ ```master``` is now current
@@ -20,7 +21,7 @@ checkout debugger-extensions```.~~ ```master``` is now current
 paths to reflect your setup. Change ```SRC_DIR``` to where the repository is,
 GCC_BIN_DIR to the path where your gcc.exe is, and MINGW_ROOT to the root directory
 of your MinGW install
-1. In your mingw32 prompt ```cd``` to the repo's root directory and then type:
+1. Open your prefered command line program (or just cmd.exe), ```cd``` to the repo's root directory and then type:
 ```
 cd fastbuild
 fbuild

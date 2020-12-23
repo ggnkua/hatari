@@ -19,16 +19,14 @@ jobs:
         ]
     steps:
 
-      - uses: actions/checkout@v2
-        with:
-          path: temp
-          fetch-depth: 0
-
       - uses: msys2/setup-msys2@v2
         with:
           msystem: ${{ matrix.msystem }}
           install: git base-devel mingw-w64-${{ matrix.arch }}-toolchain
-          update: true
+          #update: true
+          release: false
+
+      - uses: actions/checkout@v2
 
       - name: "Build GUI"
         shell: msys2 {0}
@@ -61,11 +59,13 @@ jobs:
           rm *.cpp
           rm *.o
           zip ../hrdb.zip -r *        
+
       - name: "Build hatari"
         shell: cmd
         run: |
           cd fastbuild
           fbuild
+
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
         with:

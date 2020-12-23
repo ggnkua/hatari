@@ -58,7 +58,9 @@ jobs:
           #cp /C/msys64/mingw32/bin/libpng16-16.dll .
           rm *.cpp
           rm *.o
-          zip ../hrdb.zip -r *        
+          zip ../hrdb.zip -r *
+          # This is for the hatari build, but echo in cmd.exe does weird stuff with >
+          echo '#include <string.h>' > /C/msys64//usr/include/memory.h
 
       - name: "Build hatari"
         shell: cmd

@@ -5,22 +5,20 @@
 
 They're now a thing. Grab them from https://github.com/ggnkua/hatari/actions
 
+Here, we also have this ossom bade for you: ![main](https://github.com/ggnkua/hatari/workflows/main/badge.svg)
+
 ## How to build
 
 1. We don't use cmake around these parts.
 1. Install msys2/mingw32 from https://www.msys2.org. We had success downloading this:
 https://repo.msys2.org/distrib/msys2-i686-latest.exe
-   1. ~~FYI I installed mine on c:\m, and since there are hardcoded paths in the
-build system as of now you might want to install there too. I'll fix the paths
-soon in any case.~~
    1. Open a ```mingw32``` command line (not ```mingw64``` nor ```msys2```) and
 in the prompt type ```pacman -S make mingw32/mingw-w64-i686-attica-qt5
 mingw-w64-i686-gcc mingw-w64-i686-SDL2```. You might want to install git while
-you're at it. I don't.
+you're at it. I don't do that.
    1. You can now close the mingw32 command line
    1. Check your /usr/include folder for ```memory.h```. If such a file is not present then create one that contains the following single line: ```#include <string.h>```.
-1. ~~Checkout this repository and switch to the proper branch using ```git
-checkout debugger-extensions```.~~ ```master``` is now current
+1. Checkout this repository
 1. Open ```fastbuild\fbuild.bff``` in a text editor and change the 3 top
 paths to reflect your setup. Change ```SRC_DIR``` to where the repository is,
 GCC_BIN_DIR to the path where your gcc.exe is, and MINGW_ROOT to the root directory

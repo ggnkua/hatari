@@ -3,15 +3,16 @@
 
 ## Automated builds
 
-They're now a thing. Grab them from https://github.com/ggnkua/hatari/actions
+They're now a thing. Grab them from:
+* [here](https://github.com/ggnkua/hatari/actions) if you're logged on to github
+* [here](https://nightly.link/ggnkua/hatari/workflows/ossom_build/master) if you're not logged on to github
 
 Here, we also have this swanky badge for you: ![main](https://github.com/ggnkua/hatari/workflows/main/badge.svg)
 
 ## How to build
 
 1. We don't use cmake around these parts.
-1. Install msys2/mingw32 from https://www.msys2.org. We had success downloading this:
-https://repo.msys2.org/distrib/msys2-i686-latest.exe
+1. Install msys2/mingw32 from [this link](https://www.msys2.org). We had success downloading [this flavour](https://repo.msys2.org/distrib/msys2-i686-latest.exe)
    1. Open a ```mingw32``` command line (not ```mingw64``` nor ```msys2```) and
 in the prompt type ```pacman -S make mingw32/mingw-w64-i686-attica-qt5
 mingw-w64-i686-gcc mingw-w64-i686-SDL2```. You might want to install git while

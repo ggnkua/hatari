@@ -5,7 +5,7 @@
 
 They're now a thing. Grab them from https://github.com/ggnkua/hatari/actions
 
-Here, we also have this ossom bade for you: ![main](https://github.com/ggnkua/hatari/workflows/main/badge.svg)
+Here, we also have this swanky badge for you: ![main](https://github.com/ggnkua/hatari/workflows/main/badge.svg)
 
 ## How to build
 

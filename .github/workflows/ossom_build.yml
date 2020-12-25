@@ -63,7 +63,8 @@ jobs:
           mv release hrdb
           mv hrdb ../..
           # This is for the hatari build, but echo in cmd.exe does weird stuff with >
-          echo '#include <string.h>' > /C/msys64//usr/include/memory.h
+          # Not needed anymore
+          #echo '#include <string.h>' > /C/msys64//usr/include/memory.h
 
       - name: "Build hatari"
         shell: cmd

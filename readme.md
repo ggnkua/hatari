@@ -52,6 +52,8 @@ for me:
    * libglib-2.0-0.dll
    * libfreetype-6.dll
    * libwinpthread-1.dll
+   * libiconv-2.dll
+   * libintl-8.dll     
    * libgraphite2.dll
    * libzstd.dll
    * libpcre2-16-0.dll

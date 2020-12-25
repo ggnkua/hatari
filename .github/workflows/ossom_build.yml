@@ -44,6 +44,8 @@ jobs:
           cp /C/msys64/mingw32/bin/libharfbuzz-0.dll .
           cp /C/msys64/mingw32/bin/libglib-2.0-0.dll .
           cp /C/msys64/mingw32/bin/libfreetype-6.dll .
+          cp /C/msys64/mingw32/bin/libiconv-2.dll .
+          cp /C/msys64/mingw32/bin/libintl-8.dll .
           cp /C/msys64/mingw32/bin/libwinpthread-1.dll .
           cp /C/msys64/mingw32/bin/libgraphite2.dll .
           cp /C/msys64/mingw32/bin/libzstd.dll .

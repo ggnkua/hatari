@@ -17,7 +17,7 @@ in the prompt type ```pacman -S make mingw32/mingw-w64-i686-attica-qt5
 mingw-w64-i686-gcc mingw-w64-i686-SDL2```. You might want to install git while
 you're at it. I don't do that.
    1. You can now close the mingw32 command line
-   1. Check your /usr/include folder for ```memory.h```. If such a file is not present then create one that contains the following single line: ```#include <string.h>```.
+   1. ~~Check your /usr/include folder for ```memory.h```. If such a file is not present then create one that contains the following single line: ```#include <string.h>```.~~ Not needed anymore, thanks to tIn for the detective work
 1. Checkout this repository
 1. Open ```fastbuild\fbuild.bff``` in a text editor and change the 3 top
 paths to reflect your setup. Change ```SRC_DIR``` to where the repository is,
@@ -28,7 +28,7 @@ of your MinGW install
 cd fastbuild
 fbuild
 ```
-(yes, we ship binaries with the source code. Deal.)
+(yes, we ship binaries and dlls with the source code. Deal.)
 
 This should compile hatari at full speed (all CPU cores used).
 

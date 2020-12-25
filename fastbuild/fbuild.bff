@@ -11,6 +11,24 @@
 .WINDRES="$GCC_BIN_DIR$\windres.exe"
 .SDL2_INCLUDES_FOLDER="$MINGW_ROOT$/mingw32/include/SDL2"
 
+.INCLUDES_COMMON="-I$MINGW_ROOT$/usr/include"
+.INCLUDES_UAECPU=.INCLUDES_COMMON+" -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I$SRC_DIR$/src/cpu/softfloat -I. -I$SDL2_INCLUDES_FOLDER$ -Icpu"
+.INCLUDES_FLOPPY=.INCLUDES_COMMON+" -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ -I."
+.INCLUDES_DEBUG =.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+.INCLUDES_FALCON=.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+.INCLUDES_GUISDL=.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+.INCLUDES_HATARI="-I$MINGW_ROOT$/mingw32/i686-w64-mingw32/include $INCLUDES_COMMON$ -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+
+.CFLAGS_COMMON='-DCONFDIR=\".\" -DWITH_SDL2 -D_REENTRANT -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG -DSTDC_HEADERS'
+.CFLAGS_UAE_CPU1=.CFLAGS_COMMON+" -Wno-sign-compare -Wno-shadow -Wno-unused-variable -Wno-unused-but-set-variable"
+.CFLAGS_UAE_CPU2=.CFLAGS_COMMON+" -Wno-unused-variable -Wno-unused-function -Wno-unused-label -Wno-missing-braces -Wno-sign-compare -Wno-unused-but-set-variable -Wno-bad-function-cast -Wno-maybe-uninitialized"
+.CFLAGS_UAE_CPU3=.CFLAGS_COMMON
+.CFLAGS_FLOPPY=.CFLAGS_COMMON
+.CFLAGS_DEBUG =.CFLAGS_COMMON
+.CFLAGS_FALCON=.CFLAGS_COMMON
+.CFLAGS_GUISDL=.CFLAGS_COMMON+" -Wno-write-strings"
+.CFLAGS_HATARI=.CFLAGS_COMMON+" -Dmain=SDL_main"
+
 Compiler( 'gcc' )              ; Alias
 {
   .Executable                   =.GCC  ; Primary compiler executable
@@ -60,7 +78,6 @@ Executable( "gencpu_exe" )                 ; (optional) Alias
 .Libraries               ="gencpu_obj"     ; Libraries to link into executable
 }
 
-
 ; cpustbl.c, cpuemu_0.c, cpuemu_11.c, cpuemu_13.c, cpuemu_20.c, cpuemu_21.c, cpuemu_22.c, cpuemu_23.c, cpuemu_24.c, cpuemu_31.c, cpuemu_32.c, cpuemu_33.c, cpuemu_34.c, cpuemu_35.c, cpuemu_40.c, cpuemu_50.c
 Exec( "run_gencpu" )  ; (optional) Alias
 {
@@ -72,24 +89,6 @@ Exec( "run_gencpu" )  ; (optional) Alias
 }
 
 ; UaeCpu
-.INCLUDES_COMMON="-I$MINGW_ROOT$/usr/include"
-.INCLUDES_UAECPU=.INCLUDES_COMMON+" -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I$SRC_DIR$/src/cpu/softfloat -I. -I$SDL2_INCLUDES_FOLDER$ -Icpu"
-.INCLUDES_FLOPPY=.INCLUDES_COMMON+" -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ -I."
-.INCLUDES_DEBUG =.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
-.INCLUDES_FALCON=.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
-.INCLUDES_GUISDL=.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
-.INCLUDES_HATARI="-I$MINGW_ROOT$/mingw32/i686-w64-mingw32/include $INCLUDES_COMMON$ -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
-
-.CFLAGS_COMMON='-DCONFDIR=\".\" -DWITH_SDL2 -D_REENTRANT -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG'
-.CFLAGS_UAE_CPU1=.CFLAGS_COMMON+" -Wno-sign-compare -Wno-shadow -Wno-unused-variable -Wno-unused-but-set-variable"
-.CFLAGS_UAE_CPU2=.CFLAGS_COMMON+" -Wno-unused-variable -Wno-unused-function -Wno-unused-label -Wno-missing-braces -Wno-sign-compare -Wno-unused-but-set-variable -Wno-bad-function-cast -Wno-maybe-uninitialized"
-.CFLAGS_UAE_CPU3=.CFLAGS_COMMON
-.CFLAGS_FLOPPY=.CFLAGS_COMMON
-.CFLAGS_DEBUG =.CFLAGS_COMMON
-.CFLAGS_FALCON=.CFLAGS_COMMON
-.CFLAGS_GUISDL=.CFLAGS_COMMON+" -Wno-write-strings"
-.CFLAGS_HATARI=.CFLAGS_COMMON+" -Dmain=SDL_main"
-
 .UAECPU_SRC_1=
 {
     "cpu/cpustbl.c"

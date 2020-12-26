@@ -5,35 +5,72 @@
 .MINGW_ROOT="C:\msys64"
 
 ; Derived variables
-.GCC="$GCC_BIN_DIR$\gcc.exe"
-.AR="$GCC_BIN_DIR$\ar.exe"
-.RANLIB="$GCC_BIN_DIR$\ranlib.exe"
-.WINDRES="$GCC_BIN_DIR$\windres.exe"
-.SDL2_INCLUDES_FOLDER="$MINGW_ROOT$/mingw32/include/SDL2"
+.GCC                  = "$GCC_BIN_DIR$\gcc.exe"
+.GPP                  = "$GCC_BIN_DIR$\g++.exe"
+.AR                   = "$GCC_BIN_DIR$\ar.exe"
+.RANLIB               = "$GCC_BIN_DIR$\ranlib.exe"
+.WINDRES              = "$GCC_BIN_DIR$\windres.exe"
+.SDL2_INCLUDES_FOLDER = "$MINGW_ROOT$/mingw32/include/SDL2"
 
-.INCLUDES_COMMON="-I$MINGW_ROOT$/usr/include"
-.INCLUDES_UAECPU=.INCLUDES_COMMON+" -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I$SRC_DIR$/src/cpu/softfloat -I. -I$SDL2_INCLUDES_FOLDER$ -Icpu"
-.INCLUDES_FLOPPY=.INCLUDES_COMMON+" -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ -I."
-.INCLUDES_DEBUG =.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
-.INCLUDES_FALCON=.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
-.INCLUDES_GUISDL=.INCLUDES_COMMON+" -I$SRC_DIR$/src -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
-.INCLUDES_HATARI="-I$MINGW_ROOT$/mingw32/i686-w64-mingw32/include $INCLUDES_COMMON$ -I$SRC_DIR$/src/includes -I$SRC_DIR$/src/debug -I$SRC_DIR$/src/falcon -I$SRC_DIR$/build -I$SRC_DIR$/src -I$SRC_DIR$/src/cpu -I. -I$SDL2_INCLUDES_FOLDER$ "
+.INCLUDES_COMMON = "-I$MINGW_ROOT$/usr/include"
+                  +" -I$SRC_DIR$/src/includes"
+                  +" -I$SRC_DIR$/src/debug"
+                  +" -I$SRC_DIR$/src/falcon"
+                  +" -I$SRC_DIR$/src/cpu"
+                  +" -I$SRC_DIR$/src"
+                  +" -I."
+                  +" -I$SDL2_INCLUDES_FOLDER$"
+.INCLUDES_UAECPU = .INCLUDES_COMMON+" -I$SRC_DIR$/src/cpu/softfloat -Icpu"
+.INCLUDES_FLOPPY = .INCLUDES_COMMON
+.INCLUDES_DEBUG  = .INCLUDES_COMMON
+.INCLUDES_FALCON = .INCLUDES_COMMON
+.INCLUDES_GUISDL = .INCLUDES_COMMON
+.INCLUDES_HATARI = "-I$MINGW_ROOT$/mingw32/i686-w64-mingw32/include $INCLUDES_COMMON$"
 
-.CFLAGS_COMMON='-DCONFDIR=\".\" -DWITH_SDL2 -D_REENTRANT -std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG -DSTDC_HEADERS'
-.CFLAGS_UAE_CPU1=.CFLAGS_COMMON+" -Wno-sign-compare -Wno-shadow -Wno-unused-variable -Wno-unused-but-set-variable"
-.CFLAGS_UAE_CPU2=.CFLAGS_COMMON+" -Wno-unused-variable -Wno-unused-function -Wno-unused-label -Wno-missing-braces -Wno-sign-compare -Wno-unused-but-set-variable -Wno-bad-function-cast -Wno-maybe-uninitialized"
-.CFLAGS_UAE_CPU3=.CFLAGS_COMMON
-.CFLAGS_FLOPPY=.CFLAGS_COMMON
-.CFLAGS_DEBUG =.CFLAGS_COMMON
-.CFLAGS_FALCON=.CFLAGS_COMMON
-.CFLAGS_GUISDL=.CFLAGS_COMMON+" -Wno-write-strings"
-.CFLAGS_HATARI=.CFLAGS_COMMON+" -Dmain=SDL_main"
+.CFLAGS_COMMON  = '-DCONFDIR=\".\" '
+                 +' -DWITH_SDL2'
+                 +' -D_REENTRANT'
+                 +' -std=gnu99'
+                 +' -Wcast-qual'
+                 +' -Wbad-function-cast'
+                 +' -Wpointer-arith'
+                 +' -Wmissing-prototypes'
+                 +' -Wstrict-prototypes'
+                 +' -Wall'
+                 +' -Wwrite-strings'
+                 +' -Wsign-compare'
+                 +' -Wformat-security'
+                 +' -D_LARGEFILE_SOURCE'
+                 +' -D_FILE_OFFSET_BITS=64'
+                 +' -O3'
+                 +' -DNDEBUG'
+                 +' -DSTDC_HEADERS'
+.CFLAGS_UAE_CPU1= .CFLAGS_COMMON+" -Wno-sign-compare -Wno-shadow -Wno-unused-variable -Wno-unused-but-set-variable"
+.CFLAGS_UAE_CPU2= .CFLAGS_COMMON+" -Wno-unused-variable -Wno-unused-function -Wno-unused-label -Wno-missing-braces -Wno-sign-compare -Wno-unused-but-set-variable -Wno-maybe-uninitialized"
+.CFLAGS_UAE_CPU3= .CFLAGS_COMMON
+.CFLAGS_FLOPPY  = .CFLAGS_COMMON
+.CFLAGS_DEBUG   = .CFLAGS_COMMON
+.CFLAGS_FALCON  = .CFLAGS_COMMON
+.CFLAGS_GUISDL  = .CFLAGS_COMMON+" -Wno-write-strings"
+.CFLAGS_HATARI  = .CFLAGS_COMMON+" -Dmain=SDL_main"
 
 Compiler( 'gcc' )              ; Alias
 {
   .Executable                   =.GCC  ; Primary compiler executable
   .CompilerFamily               ="gcc" ; (optional) Explicitly specify compiler type (default: auto)
 }
+Compiler( 'gpp' )              ; Alias
+{
+  .Executable                   =.GPP  ; Primary compiler executable
+  .CompilerFamily               ="gcc" ; (optional) Explicitly specify compiler type (default: auto)
+}
+
+;  _           _             _ 
+; | |         | |           (_)
+; | |__   __ _| |_ __ _ _ __ _ 
+; | '_ \ / _` | __/ _` | '__| |
+; | | | | (_| | || (_| | |  | |
+; |_| |_|\__,_|\__\__,_|_|  |_|
 
 ; build68k
 ObjectList( "build68k_obj" )         ; Alias
@@ -84,8 +121,8 @@ Exec( "run_gencpu" )  ; (optional) Alias
   .ExecExecutable         ="cpu/gencpu.exe" ; Executable to run
   .ExecOutput             ="cpu/cpustbl.c"  ; Output file generated by executable
   .ExecWorkingDir         ="cpu"            ; (optional) Working dir to set for executable
-  .PreBuildDependencies   ="gencpu_exe"                                                      ; (optional) Force targets to be built before this Exec (Rarely needed,
-                                                                                               ; but useful when Exec relies on externally generated files).
+  .PreBuildDependencies   ="gencpu_exe"     ; (optional) Force targets to be built before this Exec (Rarely needed,
+                                            ; but useful when Exec relies on externally generated files).
 }
 
 ; UaeCpu
@@ -138,18 +175,18 @@ ObjectList( "uaecpu_obj_2" )         ; Alias
 {
   .Compiler                 ="gcc"                                             ; Compiler to use
   .CompilerOptions          ="$INCLUDES_UAECPU$ $CFLAGS_UAE_CPU2$ -c %1 -o %2" ; Options for compiler
-  .CompilerOutputPath       ="UAECPU"                                          ; Path to store intermediate objects
+  .CompilerOutputPath       ="uaecpu"                                          ; Path to store intermediate objects
   .CompilerInputFiles       =.UAECPU_SRC_2                                     ; (optional) Explicit array of files to build
-  .PreBuildDependencies    ="run_gencpu"                                       ; (optional) Force targets to be built before this Objectlist (Rarely needed,
+  .PreBuildDependencies     ="run_gencpu"                                      ; (optional) Force targets to be built before this Objectlist (Rarely needed,
                                                                                ; but useful when Objectlist relies on externally generated files).
 }
 ObjectList( "uaecpu_obj_3" )         ; Alias
 {
   .Compiler                 ="gcc"                                             ; Compiler to use
   .CompilerOptions          ="$INCLUDES_UAECPU$ $CFLAGS_UAE_CPU3$ -c %1 -o %2" ; Options for compiler
-  .CompilerOutputPath       ="UAECPU"                                          ; Path to store intermediate objects
+  .CompilerOutputPath       ="uaecpu"                                          ; Path to store intermediate objects
   .CompilerInputFiles       =.UAECPU_SRC_3                                     ; (optional) Explicit array of files to build
-  .PreBuildDependencies    ="run_gencpu"                                       ; (optional) Force targets to be built before this Objectlist (Rarely needed,
+  .PreBuildDependencies     ="run_gencpu"                                      ; (optional) Force targets to be built before this Objectlist (Rarely needed,
                                                                                ; but useful when Objectlist relies on externally generated files).
 }
 
@@ -157,16 +194,16 @@ Library( "UAECPU_lib" )            ; (optional) Alias
 {
   .Compiler                 ="gcc"                                             ; Compiler to use
   .CompilerOptions          ="$INCLUDES_UAECPU$ $CFLAGS_UAE_CPU1$ -c %1 -o %2" ; Options for compiler
-  .CompilerOutputPath       ="UAECPU"                                          ; Path to store intermediate objects
+  .CompilerOutputPath       ="uaecpu"                                          ; Path to store intermediate objects
   .CompilerInputFiles       =.UAECPU_SRC_1                                     ; (optional) Explicit array of files to build
   .Librarian                =.AR                                               ; Librarian to collect intermediate objects
   .LibrarianOptions         ="qcs %2 %1"                                       ; Options for librarian
   .LibrarianType            ="ar"                                              ; (optional) Specify the librarian type. Valid options include:
                                                                                ; auto, msvc, ar, ar-orbis, greenhills-ax
                                                                                ; Default is 'auto' (use the librarian executable name to detect)
-  .LibrarianOutput          ="libUaeCpu.a"                                     ; Output path for lib file
+  .LibrarianOutput          ="uaecpu/libUaeCpu.a"                              ; Output path for lib file
   .LibrarianAdditionalInputs={"uaecpu_obj_2","uaecpu_obj_3"}                   ; (optional) Additional inputs to merge into library
-  .PreBuildDependencies    ="run_gencpu"                                       ; (optional) Force targets to be built before this Library (Rarely needed,
+  .PreBuildDependencies     ="run_gencpu"                                      ; (optional) Force targets to be built before this Library (Rarely needed,
                                                                                ; but useful when Library relies on externally generated files).
 }
 
@@ -183,14 +220,14 @@ Library( "floppy_lib" )            ; (optional) Alias
 {
   .Compiler                 ="gcc"                                           ; Compiler to use
   .CompilerOptions          ="$INCLUDES_FLOPPY$ $CFLAGS_FLOPPY$ -c %1 -o %2" ; Options for compiler
-  .CompilerOutputPath       ="Floppy"                                        ; Path to store intermediate objects
+  .CompilerOutputPath       ="floppy"                                        ; Path to store intermediate objects
   .CompilerInputFiles       =.FLOPPY_SRC                                     ; (optional) Explicit array of files to build
   .Librarian                =.AR                                             ; Librarian to collect intermediate objects
   .LibrarianOptions         ="qcs %2 %1"                                     ; Options for librarian
   .LibrarianType            ="ar"                                            ; (optional) Specify the librarian type. Valid options include:
                                                                              ; auto, msvc, ar, ar-orbis, greenhills-ax
                                                                              ; Default is 'auto' (use the librarian executable name to detect)
-  .LibrarianOutput          ="libFloppy.a"                                   ; Output path for lib file
+  .LibrarianOutput          ="floppy/libFloppy.a"                            ; Output path for lib file
 }
 
 ; Debug
@@ -218,14 +255,14 @@ Library( "debug_lib" )            ; (optional) Alias
 {
   .Compiler                 ="gcc"                                         ; Compiler to use
   .CompilerOptions          ="$INCLUDES_DEBUG$ $CFLAGS_DEBUG$ -c %1 -o %2" ; Options for compiler
-  .CompilerOutputPath       ="Debug"                                       ; Path to store intermediate objects
+  .CompilerOutputPath       ="debug"                                       ; Path to store intermediate objects
   .CompilerInputFiles       =.DEBUG_SRC                                    ; (optional) Explicit array of files to build
   .Librarian                =.AR                                           ; Librarian to collect intermediate objects
   .LibrarianOptions         ="qcs %2 %1"                                   ; Options for librarian
   .LibrarianType            ="ar"                                          ; (optional) Specify the librarian type. Valid options include:
                                                                            ; auto, msvc, ar, ar-orbis, greenhills-ax
                                                                            ; Default is 'auto' (use the librarian executable name to detect)
-  .LibrarianOutput          ="libDebug.a"                                  ; Output path for lib file
+  .LibrarianOutput          ="debug/libDebug.a"                            ; Output path for lib file
 }
 
 ; Falcon
@@ -244,14 +281,14 @@ Library( "falcon_lib" )            ; (optional) Alias
 {
   .Compiler                 ="gcc"                                           ; Compiler to use
   .CompilerOptions          ="$INCLUDES_FALCON$ $CFLAGS_FALCON$ -c %1 -o %2" ; Options for compiler
-  .CompilerOutputPath       ="Falcon"                                        ; Path to store intermediate objects
+  .CompilerOutputPath       ="falcon"                                        ; Path to store intermediate objects
   .CompilerInputFiles       =.FALCON_SRC                                     ; (optional) Explicit array of files to build
   .Librarian                =.AR                                             ; Librarian to collect intermediate objects
   .LibrarianOptions         ="qcs %2 %1"                                     ; Options for librarian
   .LibrarianType            ="ar"                                            ; (optional) Specify the librarian type. Valid options include:
                                                                              ; auto, msvc, ar, ar-orbis, greenhills-ax
                                                                              ; Default is 'auto' (use the librarian executable name to detect)
-  .LibrarianOutput          ="libFalcon.a"                                   ; Output path for lib file
+  .LibrarianOutput          ="falcon/libFalcon.a"                            ; Output path for lib file
 }
 
 ; GuiSdl
@@ -280,14 +317,14 @@ Library( "guisdl_lib" )            ; (optional) Alias
 {
   .Compiler                 ="gcc"                                           ; Compiler to use
   .CompilerOptions          ="$INCLUDES_GUISDL$ $CFLAGS_GUISDL$ -c %1 -o %2" ; Options for compiler
-  .CompilerOutputPath       ="GUISDL"                                        ; Path to store intermediate objects
+  .CompilerOutputPath       ="guisdl"                                        ; Path to store intermediate objects
   .CompilerInputFiles       =.GUISDL_SRC                                     ; (optional) Explicit array of files to build
   .Librarian                =.AR                                             ; Librarian to collect intermediate objects
   .LibrarianOptions         ="qcs %2 %1"                                     ; Options for librarian
   .LibrarianType            ="ar"                                            ; (optional) Specify the librarian type. Valid options include:
                                                                              ; auto, msvc, ar, ar-orbis, greenhills-ax
                                                                              ; Default is 'auto' (use the librarian executable name to detect)
-  .LibrarianOutput          ="libGuiSdl.a"                                   ; Output path for lib file
+  .LibrarianOutput          ="guisdl/libGuiSdl.a"                            ; Output path for lib file
 }
 
 
@@ -367,35 +404,210 @@ Library( "hatari_lib" )            ; (optional) Alias
 {
   .Compiler                 ="gcc"                                           ; Compiler to use
   .CompilerOptions          ="$INCLUDES_HATARI$ $CFLAGS_HATARI$ -c %1 -o %2" ; Options for compiler
-  .CompilerOutputPath       ="HATARI"                                        ; Path to store intermediate objects
+  .CompilerOutputPath       ="hatari"                                        ; Path to store intermediate objects
   .CompilerInputFiles       =.HATARI_SRC                                     ; (optional) Explicit array of files to build
   .Librarian                =.AR                                             ; Librarian to collect intermediate objects
   .LibrarianOptions         ="qcs %2 %1"                                     ; Options for librarian
   .LibrarianType            ="ar"                                            ; (optional) Specify the librarian type. Valid options include:
                                                                              ; auto, msvc, ar, ar-orbis, greenhills-ax
                                                                              ; Default is 'auto' (use the librarian executable name to detect)
-  .LibrarianOutput          ="libHatari.a"                                   ; Output path for lib file
+  .LibrarianOutput          ="hatari/libHatari.a"                            ; Output path for lib file
 }
 Exec( "run_windres" )  ; (optional) Alias
 {
   .ExecExecutable         =.WINDRES                                                                          ; Executable to run
-  .ExecOutput             ="Hatari/hatari-winicon.rc.res"                                                    ; Output file generated by executable
+  .ExecOutput             ="hatari/hatari-winicon.rc.res"                                                    ; Output file generated by executable
   .ExecArguments          ='-Ocoff -o Hatari/hatari-winicon.rc.res $SRC_DIR$/src/gui-win/hatari-winicon.rc"' ; (optional) Arguments to pass to executable
   .ExecWorkingDir         ="."                                                                               ; (optional) Working dir to set for executable
 }
 
-.LIBS_HATARI="-lmingw32 $MINGW_ROOT$/mingw32/bin/SDL2.dll -lpthread $MINGW_ROOT$/mingw32/lib/libSDL2main.a -lws2_32 -lpthread -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lkernel32 -Xlinker -Map=output.map"
+.LIBS_HATARI=" -lmingw32 $MINGW_ROOT$/mingw32/bin/SDL2.dll -lpthread $MINGW_ROOT$/mingw32/lib/libSDL2main.a -lws2_32 -lpthread -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lkernel32 -Xlinker -Map=output.map"
 Executable( "hatari_exe" )        ; (optional) Alias
 {
   .Linker                  =.GCC         ; Linker executable to use
   .LinkerOutput            ="hatari.exe" ; Output from linker
-  .LinkerOptions           ="-std=gnu99 -Wcast-qual -Wbad-function-cast -Wpointer-arith -Wmissing-prototypes -Wstrict-prototypes -Wall -Wwrite-strings -Wsign-compare -Wformat-security -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG   -mwindows -Wl,--whole-archive libhatari.a -Wl,--no-whole-archive -Wl,--out-implib,libhatari.dll.a -Wl,--major-image-version,0,--minor-image-version,0 %1 $LIBS_HATARI$ Hatari/hatari-winicon.rc.res -o %2 "; Options to pass to linker
+  .LinkerOptions           ="-std=gnu99"
+                          +" -Wcast-qual"
+                          +" -Wbad-function-cast"
+                          +" -Wpointer-arith"
+                          +" -Wmissing-prototypes"
+                          +" -Wstrict-prototypes"
+                          +" -Wall -Wwrite-strings"
+                          +" -Wsign-compare"
+                          +" -Wformat-security"
+                          +" -D_LARGEFILE_SOURCE"
+                          +" -D_FILE_OFFSET_BITS=64"
+                          +" -O3"
+                          +" -DNDEBUG"
+                          +" -mwindows"
+                          +" -Wl,--whole-archive hatari/libhatari.a"
+                          +" -Wl,--no-whole-archive"
+                          +" -Wl,--out-implib,libhatari.dll.a"
+                          +" -Wl,--major-image-version,0,--minor-image-version,0"
+                          +" %1"
+                          +.LIBS_HATARI
+                          +" hatari/hatari-winicon.rc.res"
+                          +" -o %2"; Options to pass to linker
   .Libraries               ={"falcon_lib","UAECPU_lib","guisdl_lib","floppy_lib","debug_lib","hatari_lib"}; Libraries to link into executable
   
-  .PreBuildDependencies     ={"hatari_lib","run_windres"} ; (optional) Force targets to be built before this Executable (Rarely needed,
+  .PreBuildDependencies    ={"hatari_lib","run_windres"} ; (optional) Force targets to be built before this Executable (Rarely needed,
+}
+
+;  _             _ _     
+; | |           | | |    
+; | |__  _ __ __| | |__  
+; | '_ \| '__/ _` | '_ \ 
+; | | | | | | (_| | |_) |
+; |_| |_|_|  \__,_|_.__/ 
+
+.RCC         ="$GCC_BIN_DIR$\rcc.exe"
+.MOC         ="$GCC_BIN_DIR$\moc.exe"
+.MOC_DEFINES ="-DUNICODE"
+            +" -D_UNICODE"
+            +" -DWIN32"
+            +" -DMINGW_HAS_SECURE_API=1"
+            +" -DQT_DEPRECATED_WARNINGS"
+            +" -DQT_NO_DEBUG -DQT_WIDGETS_LIB"
+            +" -DQT_GUI_LIB"
+            +" -DQT_NETWORK_LIB"
+            +" -DQT_CORE_LIB"
+            +" -DQT_NEEDS_QMAIN"
+.MOC_INCLUDES="--include hrdb/moc_predefs.h"
+            +" -I$MINGW_ROOT$/mingw32/share/qt5/mkspecs/win32-g++"
+            +" -I$SRC_DIR$/hatari_git/tools/hrdb"
+            +" -I$MINGW_ROOT$/mingw32/include/QtWidgets"
+            +" -I$MINGW_ROOT$/mingw32/include/QtGui"
+            +" -I$MINGW_ROOT$/mingw32/include/QtNetwork"
+            +" -I$MINGW_ROOT$/mingw32/include/QtCore"
+            +" -I$MINGW_ROOT$/mingw32/include/c++/10.2.0"
+            +" -I$MINGW_ROOT$/mingw32/include/c++/10.2.0/i686-w64-mingw32"
+            +" -I$MINGW_ROOT$/mingw32/include/c++/10.2.0/backward"
+            +" -I$MINGW_ROOT$/mingw32/lib/gcc/i686-w64-mingw32/10.2.0/include"
+            +" -I$MINGW_ROOT$/mingw32/include"
+            +" -I$MINGW_ROOT$/mingw32/lib/gcc/i686-w64-mingw32/10.2.0/include-fixed"
+            +" -I$MINGW_ROOT$/mingw32/i686-w64-mingw32/include"
+.HRDB_CFLAGS ="-fno-keep-inline-dllexport"
+            +" -O2"
+            +" -std=gnu++11"
+            +" -Wall"
+            +" -Wextra"
+            +" -Wextra"
+            +" -fexceptions"
+            +" -mthreads"
+            +" $MOC_DEFINES$"
+.HRDB_PATHS  ="-I."
+            +" -I$MINGW_ROOT$/mingw32/include/QtWidgets"
+            +" -I$MINGW_ROOT$/mingw32/include/QtGui"
+            +" -I$MINGW_ROOT$/mingw32/include/QtNetwork"
+            +" -I$MINGW_ROOT$/mingw32/include/QtCore"
+            +" -Ihrdb"
+            +" -I/include"
+            +" -I$MINGW_ROOT$/mingw32/share/qt5/mkspecs/win32-g++"
+
+; moc.predefs is essentially compiling an empty source code with -E (and some other flags) so it'll produce
+; a text file with #define stuff. However we tell fastbuild that the compiler we use is gcc then it does
+; something and deletes the output file (probably has something to do with it actually running gcc -E internally
+; to get dependencies and tripping itself somehow). So we instead say that the compiler is unknown so it
+; doesn't get bright ideas.
+Compiler( 'gpp-custom' )              ; Alias
+{
+  .Executable                   =.GPP     ; Primary compiler executable
+  .CompilerFamily               ="custom" ; (optional) Explicitly specify compiler type (default: auto)
+}
+TextFile( "moc_predefs_cpp" )
+{
+    .TextFileOutput         ="moc_predefs.cpp" ; Output file to generate
+    .TextFileInputStrings   ="// lol"          ; Array of non-empty strings to be written to the output file, one per line.
+}
+ObjectList( "hrdb_predefs" )         ; Alias
+{
+  .Compiler                 ="gpp-custom"      ; Compiler to use
+  .CompilerOptions          ="-fno-keep-inline-dllexport -O2 -std=gnu++11 -Wall -Wextra -Wextra -dM -c -E %1 -o %2" ; Options for compiler
+  .CompilerOutputPath       ="hrdb"            ; Path to store intermediate objects
+  .CompilerInputFiles       ="moc_predefs.cpp" ; (optional) Explicit array of files to build
+  .CompilerOutputExtension  =".h"              ; (optional) Specify the file extension for generated objects (default .obj or .o)
+}
+
+; Header files parsed by moc and produce .cpp files. Qt is weird...
+.MOC_SRC=
+{
+    "$SRC_DIR$/tools/hrdb/mainwindow.h"
+    "$SRC_DIR$/tools/hrdb/targetmodel.h"
+    "$SRC_DIR$/tools/hrdb/disasmwidget.h"
+    "$SRC_DIR$/tools/hrdb/memoryviewwidget.h"
+}
+Compiler( 'moc' )              ; Alias
+{
+  .Executable                   =.MOC     ; Primary compiler executable
+  .CompilerFamily               ="custom" ; (optional) Explicitly specify compiler type (default: auto)
+}
+ObjectList( "hrdb_moc" )         ; Alias
+{
+  .Compiler                 ="moc"                                   ; Compiler to use
+  .CompilerOptions          ="$MOC_DEFINES$ $MOC_INCLUDES$ %1 -o %2" ; Options for compiler
+  .CompilerOutputPath       ="hrdb"                                  ; Path to store intermediate objects
+  .CompilerInputFiles       =.MOC_SRC                                ; (optional) Explicit array of files to build
+  .CompilerOutputExtension  =".cpp"                                  ; (optional) Specify the file extension for generated objects (default .obj or .o)
+  .CompilerOutputPrefix     ="moc_"                                  ; (optional) Specify a prefix for generated objects (default none)
+  .PreBuildDependencies    ="hrdb_predefs"
+}
+
+; Assets like pictures converted into .cpp files by qt's rcc
+Compiler('rcc')
+{
+  .Executable                   =.RCC  ; Primary compiler executable
+  .CompilerFamily               ="qt-rcc" ; (optional) Explicitly specify compiler type (default: auto)
+}       
+ObjectList( "hrdb_qrc" )         ; Alias
+{
+  .Compiler                 ="rcc"                           ; Compiler to use
+  .CompilerOptions          ="-name hrdb %1 -o %2"           ; Options for compiler
+  .CompilerOutputPath       ="hrdb"                          ; Path to store intermediate objects
+  .CompilerInputFiles       ="$SRC_DIR$/tools/hrdb/hrdb.qrc" ; (optional) Explicit array of files to build
+  .CompilerOutputExtension  =".cpp"                          ; (optional) Specify the file extension for generated objects (default .obj or .o)
+  .CompilerOutputPrefix     ="qrc_"                          ; (optional) Specify a prefix for generated objects (default none)
+}
+
+; Finally, compile the actual and generated code
+.HRDB_SRC=
+{
+    "$SRC_DIR$/tools/hrdb/disassembler.cpp"
+    "$SRC_DIR$/tools/hrdb/dispatcher.cpp"
+    "$SRC_DIR$/tools/hrdb/hopper/decode.cpp"
+    "$SRC_DIR$/tools/hrdb/main.cpp"
+    "$SRC_DIR$/tools/hrdb/mainwindow.cpp"
+    "$SRC_DIR$/tools/hrdb/stringparsers.cpp"
+    "$SRC_DIR$/tools/hrdb/targetmodel.cpp"
+    "$SRC_DIR$/tools/hrdb/disasmwidget.cpp"
+    "$SRC_DIR$/tools/hrdb/memory.cpp"
+    "$SRC_DIR$/tools/hrdb/memoryviewwidget.cpp"
+    "$SRC_DIR$/tools/hrdb/breakpoint.cpp"
+    "$SRC_DIR$/tools/hrdb/stringsplitter.cpp"
+    "$SRC_DIR$/tools/hrdb/symboltable.cpp"
+    "$SRC_DIR$/tools/hrdb/symboltablemodel.cpp"
+    "$SRC_DIR$/tools/hrdb/exceptionmask.cpp"
+    "$SRC_DIR$/tools/hrdb/exceptiondialog.cpp"
+    "$SRC_DIR$/tools/hrdb/graphicsinspector.cpp"
+}
+ObjectList( "hrdb_obj" )         ; Alias
+{
+  .Compiler                 ="gpp"                                    ; Compiler to use
+  .CompilerOptions          ="$HRDB_CFLAGS$ $HRDB_PATHS$ -c %1 -o %2" ; Options for compiler
+  .CompilerOutputPath       ="hrdb"                                   ; Path to store intermediate objects
+  .CompilerInputFiles       =.HRDB_SRC                                ; (optional) Explicit array of files to build
+  .CompilerInputObjectLists ={"hrdb_moc","hrdb_qrc"}                  ; (optional) ObjectList(s) whos output should be used as an input
+}
+
+Executable( "hrdb_exe" )        ; (optional) Alias
+{
+  .Linker                  =.GPP         ; Linker executable to use
+  .LinkerOutput            ="hrdb.exe"   ; Output from linker
+  .LinkerOptions           ="-Wl,--dynamicbase,--nxcompat,--no-seh -Wl,-s -Wl,-subsystem,windows -mthreads  -o %2 %1 $MINGW_ROOT$/mingw32/lib/libQt5Widgets.dll.a $MINGW_ROOT$/mingw32/lib/libQt5Gui.dll.a $MINGW_ROOT$/mingw32/lib/libQt5Network.dll.a $MINGW_ROOT$/mingw32/lib/libQt5Core.dll.a  -lglu32 -lopengl32 -lgdi32 -luser32 -lmingw32 $MINGW_ROOT$/mingw32/lib/libqtmain.a -lshell32 "; Options to pass to linker
+  .Libraries               ={"hrdb_obj"} ; Libraries to link into executable
 }
 
 Alias( 'all' )
 {
-  .Targets = { 'hatari_exe' }
+  .Targets = { "hatari_exe", "hrdb_exe" }
 }
+

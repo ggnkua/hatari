@@ -535,6 +535,7 @@ ObjectList( "hrdb_predefs" )         ; Alias
     "$SRC_DIR$/tools/hrdb/targetmodel.h"
     "$SRC_DIR$/tools/hrdb/disasmwidget.h"
     "$SRC_DIR$/tools/hrdb/memoryviewwidget.h"
+    "$SRC_DIR$/tools/hrdb/graphicsinspector.h"
 }
 Compiler( 'moc' )              ; Alias
 {

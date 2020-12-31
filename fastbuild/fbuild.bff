@@ -536,6 +536,7 @@ ObjectList( "hrdb_predefs" )         ; Alias
     "$SRC_DIR$/tools/hrdb/disasmwidget.h"
     "$SRC_DIR$/tools/hrdb/memoryviewwidget.h"
     "$SRC_DIR$/tools/hrdb/graphicsinspector.h"
+    "$SRC_DIR$/tools/hrdb/breakpointswidget.h"
 }
 Compiler( 'moc' )              ; Alias
 {
@@ -572,6 +573,8 @@ ObjectList( "hrdb_qrc" )         ; Alias
 ; Finally, compile the actual and generated code
 .HRDB_SRC=
 {
+    "$SRC_DIR$/tools/hrdb/addbreakpointdialog.cpp"
+    "$SRC_DIR$/tools/hrdb/breakpointswidget.cpp"
     "$SRC_DIR$/tools/hrdb/disassembler.cpp"
     "$SRC_DIR$/tools/hrdb/dispatcher.cpp"
     "$SRC_DIR$/tools/hrdb/hopper/decode.cpp"

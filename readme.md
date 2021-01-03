@@ -9,6 +9,10 @@ They're now a thing. Grab them from:
 
 Here, we also have this swanky badge for you: ![main](https://github.com/ggnkua/hatari/workflows/main/badge.svg)
 
+## 64-bit builds (new)
+
+They're now a thing. The procedure to build them is pretty much the same as below, only change ```mingw32``` to ```mingw64```. No automated builds yet.
+
 ## How to build
 
 1. We don't use cmake around these parts.
@@ -33,14 +37,17 @@ fbuild
 
 This should compile hatari at full speed (all CPU cores used).
 
-6. If the above went well, then type the following:
-```
-cd ../tools/hrdb
-qmake
-make
-```
-This should build Tat's debugger GUI. If you want this to run outside a MinGW 
-console (who doesn't?) type also the following: ```windeployqt.exe
+6. ~~If the above went well, then type the following:~~
+
+~~cd ../tools/hrdb~~
+
+~~qmake~~
+
+~~make~~
+
+~~This should build Tat's debugger GUI.~~ Not needed anymore, fastbuild contains hrdb also.
+If you want this to run outside a MinGW 
+console (who doesn't?) type also the following from a MinGW console: ```windeployqt.exe
 release/```. Then you have the pleasure of copying 2347832462396 dlls from the
 ```mingw32/bin``` directory to the ```release``` folder. These did the trick
 for me:

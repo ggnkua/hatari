@@ -50,9 +50,9 @@ jobs:
           cp /C/msys64/mingw32/bin/libgraphite2.dll .
           cp /C/msys64/mingw32/bin/libzstd.dll .
           cp /C/msys64/mingw32/bin/libpcre2-16-0.dll .
-          cp /C/msys64/mingw32/bin/libicudt67.dll .
-          cp /C/msys64/mingw32/bin/libicuin67.dll .
-          cp /C/msys64/mingw32/bin/libicuuc67.dll .
+          cp /C/msys64/mingw32/bin/libicudt*.dll .
+          cp /C/msys64/mingw32/bin/libicuin*.dll .
+          cp /C/msys64/mingw32/bin/libicuuc*.dll .
           cp /C/msys64/mingw32/bin/libpcre-1.dll .
           cp /C/msys64/mingw32/bin/libbz2-1.dll .
           cp /C/msys64/mingw32/bin/libdouble-conversion.dll .

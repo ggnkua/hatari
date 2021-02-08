@@ -592,6 +592,7 @@ ObjectList( "hrdb_qrc" )         ; Alias
     "$SRC_DIR$/tools/hrdb/exceptionmask.cpp"
     "$SRC_DIR$/tools/hrdb/exceptiondialog.cpp"
     "$SRC_DIR$/tools/hrdb/graphicsinspector.cpp"
+    "$SRC_DIR$/tools/hrdb/rundialog.cpp"
 }
 ObjectList( "hrdb_obj" )         ; Alias
 {

@@ -36,6 +36,7 @@ jobs:
           qmake
           make
           windeployqt release/
+          ls -la
           cd release
           cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
           cp /C/msys64/mingw32/bin/libstdc++-6.dll .
@@ -62,6 +63,7 @@ jobs:
           rm *.cpp
           rm *.o
           cd ..
+          ls -la
           mv release ../..
           mv release hrdb
 

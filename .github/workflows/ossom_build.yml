@@ -31,13 +31,17 @@ jobs:
       - name: "Build GUI"
         shell: msys2 {0}
         run: |
+          set -x
           pacman --noconfirm -S make mingw32/mingw-w64-i686-attica-qt5 mingw-w64-i686-SDL2
           cd tools/hrdb
           qmake
           make
           windeployqt release/
           ls -la
-          cd release
+          mv release ../..
+          cd ../..
+          mv release hrdb          
+          cd hrdb
           cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
           cp /C/msys64/mingw32/bin/libstdc++-6.dll .
           cp /C/msys64/mingw32/bin/libbrotlicommon.dll .
@@ -62,10 +66,8 @@ jobs:
           cp /C/msys64/mingw32/bin/SDL2.dll .
           rm *.cpp
           rm *.o
-          cd ..
           ls -la
-          mv release ../..
-          mv release hrdb
+          cd ..
 
       - name: "Build hatari"
         shell: cmd

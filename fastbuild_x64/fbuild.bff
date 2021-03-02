@@ -392,6 +392,7 @@ Library( "guisdl_lib" )            ; (optional) Alias
     "$SRC_DIR$/src/tos.c"
     "$SRC_DIR$/src/utils.c"
     "$SRC_DIR$/src/vdi.c"
+    "$SRC_DIR$/src/vme.c"
     "$SRC_DIR$/src/inffile.c"
     "$SRC_DIR$/src/video.c"
     "$SRC_DIR$/src/wavFormat.c"

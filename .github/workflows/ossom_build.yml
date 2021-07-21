@@ -44,6 +44,7 @@ jobs:
           # This is for the hatari build, but echo in cmd.exe does weird stuff with >
           # Not needed anymore
           #echo '#include <string.h>' > /C/msys64//usr/include/memory.h
+          mkdir hrdb
           cd hrdb
           cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
           cp /C/msys64/mingw32/bin/libstdc++-6.dll .
@@ -72,7 +73,6 @@ jobs:
       - name: "Build hatari"
         shell: cmd
         run: |
-          mkdir hrdb
           cd fastbuild
           fbuild
           move hatari.exe ..\hrdb

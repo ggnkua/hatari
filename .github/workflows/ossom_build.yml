@@ -68,7 +68,6 @@ jobs:
           cp /C/msys64/mingw32/bin/zlib1.dll .
           cp /C/msys64/mingw32/bin/libpng16-16.dll .
           cp /C/msys64/mingw32/bin/SDL2.dll .
-          windeployqt .
 
       - name: "Build hatari"
         shell: cmd

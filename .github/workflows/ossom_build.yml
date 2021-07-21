@@ -28,15 +28,6 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - name: "Build hatari"
-        shell: cmd
-        run: |
-          mkdir hrdb
-          cd fastbuild
-          fbuild
-          move hatari.exe ..\hrdb
-          move hrdb.exe ..\hrdb
-          
       - name: "Copy qt dll files"
         shell: msys2 {0}
         run: |
@@ -78,6 +69,21 @@ jobs:
           cp /C/msys64/mingw32/bin/SDL2.dll .
           windeployqt .
 
+      - name: "Build hatari"
+        shell: cmd
+        run: |
+          mkdir hrdb
+          cd fastbuild
+          fbuild
+          move hatari.exe ..\hrdb
+          move hrdb.exe ..\hrdb
+
+      - name: "Post qt build steps"
+        shell: msys2 {0}
+        run: |
+          cd hrdb
+          windeployqt .
+          
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
         with:

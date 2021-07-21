@@ -12,10 +12,10 @@
 #include <QCompleter>
 #include <QPushButton>
 
-#include "dispatcher.h"
-#include "targetmodel.h"
-#include "stringparsers.h"
-#include "symboltablemodel.h"
+#include "../transport/dispatcher.h"
+#include "../models/targetmodel.h"
+#include "../models/stringparsers.h"
+#include "../models/symboltablemodel.h"
 
 #include "addbreakpointdialog.h"
 #include "quicklayout.h"

@@ -1,12 +1,12 @@
-#include "dispatcher.h"
+#include "../transport/dispatcher.h"
 #include <QtWidgets>
 #include <QtNetwork>
 
 #include <iostream>
 
-#include "targetmodel.h"
-#include "stringsplitter.h"
-#include "stringparsers.h"
+#include "../models/targetmodel.h"
+#include "../models/stringsplitter.h"
+#include "../models/stringparsers.h"
 
 //#define DISPATCHER_DEBUG
 
@@ -298,7 +298,7 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
 		Memory* pMem = new Memory(addr, size);
 
 		// Now parse the hex data
-		int readPos = splitResp.GetPos();
+        uint32_t readPos = splitResp.GetPos();
 		for (uint32_t off = 0; off < size; ++off)
 		{
             uint8_t nybbleHigh;
@@ -422,7 +422,7 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             return;
 
         // This call goes off and lots of views insert requests here, so add a flush into the queue
-		m_pTargetModel->SetStatus(running, pc);
+        m_pTargetModel->SetStatus(running != 0, pc);
         this->InsertFlush();
     }
     if (type == "!config")

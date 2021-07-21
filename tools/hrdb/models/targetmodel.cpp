@@ -93,9 +93,9 @@ void TargetModel::SetConnected(int connected)
     emit connectChangedSignal();
 }
 
-void TargetModel::SetStatus(int running, uint32_t pc)
+void TargetModel::SetStatus(bool running, uint32_t pc)
 {
-	m_bRunning = running;
+    m_bRunning = running;
 	m_pc = pc;
     m_changedFlags.SetChanged(TargetChangedFlags::kPC);
     emit startStopChangedSignal();
@@ -109,7 +109,7 @@ void TargetModel::SetStatus(int running, uint32_t pc)
     }
 }
 
-void TargetModel::SetConfig(int machineType, uint32_t cpuLevel)
+void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel)
 {
     m_machineType = (MACHINETYPE) machineType;
     m_cpuLevel = cpuLevel;

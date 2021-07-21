@@ -1,18 +1,10 @@
 #ifndef TARGET_MODEL_H
 #define TARGET_MODEL_H
 
-/*
-	Core central data model reflecting the state of the target.
-
-	May contain sub-models later, to persist the data relating to particular views.
-	(e.g. memory window, )
-
-*/
-
 #include <stdint.h>
 #include <QObject>
 
-#include "remotecommand.h"
+#include "transport/remotecommand.h"
 #include "breakpoint.h"
 #include "memory.h"
 #include "symboltable.h"
@@ -53,6 +45,9 @@ public:
     bool    m_memChanged[kMemorySlotCount];
 };
 
+/*
+    Core central data model reflecting the state of the target.
+*/
 class TargetModel : public QObject
 {
 	Q_OBJECT
@@ -62,8 +57,8 @@ public:
 
     // These are called by the Dispatcher when notifications/events arrive
     void SetConnected(int running);
-    void SetStatus(int running, uint32_t pc);
-    void SetConfig(int machineType, uint32_t cpuLevel);
+    void SetStatus(bool running, uint32_t pc);
+    void SetConfig(uint32_t machineType, uint32_t cpuLevel);
 
     // These are called by the Dispatcher when responses arrive
     void SetRegisters(const Registers& regs, uint64_t commandId);

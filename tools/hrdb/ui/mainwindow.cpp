@@ -6,9 +6,9 @@
 #include <QShortcut>
 #include <QFontDatabase>
 
-#include "dispatcher.h"
-#include "targetmodel.h"
-#include "exceptionmask.h"
+#include "../transport/dispatcher.h"
+#include "../models/targetmodel.h"
+#include "../models/exceptionmask.h"
 
 #include "disasmwidget.h"
 #include "memoryviewwidget.h"
@@ -31,9 +31,9 @@ MainWindow::MainWindow(QWidget *parent)
     m_pRunningSquare->setFixedSize(10, 25);
     m_pRunningSquare->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
     m_pStartStopButton = new QPushButton("Break", this);
-    m_pStepIntoButton = new QPushButton("Step Into", this);
-    m_pStepOverButton = new QPushButton("Step Over", this);
-    m_pRunToButton = new QPushButton("Run To:", this);
+    m_pStepIntoButton = new QPushButton("Step", this);
+    m_pStepOverButton = new QPushButton("Next", this);
+    m_pRunToButton = new QPushButton("Run Until:", this);
     m_pRunToCombo = new QComboBox(this);
     m_pRunToCombo->insertItem(0, "RTS");
     m_pRunToCombo->insertItem(1, "RTE");
@@ -50,8 +50,8 @@ MainWindow::MainWindow(QWidget *parent)
     m_pRegistersTextEdit->setLineWrapMode(QTextEdit::LineWrapMode::NoWrap);
     m_pRegistersTextEdit->setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
-    m_pDisasmWidget0 = new DisasmWidget(this, m_pTargetModel, m_pDispatcher, 0);
-    m_pDisasmWidget1 = new DisasmWidget(this, m_pTargetModel, m_pDispatcher, 1);
+    m_pDisasmWidget0 = new DisasmViewWidget(this, m_pTargetModel, m_pDispatcher, 0);
+    m_pDisasmWidget1 = new DisasmViewWidget(this, m_pTargetModel, m_pDispatcher, 1);
     m_pMemoryViewWidget0 = new MemoryViewWidget(this, m_pTargetModel, m_pDispatcher, 0);
     m_pMemoryViewWidget1 = new MemoryViewWidget(this, m_pTargetModel, m_pDispatcher, 1);
     m_pGraphicsInspector = new GraphicsInspectorWidget(this, m_pTargetModel, m_pDispatcher);
@@ -110,8 +110,8 @@ MainWindow::MainWindow(QWidget *parent)
     // Wire up cross-window requests
     connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidget0, &MemoryViewWidget::requestAddress);
     connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidget1, &MemoryViewWidget::requestAddress);
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget0,     &DisasmWidget::requestAddress);
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget1,     &DisasmWidget::requestAddress);
+    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget0,     &DisasmViewWidget::requestAddress);
+    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget1,     &DisasmViewWidget::requestAddress);
 
     // Wire up buttons to actions
     connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClicked);
@@ -119,16 +119,18 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_pStepOverButton, &QAbstractButton::clicked, this, &MainWindow::nextClicked);
     connect(m_pRunToButton, &QAbstractButton::clicked, this, &MainWindow::runToClicked);
 
-
     // Wire up menu appearance
     connect(windowMenu, &QMenu::aboutToShow, this, &MainWindow::updateWindowMenu);
 
 	// Keyboard shortcuts
-    new QShortcut(QKeySequence(tr("F5", "Start/Stop")), 		 this, 			 SLOT(startStopClicked()));
+    new QShortcut(QKeySequence(tr("Ctrl+R", "Start/Stop")),         this, SLOT(startStopClicked()));
+    new QShortcut(QKeySequence(tr("n",      "Next")),               this, SLOT(nextClicked()));
+    new QShortcut(QKeySequence(tr("s",      "Step")),               this, SLOT(singleStepClicked()));
+    new QShortcut(QKeySequence(tr("Esc",    "Break")),              this, SLOT(breakPressed()));
+    new QShortcut(QKeySequence(tr("u",      "Run Until")),          this, SLOT(runToClicked()));
 
-    new QShortcut(QKeySequence(tr("F10", "Next")),				 this,           SLOT(nextClicked()));
-    new QShortcut(QKeySequence(tr("F11", "Step")),               this,           SLOT(singleStepClicked()));
-    new QShortcut(QKeySequence(tr("Alt+B", "Add Breakpoint...")),this,           SLOT(addBreakpointPressed()));
+    // This should be an action
+    new QShortcut(QKeySequence(tr("Alt+B",  "Add Breakpoint...")),  this, SLOT(addBreakpointPressed()));
 
     // Try initial connect
     Connect();
@@ -136,6 +138,8 @@ MainWindow::MainWindow(QWidget *parent)
     // Update everything
     connectChangedSlot();
     startStopChangedSlot();
+
+    m_pDisasmWidget0->keyFocus();
 }
 
 MainWindow::~MainWindow()
@@ -200,7 +204,7 @@ void MainWindow::startStopDelayedSlot(int running)
     if (running)
     {
         m_pRegistersTextEdit->setEnabled(false);
-        m_pRegistersTextEdit->setText("Running, F5 to break...");
+        m_pRegistersTextEdit->setText("Running, Ctrl+R to break...");
     }
 }
 
@@ -234,6 +238,9 @@ void MainWindow::symbolTableChangedSlot(uint64_t commandId)
 
 void MainWindow::startStopClicked()
 {
+    if (!m_pTargetModel->IsConnected())
+        return;
+
 	if (m_pTargetModel->IsRunning())
         m_pDispatcher->SendCommandPacket("break");
 	else
@@ -242,6 +249,9 @@ void MainWindow::startStopClicked()
 
 void MainWindow::singleStepClicked()
 {
+    if (!m_pTargetModel->IsConnected())
+        return;
+
     if (m_pTargetModel->IsRunning())
         return;
     m_pDispatcher->SendCommandPacket("step");
@@ -249,6 +259,9 @@ void MainWindow::singleStepClicked()
 
 void MainWindow::nextClicked()
 {
+    if (!m_pTargetModel->IsConnected())
+        return;
+
     if (m_pTargetModel->IsRunning())
         return;
 
@@ -273,6 +286,8 @@ void MainWindow::nextClicked()
 
 void MainWindow::runToClicked()
 {
+    if (!m_pTargetModel->IsConnected())
+        return;
     if (m_pTargetModel->IsRunning())
         return;
 
@@ -294,6 +309,15 @@ void MainWindow::addBreakpointPressed()
 {
     AddBreakpointDialog dialog(this, m_pTargetModel, m_pDispatcher);
     dialog.exec();
+}
+
+void MainWindow::breakPressed()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    if (m_pTargetModel->IsRunning())
+        m_pDispatcher->SendCommandPacket("break");
 }
 
 // Actions
@@ -541,6 +565,25 @@ void MainWindow::createActions()
     connect(memoryWindowAct1, &QAction::triggered, this,     [=] () { this->toggleVis(m_pMemoryViewWidget1); } );
     connect(graphicsInspectorAct, &QAction::triggered, this, [=] () { this->toggleVis(m_pGraphicsInspector); } );
     connect(breakpointsWindowAct, &QAction::triggered, this, [=] () { this->toggleVis(m_pBreakpointsWidget); } );
+
+    {
+        QAction* pFocus = new QAction("Focus Disassembly", this);
+        pFocus->setShortcut(QKeySequence("Alt+D"));
+        connect(pFocus, &QAction::triggered, this,     [=] () { m_pDisasmWidget0->keyFocus(); } );
+        this->addAction(pFocus);
+    }
+    {
+        QAction* pFocus = new QAction("Focus Memory", this);
+        pFocus->setShortcut(QKeySequence("Alt+M"));
+        connect(pFocus, &QAction::triggered, this,     [=] () { m_pMemoryViewWidget0->keyFocus(); } );
+        this->addAction(pFocus);
+    }
+    {
+        QAction* pFocus = new QAction("Focus Graphics Inspector", this);
+        pFocus->setShortcut(QKeySequence("Alt+G"));
+        connect(pFocus, &QAction::triggered, this,     [=] () { m_pGraphicsInspector->keyFocus(); } );
+        this->addAction(pFocus);
+    }
 
     // "About"
     aboutAct = new QAction(tr("&About"), this);

@@ -14,11 +14,10 @@
 #include <QStyle>
 #include <QFontDatabase>
 
-#include "dispatcher.h"
-#include "targetmodel.h"
-#include "symboltablemodel.h"
-#include "stringparsers.h"
-
+#include "../transport/dispatcher.h"
+#include "../models/targetmodel.h"
+#include "../models/symboltablemodel.h"
+#include "../models/stringparsers.h"
 
 NonAntiAliasImage::NonAntiAliasImage(QWidget *parent)
     : QWidget(parent)
@@ -136,6 +135,12 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
 GraphicsInspectorWidget::~GraphicsInspectorWidget()
 {
 
+}
+
+void GraphicsInspectorWidget::keyFocus()
+{
+    activateWindow();
+    this->setFocus();
 }
 
 void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)

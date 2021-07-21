@@ -47,6 +47,9 @@ public:
                             TargetModel* pTargetModel, Dispatcher* pDispatcher);
     ~GraphicsInspectorWidget();
 
+    // Grab focus and point to the main widget
+    void keyFocus();
+
     void connectChangedSlot();
     void startStopChangedSlot();
     void memoryChangedSlot(int memorySlot, uint64_t commandId);

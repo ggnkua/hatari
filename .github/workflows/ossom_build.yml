@@ -74,7 +74,6 @@ jobs:
         run: |
           cd fastbuild
           fbuild
-          move hatari.exe ..\hrdb
           move hrdb.exe ..\hrdb
 
       - name: "Post qt build steps"
@@ -82,6 +81,7 @@ jobs:
         run: |
           cd hrdb
           windeployqt .
+          mv ../fastbuild/hatari.exe .
           
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2

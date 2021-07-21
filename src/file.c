@@ -1016,7 +1016,6 @@ void File_HandleDotDirs(char *path)
 
 #if defined(WIN32)
 static TCHAR szTempFileName[MAX_PATH];
-
 /*-----------------------------------------------------------------------*/
 /**
  * Get temporary filename for Windows

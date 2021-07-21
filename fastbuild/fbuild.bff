@@ -392,6 +392,7 @@ Library( "guisdl_lib" )            ; (optional) Alias
     "$SRC_DIR$/src/tos.c"
     "$SRC_DIR$/src/utils.c"
     "$SRC_DIR$/src/vdi.c"
+    "$SRC_DIR$/src/vme.c"
     "$SRC_DIR$/src/inffile.c"
     "$SRC_DIR$/src/video.c"
     "$SRC_DIR$/src/wavFormat.c"
@@ -500,7 +501,7 @@ Executable( "hatari_exe" )        ; (optional) Alias
             +" -I$MINGW_ROOT$/mingw32/include/QtGui"
             +" -I$MINGW_ROOT$/mingw32/include/QtNetwork"
             +" -I$MINGW_ROOT$/mingw32/include/QtCore"
-            +" -Ihrdb"
+            +" -I$SRC_DIR$/tools/hrdb"
             +" -I/include"
             +" -I$MINGW_ROOT$/mingw32/share/qt5/mkspecs/win32-g++"
 
@@ -531,11 +532,12 @@ ObjectList( "hrdb_predefs" )         ; Alias
 ; Header files parsed by moc and produce .cpp files. Qt is weird...
 .MOC_SRC=
 {
-    "$SRC_DIR$/tools/hrdb/mainwindow.h"
-    "$SRC_DIR$/tools/hrdb/targetmodel.h"
-    "$SRC_DIR$/tools/hrdb/disasmwidget.h"
-    "$SRC_DIR$/tools/hrdb/memoryviewwidget.h"
-    "$SRC_DIR$/tools/hrdb/graphicsinspector.h"
+    "$SRC_DIR$/tools/hrdb/ui/mainwindow.h"
+    "$SRC_DIR$/tools/hrdb/models/targetmodel.h"
+    "$SRC_DIR$/tools/hrdb/ui/disasmwidget.h"
+    "$SRC_DIR$/tools/hrdb/ui/memoryviewwidget.h"
+    "$SRC_DIR$/tools/hrdb/ui/graphicsinspector.h"
+    "$SRC_DIR$/tools/hrdb/ui/breakpointswidget.h"
 }
 Compiler( 'moc' )              ; Alias
 {
@@ -572,23 +574,26 @@ ObjectList( "hrdb_qrc" )         ; Alias
 ; Finally, compile the actual and generated code
 .HRDB_SRC=
 {
-    "$SRC_DIR$/tools/hrdb/disassembler.cpp"
-    "$SRC_DIR$/tools/hrdb/dispatcher.cpp"
+    "$SRC_DIR$/tools/hrdb/transport/dispatcher.cpp"
     "$SRC_DIR$/tools/hrdb/hopper/decode.cpp"
     "$SRC_DIR$/tools/hrdb/main.cpp"
-    "$SRC_DIR$/tools/hrdb/mainwindow.cpp"
-    "$SRC_DIR$/tools/hrdb/stringparsers.cpp"
-    "$SRC_DIR$/tools/hrdb/targetmodel.cpp"
-    "$SRC_DIR$/tools/hrdb/disasmwidget.cpp"
-    "$SRC_DIR$/tools/hrdb/memory.cpp"
-    "$SRC_DIR$/tools/hrdb/memoryviewwidget.cpp"
-    "$SRC_DIR$/tools/hrdb/breakpoint.cpp"
-    "$SRC_DIR$/tools/hrdb/stringsplitter.cpp"
-    "$SRC_DIR$/tools/hrdb/symboltable.cpp"
-    "$SRC_DIR$/tools/hrdb/symboltablemodel.cpp"
-    "$SRC_DIR$/tools/hrdb/exceptionmask.cpp"
-    "$SRC_DIR$/tools/hrdb/exceptiondialog.cpp"
-    "$SRC_DIR$/tools/hrdb/graphicsinspector.cpp"
+    "$SRC_DIR$/tools/hrdb/models/disassembler.cpp"
+    "$SRC_DIR$/tools/hrdb/models/stringparsers.cpp"
+    "$SRC_DIR$/tools/hrdb/models/targetmodel.cpp"
+    "$SRC_DIR$/tools/hrdb/models/memory.cpp"
+    "$SRC_DIR$/tools/hrdb/models/breakpoint.cpp"
+    "$SRC_DIR$/tools/hrdb/models/stringsplitter.cpp"
+    "$SRC_DIR$/tools/hrdb/models/symboltable.cpp"
+    "$SRC_DIR$/tools/hrdb/models/symboltablemodel.cpp"
+    "$SRC_DIR$/tools/hrdb/models/exceptionmask.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/addbreakpointdialog.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/breakpointswidget.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/disasmwidget.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/mainwindow.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/memoryviewwidget.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/exceptiondialog.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/graphicsinspector.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/rundialog.cpp"
 }
 ObjectList( "hrdb_obj" )         ; Alias
 {

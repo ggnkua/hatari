@@ -231,6 +231,12 @@ BreakpointsWidget::BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel,
     connect(m_pDeleteButton, &QAbstractButton::clicked, this, &BreakpointsWidget::deleteBreakpointClicked);
 }
 
+void BreakpointsWidget::keyFocus()
+{
+    activateWindow();
+    m_pTableView->setFocus();
+}
+
 void BreakpointsWidget::addBreakpointClicked()
 {
     AddBreakpointDialog dialog(this, m_pTargetModel, m_pDispatcher);
@@ -245,3 +251,5 @@ void BreakpointsWidget::deleteBreakpointClicked()
         m_pDispatcher->DeleteBreakpoint(bp.m_id);
     }
 }
+
+

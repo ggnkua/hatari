@@ -109,7 +109,7 @@ private:
     // Menus
     void createActions();
     void createMenus();
-    void toggleVis(QWidget *pWidget);
+    void enableVis(QWidget *pWidget);
     QMenu *fileMenu;
     QMenu *editMenu;
     QMenu *windowMenu;

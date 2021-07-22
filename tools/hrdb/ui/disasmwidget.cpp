@@ -478,23 +478,21 @@ void DisasmWidget2::paintEvent(QPaintEvent* ev)
     // CAREFUL! This could lead to an infinite loop of redraws if we are not.
     RecalcRowCount();
 
-    // Anything to show?
-    if (m_disasm.lines.size() == 0)
-        return;
-
     QPainter painter(this);
     const QPalette& pal = this->palette();
-
-//    const QBrush& br = pal.highlight().color();
-//    painter.fillRect(this->rect(), br);
 
     if (hasFocus())
     {
         painter.setPen(QPen(pal.dark(), 6));
         painter.drawRect(this->rect());
     }
+
     painter.setFont(monoFont);
     QFontMetrics info(painter.fontMetrics());
+
+    // Anything to show?
+    if (m_disasm.lines.size() == 0)
+        return;
 
     int symbolCol = 1;
     int addressCol = 20;
@@ -1621,8 +1619,6 @@ DisasmViewWidget::DisasmViewWidget(QWidget *parent, TargetModel* pTargetModel, D
 {
     m_pWidget = new DisasmWidget2(this, pTargetModel, pDispatcher, windowIndex);
     m_pWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
-
-    this->setWindowTitle("Disassembly");
 
     // Top group box
     m_pLineEdit = new QLineEdit(this);

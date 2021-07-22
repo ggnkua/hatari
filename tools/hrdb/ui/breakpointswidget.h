@@ -72,8 +72,8 @@ class BreakpointsWidget : public QDockWidget
 {
     Q_OBJECT
 public:
-    BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher);
-
+    BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher);   
+    void keyFocus();
 public slots:
 
 private slots:

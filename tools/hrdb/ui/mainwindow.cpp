@@ -51,11 +51,17 @@ MainWindow::MainWindow(QWidget *parent)
     m_pRegistersTextEdit->setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
     m_pDisasmWidget0 = new DisasmViewWidget(this, m_pTargetModel, m_pDispatcher, 0);
+    m_pDisasmWidget0->setWindowTitle("Disassembly (Alt+D)");
     m_pDisasmWidget1 = new DisasmViewWidget(this, m_pTargetModel, m_pDispatcher, 1);
+    m_pDisasmWidget1->setWindowTitle("Disassembly 2");
     m_pMemoryViewWidget0 = new MemoryViewWidget(this, m_pTargetModel, m_pDispatcher, 0);
+    m_pMemoryViewWidget0->setWindowTitle("Memory (Alt+M)");
     m_pMemoryViewWidget1 = new MemoryViewWidget(this, m_pTargetModel, m_pDispatcher, 1);
+    m_pMemoryViewWidget1->setWindowTitle("Memory 2");
     m_pGraphicsInspector = new GraphicsInspectorWidget(this, m_pTargetModel, m_pDispatcher);
+    m_pGraphicsInspector->setWindowTitle("Graphics Inspector (Alt+G)");
     m_pBreakpointsWidget = new BreakpointsWidget(this, m_pTargetModel, m_pDispatcher);
+    m_pBreakpointsWidget->setWindowTitle("Breakpoints (Alt+B)");
     m_pExceptionDialog = new ExceptionDialog(this, m_pTargetModel, m_pDispatcher);
     m_pRunDialog = new RunDialog(this, m_pTargetModel, m_pDispatcher);
 
@@ -128,9 +134,6 @@ MainWindow::MainWindow(QWidget *parent)
     new QShortcut(QKeySequence(tr("s",      "Step")),               this, SLOT(singleStepClicked()));
     new QShortcut(QKeySequence(tr("Esc",    "Break")),              this, SLOT(breakPressed()));
     new QShortcut(QKeySequence(tr("u",      "Run Until")),          this, SLOT(runToClicked()));
-
-    // This should be an action
-    new QShortcut(QKeySequence(tr("Alt+B",  "Add Breakpoint...")),  this, SLOT(addBreakpointPressed()));
 
     // Try initial connect
     Connect();
@@ -535,7 +538,8 @@ void MainWindow::createActions()
     connect(exceptionsAct, &QAction::triggered, this, &MainWindow::ExceptionsDialog);
 
     // "Window"
-    disasmWindowAct0 = new QAction(tr("&Disassembly 1"), this);
+    disasmWindowAct0 = new QAction(tr("Disassembly 1"), this);
+    disasmWindowAct0->setShortcut(QKeySequence("Alt+D"));
     disasmWindowAct0->setStatusTip(tr("Show the memory window"));
     disasmWindowAct0->setCheckable(true);
 
@@ -544,6 +548,7 @@ void MainWindow::createActions()
     disasmWindowAct1->setCheckable(true);
 
     memoryWindowAct0 = new QAction(tr("&Memory 1"), this);
+    memoryWindowAct0->setShortcut(QKeySequence("Alt+M"));
     memoryWindowAct0->setStatusTip(tr("Show the memory window"));
     memoryWindowAct0->setCheckable(true);
 
@@ -552,38 +557,24 @@ void MainWindow::createActions()
     memoryWindowAct1->setCheckable(true);
 
     graphicsInspectorAct = new QAction(tr("&Graphics Inspector"), this);
+    graphicsInspectorAct->setShortcut(QKeySequence("Alt+G"));
     graphicsInspectorAct->setStatusTip(tr("Show the Graphics Inspector"));
     graphicsInspectorAct->setCheckable(true);
 
     breakpointsWindowAct = new QAction(tr("&Breakpoints"), this);
+    breakpointsWindowAct->setShortcut(QKeySequence("Alt+B"));
     breakpointsWindowAct->setStatusTip(tr("Show the Breakpoints window"));
     breakpointsWindowAct->setCheckable(true);
 
-    connect(disasmWindowAct0, &QAction::triggered, this,     [=] () { this->toggleVis(m_pDisasmWidget0); } );
-    connect(disasmWindowAct1, &QAction::triggered, this,     [=] () { this->toggleVis(m_pDisasmWidget1); } );
-    connect(memoryWindowAct0, &QAction::triggered, this,     [=] () { this->toggleVis(m_pMemoryViewWidget0); } );
-    connect(memoryWindowAct1, &QAction::triggered, this,     [=] () { this->toggleVis(m_pMemoryViewWidget1); } );
-    connect(graphicsInspectorAct, &QAction::triggered, this, [=] () { this->toggleVis(m_pGraphicsInspector); } );
-    connect(breakpointsWindowAct, &QAction::triggered, this, [=] () { this->toggleVis(m_pBreakpointsWidget); } );
+    connect(disasmWindowAct0, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget0); m_pDisasmWidget0->keyFocus(); } );
+    connect(disasmWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget1); } );
+    connect(memoryWindowAct0, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget0); m_pMemoryViewWidget0->keyFocus(); } );
+    connect(memoryWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget1); } );
+    connect(graphicsInspectorAct, &QAction::triggered, this, [=] () { this->enableVis(m_pGraphicsInspector); m_pGraphicsInspector->keyFocus(); } );
+    connect(breakpointsWindowAct, &QAction::triggered, this, [=] () { this->enableVis(m_pBreakpointsWidget); m_pBreakpointsWidget->keyFocus(); } );
 
-    {
-        QAction* pFocus = new QAction("Focus Disassembly", this);
-        pFocus->setShortcut(QKeySequence("Alt+D"));
-        connect(pFocus, &QAction::triggered, this,     [=] () { m_pDisasmWidget0->keyFocus(); } );
-        this->addAction(pFocus);
-    }
-    {
-        QAction* pFocus = new QAction("Focus Memory", this);
-        pFocus->setShortcut(QKeySequence("Alt+M"));
-        connect(pFocus, &QAction::triggered, this,     [=] () { m_pMemoryViewWidget0->keyFocus(); } );
-        this->addAction(pFocus);
-    }
-    {
-        QAction* pFocus = new QAction("Focus Graphics Inspector", this);
-        pFocus->setShortcut(QKeySequence("Alt+G"));
-        connect(pFocus, &QAction::triggered, this,     [=] () { m_pGraphicsInspector->keyFocus(); } );
-        this->addAction(pFocus);
-    }
+    // This should be an action
+    new QShortcut(QKeySequence(tr("Shift+Alt+B",  "Add Breakpoint...")),  this, SLOT(addBreakpointPressed()));
 
     // "About"
     aboutAct = new QAction(tr("&About"), this);
@@ -626,12 +617,10 @@ void MainWindow::createMenus()
     helpMenu->addAction(aboutQtAct);
 }
 
-void MainWindow::toggleVis(QWidget* pWidget)
+void MainWindow::enableVis(QWidget* pWidget)
 {
-    if (pWidget->isVisible())
-        pWidget->hide();
-    else
-        pWidget->show();
+    // This used to be a toggle
+    pWidget->show();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)

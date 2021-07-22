@@ -23,11 +23,13 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent)
     : QWidget(parent)
 {
     setMouseTracking(true);
+    setFocusPolicy(Qt::FocusPolicy::StrongFocus);
 }
 
 void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 {
     QPainter painter(this);
+
     const QFont monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     if (m_pixmap.width() != 0)
     {
@@ -47,6 +49,14 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
         painter.setFont(monoFont);
         painter.drawText(10, 10, "Not connected");
     }
+    const QPalette& pal = this->palette();
+
+    if (hasFocus())
+    {
+        painter.setPen(QPen(pal.dark(), 6));
+        painter.drawRect(this->rect());
+    }
+
     QWidget::paintEvent(ev);
 }
 
@@ -140,7 +150,7 @@ GraphicsInspectorWidget::~GraphicsInspectorWidget()
 void GraphicsInspectorWidget::keyFocus()
 {
     activateWindow();
-    this->setFocus();
+    m_pImageWidget->setFocus();
 }
 
 void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)

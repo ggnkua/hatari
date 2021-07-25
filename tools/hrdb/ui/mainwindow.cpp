@@ -22,6 +22,8 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , tcpSocket(new QTcpSocket(this))
 {
+    setObjectName("MainWindow");
+
     // Create the core data models, since other object want to connect to them.
     m_pTargetModel = new TargetModel();
     m_pDispatcher = new Dispatcher(tcpSocket, m_pTargetModel);
@@ -65,10 +67,6 @@ MainWindow::MainWindow(QWidget *parent)
     m_pExceptionDialog = new ExceptionDialog(this, m_pTargetModel, m_pDispatcher);
     m_pRunDialog = new RunDialog(this, m_pTargetModel, m_pDispatcher);
 
-    // Set up menus
-    createActions();
-    createMenus();
-
     // https://doc.qt.io/qt-5/qtwidgets-layouts-basiclayouts-example.html
     QVBoxLayout *vlayout = new QVBoxLayout;
     QHBoxLayout *hlayout = new QHBoxLayout;
@@ -99,11 +97,12 @@ MainWindow::MainWindow(QWidget *parent)
     this->addDockWidget(Qt::BottomDockWidgetArea, m_pDisasmWidget1);
     this->addDockWidget(Qt::LeftDockWidgetArea, m_pGraphicsInspector);
     this->addDockWidget(Qt::BottomDockWidgetArea, m_pBreakpointsWidget);
-    m_pMemoryViewWidget1->hide();
-    m_pDisasmWidget1->hide();
-    m_pBreakpointsWidget->hide();
 
-    readSettings();
+    loadSettings();
+
+    // Set up menus (reflecting current state)
+    createActions();
+    createMenus();
 
     // Listen for target changes
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal, this, &MainWindow::startStopChangedSlot);
@@ -142,7 +141,7 @@ MainWindow::MainWindow(QWidget *parent)
     connectChangedSlot();
     startStopChangedSlot();
 
-    m_pDisasmWidget0->keyFocus();
+//    m_pDisasmWidget0->keyFocus();
 }
 
 MainWindow::~MainWindow()
@@ -211,13 +210,13 @@ void MainWindow::startStopDelayedSlot(int running)
     }
 }
 
-void MainWindow::registersChangedSlot(uint64_t commandId)
+void MainWindow::registersChangedSlot(uint64_t /*commandId*/)
 {
 	// Update text here
     PopulateRegisters();
 }
 
-void MainWindow::memoryChangedSlot(int slot, uint64_t commandId)
+void MainWindow::memoryChangedSlot(int slot, uint64_t /*commandId*/)
 {
     if (slot != MemorySlot::kMainPC)
         return;
@@ -234,7 +233,7 @@ void MainWindow::memoryChangedSlot(int slot, uint64_t commandId)
     PopulateRegisters();
 }
 
-void MainWindow::symbolTableChangedSlot(uint64_t commandId)
+void MainWindow::symbolTableChangedSlot(uint64_t /*commandId*/)
 {
     PopulateRegisters();
 }
@@ -244,7 +243,7 @@ void MainWindow::startStopClicked()
     if (!m_pTargetModel->IsConnected())
         return;
 
-	if (m_pTargetModel->IsRunning())
+    if (m_pTargetModel->IsRunning())
         m_pDispatcher->SendCommandPacket("break");
 	else
         m_pDispatcher->SendCommandPacket("run");
@@ -410,7 +409,7 @@ void MainWindow::PopulateRegisters()
 	ref << DispSR(m_prevRegs, regs, 1, "V");
 	ref << DispSR(m_prevRegs, regs, 0, "C");
 
-    uint16_t ex = (uint16_t)GET_REG(regs, EX);
+    uint32_t ex = GET_REG(regs, EX);
     if (ex != 0)
         ref << "<br>" << "EXCEPTION: " << ExceptionMask::GetName(ex);
 
@@ -491,6 +490,70 @@ void MainWindow::updateButtonEnable()
     exceptionsAct->setEnabled(isConnected);
 }
 
+
+void MainWindow::loadSettings()
+{
+    //https://doc.qt.io/qt-5/qsettings.html#details
+    QSettings settings;
+
+    settings.beginGroup("MainWindow");
+    restoreGeometry(settings.value("geometry").toByteArray());
+    if(!restoreState(settings.value("windowState").toByteArray()))
+    {
+        // Default docking status
+        m_pDisasmWidget0->setVisible(true);
+        m_pDisasmWidget1->setVisible(false);
+        m_pMemoryViewWidget0->setVisible(true);
+        m_pMemoryViewWidget1->setVisible(false);
+        m_pGraphicsInspector->setVisible(true);
+        m_pBreakpointsWidget->setVisible(true);
+    }
+    else
+    {
+
+        QDockWidget* wlist[] =
+        {
+            m_pDisasmWidget0, m_pDisasmWidget1,
+            m_pMemoryViewWidget0, m_pMemoryViewWidget1,
+            m_pBreakpointsWidget, m_pGraphicsInspector,
+            nullptr
+        };
+        QDockWidget** pCurr = wlist;
+        while (*pCurr)
+        {
+            // Fix for docking system: for some reason, we need to manually
+            // activate floating docking windows for them to appear
+            if ((*pCurr)->isFloating())
+            {
+                (*pCurr)->activateWindow();
+            }
+            ++pCurr;
+        }
+    }
+
+    m_pRunToCombo->setCurrentIndex(settings.value("runto", QVariant(0)).toInt());
+    settings.endGroup();
+}
+
+void MainWindow::saveSettings()
+{
+    // enclose in scope so it's saved before widgets are saved
+    {
+        QSettings settings;
+        settings.beginGroup("MainWindow");
+        settings.setValue("geometry", saveGeometry());
+        settings.setValue("windowState", saveState());
+        settings.setValue("runto", m_pRunToCombo->currentIndex());
+        settings.endGroup();
+    }
+
+    m_pDisasmWidget0->saveSettings();
+    m_pDisasmWidget1->saveSettings();
+    m_pMemoryViewWidget0->saveSettings();
+    m_pMemoryViewWidget1->saveSettings();
+    m_pGraphicsInspector->saveSettings();
+}
+
 void MainWindow::menuConnect()
 {
     Connect();
@@ -567,9 +630,9 @@ void MainWindow::createActions()
     breakpointsWindowAct->setCheckable(true);
 
     connect(disasmWindowAct0, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget0); m_pDisasmWidget0->keyFocus(); } );
-    connect(disasmWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget1); } );
+    connect(disasmWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget1); m_pDisasmWidget1->keyFocus(); } );
     connect(memoryWindowAct0, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget0); m_pMemoryViewWidget0->keyFocus(); } );
-    connect(memoryWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget1); } );
+    connect(memoryWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget1); m_pMemoryViewWidget1->keyFocus(); } );
     connect(graphicsInspectorAct, &QAction::triggered, this, [=] () { this->enableVis(m_pGraphicsInspector); m_pGraphicsInspector->keyFocus(); } );
     connect(breakpointsWindowAct, &QAction::triggered, this, [=] () { this->enableVis(m_pBreakpointsWidget); m_pBreakpointsWidget->keyFocus(); } );
 
@@ -620,40 +683,12 @@ void MainWindow::createMenus()
 void MainWindow::enableVis(QWidget* pWidget)
 {
     // This used to be a toggle
-    pWidget->show();
+    pWidget->setVisible(true);
+    pWidget->setHidden(false);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (true) {
-        writeSettings();
-        event->accept();
-    } else{
-        event->ignore();
-    }
-}
-
-void MainWindow::readSettings()
-{
-    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
-    settings.setDefaultFormat(QSettings::Format::IniFormat);
-
-    const QByteArray geometry = settings.value("geometry", QByteArray()).toByteArray();
-    if (geometry.isEmpty()) {
-        QWindow wid;
-        const QRect availableGeometry = wid.screen()->availableGeometry();
-        resize(availableGeometry.width() / 3, availableGeometry.height() / 2);
-        move((availableGeometry.width() - width()) / 2,
-             (availableGeometry.height() - height()) / 2);
-    } else {
-        restoreGeometry(geometry);
-    }
-
-
-}
-
-void MainWindow::writeSettings()
-{
-    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
-    settings.setValue("geometry", saveGeometry());
+    saveSettings();
+    event->accept();
 }

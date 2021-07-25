@@ -12,25 +12,14 @@ class TargetModel;
 class Dispatcher;
 class QCheckBox;
 class QPaintEvent;
+class QSettings;
 
 class DisasmWidget2 : public QWidget
 {
     Q_OBJECT
 public:
-    enum Column
-    {
-        kColSymbol,
-        kColAddress,
-        kColBreakpoint,
-        kColHex,
-        kColDisasm,
-        kColComments,
-
-        kColCount
-    };
-
-    DisasmWidget2(QObject * parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
-    virtual ~DisasmWidget2();
+    DisasmWidget2(QWidget * parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
+    virtual ~DisasmWidget2() override;
 
     // "The model emits signals to indicate changes. For example, dataChanged() is emitted whenever items of data made available by the model are changed"
     // So I expect we can emit that if we see the target has changed
@@ -38,6 +27,7 @@ public:
     uint32_t GetAddress() const { return m_logicalAddr; }
     int GetRowCount() const     { return m_rowCount; }
     bool GetFollowPC() const    { return m_bFollowPC; }
+    bool GetShowHex() const     { return m_bShowHex; }
     bool GetInstructionAddr(int row, uint32_t& addr) const;
     bool GetEA(uint32_t row, int operandIndex, uint32_t &addr);
 
@@ -50,6 +40,7 @@ public:
     void ToggleBreakpoint(int row);
     void NopRow(int row);
     void SetRowCount(int count);
+    void SetShowHex(bool show);
     void SetFollowPC(bool follow);
 public slots:
 signals:
@@ -76,7 +67,7 @@ private:
     void SetAddress(uint32_t addr);
     void RequestMemory();
     void CalcDisasm();
-    void CalcEAs();
+    void CalcOpAddresses();
     void printEA(const operand &op, const Registers &regs, uint32_t address, QTextStream &ref) const;
 
     // Cached data when the up-to-date request comes through
@@ -122,10 +113,7 @@ private:
 
     static const uint32_t kInvalid = 0xffffffff;
 
-protected:
-
-private:
-    virtual void contextMenuEvent(QContextMenuEvent *event);
+    virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
     void runToCursorRightClick();
     void toggleBreakpointRightClick();
@@ -136,7 +124,8 @@ private:
     void disasmViewAddr0();
     void disasmViewAddr1();
     void RecalcRowCount();
-    void RecalcSizes();
+    void GetLineHeight();
+    void RecalcColums();
 
     TargetModel*          m_pTargetModel;   // for inter-window
     Dispatcher*           m_pDispatcher;
@@ -149,8 +138,18 @@ private:
     QAction*              m_pMemViewAddress[3];
     QAction*              m_pDisassembleAddress[2];
 
-    QMenu                 m_rightClickMenu;
+    // Column layout
+    bool                  m_bShowHex;
+    int                   m_symbolCol;
+    int                   m_addressCol;
+    int                   m_pcCol;
+    int                   m_bpCol;
+    int                   m_hexCol;
+    int                   m_disasmCol;
+    int                   m_commentsCol;
 
+    // Rightclick menu
+    QMenu                 m_rightClickMenu;
     // Remembers which row we right-clicked on
     int                   m_rightClickRow;
     uint32_t              m_rightClickInstructionAddr;
@@ -320,6 +319,9 @@ public:
     // Grab focus and point to the main widget
     void keyFocus();
 
+    void loadSettings();
+    void saveSettings();
+
 public slots:
     void requestAddress(int windowIndex, bool isMemory, uint32_t address);
 
@@ -333,6 +335,8 @@ protected slots:
     void keyPageUpPressed();
     void returnPressedSlot();
     void textChangedSlot();
+
+    void showHexClickedSlot();
     void followPCClickedSlot();
 
 private:
@@ -340,10 +344,11 @@ private:
     void UpdateTextBox();
 
     QLineEdit*      m_pLineEdit;
+    QCheckBox*      m_pShowHex;
     QCheckBox*      m_pFollowPC;
 //    QTableView*     m_pTableView;
 //    DisasmTableModel* m_pTableModel;
-    DisasmWidget2*  m_pWidget;
+    DisasmWidget2*  m_pDisasmWidget;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
     QAbstractItemModel* m_pSymbolTableModel;

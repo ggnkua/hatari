@@ -146,6 +146,9 @@ public:
     // Grab focus and point to the main widget
     void keyFocus();
 
+    void loadSettings();
+    void saveSettings();
+
 public slots:
     void requestAddress(int windowIndex, bool isMemory, uint32_t address);
 

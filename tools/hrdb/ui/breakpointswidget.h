@@ -51,7 +51,7 @@ class BreakpointsTableView : public QTableView
 {
     Q_OBJECT
 public:
-    BreakpointsTableView(QWidget* parent, BreakpointsTableModel* pModel, TargetModel* pTargetModel);
+    BreakpointsTableView(QWidget* parent, BreakpointsTableModel* pModel);
 
 public slots:
 

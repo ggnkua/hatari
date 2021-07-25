@@ -126,7 +126,7 @@ void BreakpointsTableModel::breakpointsChangedSlot()
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-BreakpointsTableView::BreakpointsTableView(QWidget* parent, BreakpointsTableModel* pModel, TargetModel* pTargetModel) :
+BreakpointsTableView::BreakpointsTableView(QWidget* parent, BreakpointsTableModel* pModel) :
     QTableView(parent),
     m_pTableModel(pModel),
     //m_rightClickMenu(this),
@@ -194,11 +194,12 @@ BreakpointsWidget::BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel,
     m_pDispatcher(pDispatcher)
 {
     this->setWindowTitle("Breakpoints");
+    setObjectName("BreakpointsWidget");
 
     // Make the data first
     pModel = new BreakpointsTableModel(this, pTargetModel, pDispatcher);
 
-    m_pTableView = new BreakpointsTableView(this, pModel, m_pTargetModel);
+    m_pTableView = new BreakpointsTableView(this, pModel);
     m_pTableView->setModel(pModel);
 
     m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());

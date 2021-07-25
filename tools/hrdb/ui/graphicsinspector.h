@@ -49,6 +49,8 @@ public:
 
     // Grab focus and point to the main widget
     void keyFocus();
+    void loadSettings();
+    void saveSettings();
 
     void connectChangedSlot();
     void startStopChangedSlot();

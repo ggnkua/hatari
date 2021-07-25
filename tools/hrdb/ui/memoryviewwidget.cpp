@@ -12,6 +12,7 @@
 #include <QCompleter>
 #include <QPainter>
 #include <QKeyEvent>
+#include <QSettings>
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
@@ -406,6 +407,7 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
     }
 
     // Draw highlight/cursor area in the hex
+    if (m_cursorRow >= 0 && m_cursorRow < m_rows.size())
     {
         int y_curs = m_cursorRow * m_lineHeight;       // compensate for descenders TODO use ascent()
         int x_curs = GetHexCharX(m_cursorCol);
@@ -490,7 +492,7 @@ void MemoryWidget::RequestMemory()
 void MemoryWidget::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
-//    RecalcRowCount(true);
+    RecalcRowCount();
 }
 
 void MemoryWidget::RecalcRowCount()
@@ -501,6 +503,11 @@ void MemoryWidget::RecalcRowCount()
     int rowh = m_lineHeight;
     if (rowh != 0)
         this->SetRowCount(h / rowh);
+
+    if (m_cursorRow >= m_rowCount)
+    {
+        m_cursorRow = m_rowCount - 1;
+    }
 }
 
 void MemoryWidget::RecalcSizes()
@@ -537,103 +544,6 @@ void MemoryWidget::GetCursorInfo(uint32_t &address, bool &bottomNybble)
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-#if 0
-MemoryTableView::MemoryTableView(QWidget* parent, MemoryWidget* pModel, TargetModel* pTargetModel) :
-    QTableView(parent),
-    m_pTableModel(pModel),
-    //m_rightClickMenu(this),
-    m_rightClickRow(-1)
-{
-    // Actions for right-click menu
-    //m_pRunUntilAction = new QAction(tr("Run to here"), this);
-    //connect(m_pRunUntilAction, &QAction::triggered, this, &MemoryTableView::runToCursorRightClick);
-    //m_pBreakpointAction = new QAction(tr("Toggle Breakpoint"), this);
-    //m_rightClickMenu.addAction(m_pRunUntilAction);
-    //m_rightClickMenu.addAction(m_pBreakpointAction);
-    //new QShortcut(QKeySequence(tr("F3", "Run to cursor")),        this, SLOT(runToCursor()));
-    //new QShortcut(QKeySequence(tr("F9", "Toggle breakpoint")),    this, SLOT(toggleBreakpoint()));
-
-    //connect(m_pBreakpointAction, &QAction::triggered,                  this, &MemoryTableView::toggleBreakpointRightClick);
-    connect(pTargetModel,        &TargetModel::startStopChangedSignal, this, &MemoryTableView::RecalcRowCount);
-
-    // This table gets the focus from the parent docking widget
-    setFocus();
-}
-
-/*
-void MemoryTableView::contextMenuEvent(QContextMenuEvent *event)
-{
-    QModelIndex index = this->indexAt(event->pos());
-    if (!index.isValid())
-        return;
-
-    m_rightClickRow = index.row();
-    m_rightClickMenu.exec(event->globalPos());
-
-}
-
-void MemoryTableView::runToCursorRightClick()
-{
-    m_pTableModel->RunToRow(m_rightClickRow);
-    m_rightClickRow = -1;
-}
-
-void MemoryTableView::toggleBreakpointRightClick()
-{
-    m_pTableModel->ToggleBreakpoint(m_rightClickRow);
-    m_rightClickRow = -1;
-}
-
-void MemoryTableView::runToCursor()
-{
-    // How do we get the selected row
-    QModelIndex i = this->currentIndex();
-    m_pTableModel->RunToRow(i.row());
-}
-
-void MemoryTableView::toggleBreakpoint()
-{
-    // How do we get the selected row
-    QModelIndex i = this->currentIndex();
-    m_pTableModel->ToggleBreakpoint(i.row());
-}
-*/
-QModelIndex MemoryTableView::moveCursor(QAbstractItemView::CursorAction cursorAction, Qt::KeyboardModifiers modifiers)
-{
-    QModelIndex i = this->currentIndex();
-
-    // Do the override/refill behaviour if we need to scroll our virtual area
-    if (cursorAction == QAbstractItemView::CursorAction::MoveUp &&
-        i.row() == 0)
-    {
-        m_pTableModel->MoveUp();
-        return i;
-    }
-    else if (cursorAction == QAbstractItemView::CursorAction::MoveDown &&
-             i.row() >= m_pTableModel->GetRowCount() - 1)
-    {
-        m_pTableModel->MoveDown();
-        return i;
-    }
-    else if (cursorAction == QAbstractItemView::CursorAction::MovePageUp &&
-             i.row() == 0)
-    {
-        m_pTableModel->PageUp();
-        return i;
-    }
-    else if (cursorAction == QAbstractItemView::CursorAction::MovePageDown &&
-             i.row() >= m_pTableModel->GetRowCount() - 1)
-    {
-        m_pTableModel->PageDown();
-        return i;
-    }
-    return QTableView::moveCursor(cursorAction, modifiers);
-}
-
-#endif
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 MemoryViewWidget::MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher, int windowIndex) :
     QDockWidget(parent),
     m_pTargetModel(pTargetModel),
@@ -641,6 +551,8 @@ MemoryViewWidget::MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, D
     m_windowIndex(windowIndex)
 {
     this->setWindowTitle(QString::asprintf("Memory %d", windowIndex + 1));
+    QString key = QString::asprintf("MemoryView%d", m_windowIndex);
+    setObjectName(key);
 
     // Make the data first
     m_pMemoryWidget = new MemoryWidget(this, pTargetModel, pDispatcher, windowIndex);
@@ -678,6 +590,8 @@ MemoryViewWidget::MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, D
     pMainRegion->setLayout(pMainLayout);
     setWidget(pMainRegion);
 
+    loadSettings();
+
     // Listen for start/stop, so we can update our memory request
     connect(m_pLineEdit, &QLineEdit::returnPressed,         this, &MemoryViewWidget::textEditChangedSlot);
     connect(m_pLockCheckBox, &QCheckBox::stateChanged,      this, &MemoryViewWidget::lockChangedSlot);
@@ -688,6 +602,31 @@ void MemoryViewWidget::keyFocus()
 {
     activateWindow();
     m_pMemoryWidget->setFocus();
+}
+
+
+void MemoryViewWidget::loadSettings()
+{
+    QSettings settings;
+    QString key = QString::asprintf("MemoryView%d", m_windowIndex);
+    settings.beginGroup(key);
+
+    restoreGeometry(settings.value("geometry").toByteArray());
+    int mode = settings.value("mode", QVariant(0)).toInt();
+    m_pMemoryWidget->SetMode(static_cast<MemoryWidget::Mode>(mode));
+    m_pComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
+    settings.endGroup();
+}
+
+void MemoryViewWidget::saveSettings()
+{
+    QSettings settings;
+    QString key = QString::asprintf("MemoryView%d", m_windowIndex);
+    settings.beginGroup(key);
+
+    settings.setValue("geometry", saveGeometry());
+    settings.setValue("mode", static_cast<int>(m_pMemoryWidget->GetMode()));
+    settings.endGroup();
 }
 
 void MemoryViewWidget::requestAddress(int windowIndex, bool isMemory, uint32_t address)

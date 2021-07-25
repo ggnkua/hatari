@@ -76,6 +76,10 @@ private:
     void PopulateRunningSquare();
     void updateButtonEnable();
 
+    // Settings
+    void loadSettings();
+    void saveSettings();
+
     // Our UI widgets
     QPushButton*	m_pStartStopButton;
     QPushButton*	m_pStepIntoButton;
@@ -131,7 +135,5 @@ private:
 
     QAction *aboutAct;
     QAction *aboutQtAct;
-    void readSettings();
-    void writeSettings();
 };
 #endif // MAINWINDOW_H

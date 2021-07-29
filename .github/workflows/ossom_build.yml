@@ -104,6 +104,7 @@ jobs:
           windeployqt .
           mv ../fastbuild/hatari.exe .
           cd ../hrdb64
+          export PATH=/mingw64/bin:$PATH
           /C/msys64/mingw64/bin/windeployqt.exe .
           mv ../fastbuild_x64/hatari.exe .
           

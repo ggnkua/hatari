@@ -461,8 +461,8 @@ Executable( "hatari_exe" )        ; (optional) Alias
 ; | | | | | | (_| | |_) |
 ; |_| |_|_|  \__,_|_.__/ 
 
-.RCC         ="C:\m\mingw64\bin\rcc.exe"
-.MOC         ="C:\m\mingw64\bin\moc.exe"
+.RCC         ="$GCC_BIN_DIR$\rcc.exe"
+.MOC         ="$GCC_BIN_DIR$\moc.exe"
 .MOC_DEFINES ="-DUNICODE"
             +" -D_UNICODE"
             +" -DWIN32"

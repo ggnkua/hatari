@@ -22,7 +22,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: ${{ matrix.msystem }}
-          install: git base-devel mingw-w64-${{ matrix.arch }}-toolchain
+          install: git base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
           #update: true
           release: false
 
@@ -31,20 +31,9 @@ jobs:
       - name: "Copy qt dll files"
         shell: msys2 {0}
         run: |
-          pacman --noconfirm -S make mingw32/mingw-w64-i686-attica-qt5 mingw-w64-i686-SDL2
-          #cd tools/hrdb
-          #qmake
-          #make
-          #windeployqt release/
-          #rm *.cpp
-          #rm *.o
-          #cd ..
-          #mv release hrdb
-          #mv hrdb ../..
-          # This is for the hatari build, but echo in cmd.exe does weird stuff with >
-          # Not needed anymore
-          #echo '#include <string.h>' > /C/msys64//usr/include/memory.h
+          pacman --noconfirm -S make mingw32/mingw-w64-i686-attica-qt5 mingw-w64-i686-SDL2 mingw32/mingw-w64-x86_64-attica-qt5 mingw-w64-x86_64-SDL2
           mkdir hrdb
+          mkdir hrdb64
           cd hrdb
           cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
           cp /C/msys64/mingw32/bin/libstdc++-6.dll .
@@ -71,6 +60,32 @@ jobs:
           # Remove unneeded dlls
           rm libicuucd*.dll
           rm libicudtd*.dll
+          cd ../hrdb64
+          cp /C/msys64/mingw64/bin/libgcc_s_dw2-1.dll .
+          cp /C/msys64/mingw64/bin/libstdc++-6.dll .
+          cp /C/msys64/mingw64/bin/libbrotlicommon.dll .
+          cp /C/msys64/mingw64/bin/libbrotlidec.dll .
+          cp /C/msys64/mingw64/bin/libharfbuzz-0.dll .
+          cp /C/msys64/mingw64/bin/libglib-2.0-0.dll .
+          cp /C/msys64/mingw64/bin/libfreetype-6.dll .
+          cp /C/msys64/mingw64/bin/libiconv-2.dll .
+          cp /C/msys64/mingw64/bin/libintl-8.dll .
+          cp /C/msys64/mingw64/bin/libwinpthread-1.dll .
+          cp /C/msys64/mingw64/bin/libgraphite2.dll .
+          cp /C/msys64/mingw64/bin/libzstd.dll .
+          cp /C/msys64/mingw64/bin/libpcre2-16-0.dll .
+          cp /C/msys64/mingw64/bin/libicudt*.dll .
+          cp /C/msys64/mingw64/bin/libicuin*.dll .
+          cp /C/msys64/mingw64/bin/libicuuc*.dll .
+          cp /C/msys64/mingw64/bin/libpcre-1.dll .
+          cp /C/msys64/mingw64/bin/libbz2-1.dll .
+          cp /C/msys64/mingw64/bin/libdouble-conversion.dll .
+          cp /C/msys64/mingw64/bin/zlib1.dll .
+          cp /C/msys64/mingw64/bin/libpng16-16.dll .
+          cp /C/msys64/mingw64/bin/SDL2.dll .
+          # Remove unneeded dlls
+          rm libicuucd*.dll
+          rm libicudtd*.dll
 
       - name: "Build hatari"
         shell: cmd
@@ -78,6 +93,9 @@ jobs:
           cd fastbuild
           fbuild
           move hrdb.exe ..\hrdb
+          cd ..\fastbuild_x64
+          fbuild
+          move hrdb.exe ..\hrdb64
 
       - name: "Post qt build steps"
         shell: msys2 {0}
@@ -85,6 +103,9 @@ jobs:
           cd hrdb
           windeployqt .
           mv ../fastbuild/hatari.exe .
+          cd ../hrdb64
+          windeployqt .
+          mv ../fastbuild_x64/hatari.exe .
           
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
@@ -92,3 +113,4 @@ jobs:
           name: hatari-debugger-${{ github.sha }}
           path: |
               hrdb/
+              hrdb64/

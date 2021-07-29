@@ -31,7 +31,7 @@ jobs:
       - name: "Copy qt dll files"
         shell: msys2 {0}
         run: |
-          pacman --noconfirm -S make mingw32/mingw-w64-i686-attica-qt5 mingw-w64-i686-SDL2 mingw32/mingw-w64-x86_64-attica-qt5 mingw-w64-x86_64-SDL2
+          pacman --noconfirm -S make mingw32/mingw-w64-i686-attica-qt5 mingw-w64-i686-SDL2 mingw32/mingw-w64-x86_64-qt5 mingw-w64-x86_64-SDL2
           mkdir hrdb
           mkdir hrdb64
           cd hrdb

@@ -14,12 +14,12 @@ class QCheckBox;
 class QPaintEvent;
 class QSettings;
 
-class DisasmWidget2 : public QWidget
+class DisasmWidget : public QWidget
 {
     Q_OBJECT
 public:
-    DisasmWidget2(QWidget * parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
-    virtual ~DisasmWidget2() override;
+    DisasmWidget(QWidget * parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
+    virtual ~DisasmWidget() override;
 
     // "The model emits signals to indicate changes. For example, dataChanged() is emitted whenever items of data made available by the model are changed"
     // So I expect we can emit that if we see the target has changed
@@ -61,6 +61,7 @@ private:
     virtual void paintEvent(QPaintEvent* ev) override;
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void mouseMoveEvent(QMouseEvent* event) override;
+    virtual void mousePressEvent(QMouseEvent* event) override;
     virtual void resizeEvent(QResizeEvent *event) override;
     virtual bool event(QEvent *ev) override;
 
@@ -140,13 +141,19 @@ private:
 
     // Column layout
     bool                  m_bShowHex;
-    int                   m_symbolCol;
-    int                   m_addressCol;
-    int                   m_pcCol;
-    int                   m_bpCol;
-    int                   m_hexCol;
-    int                   m_disasmCol;
-    int                   m_commentsCol;
+
+    enum Column
+    {
+        kSymbol,
+        kAddress,
+        kPC,
+        kBreakpoint,
+        kHex,
+        kDisasm,
+        kComments,
+        kNumColumns
+    };
+    int                   m_columnLeft[kNumColumns + 1];    // Include +1 for RHS
 
     // Rightclick menu
     QMenu                 m_rightClickMenu;
@@ -310,11 +317,11 @@ private:
 };
 #endif
 
-class DisasmViewWidget : public QDockWidget
+class DisasmWindow : public QDockWidget
 {
     Q_OBJECT
 public:
-    DisasmViewWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
+    DisasmWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
 
     // Grab focus and point to the main widget
     void keyFocus();
@@ -348,7 +355,7 @@ private:
     QCheckBox*      m_pFollowPC;
 //    QTableView*     m_pTableView;
 //    DisasmTableModel* m_pTableModel;
-    DisasmWidget2*  m_pDisasmWidget;
+    DisasmWidget*  m_pDisasmWidget;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
     QAbstractItemModel* m_pSymbolTableModel;

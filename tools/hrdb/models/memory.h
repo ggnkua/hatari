@@ -52,6 +52,12 @@ public:
         return m_addr;
     }
 
+    bool HasAddress(uint32_t address) const
+    {
+        uint32_t offset = address - m_addr;
+        return offset < m_size;
+    }
+
     uint8_t ReadAddressByte(uint32_t address) const
     {
         uint32_t offset = address - m_addr;

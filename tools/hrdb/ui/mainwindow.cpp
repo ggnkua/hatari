@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <QtWidgets>
-#include <QtNetwork>
 #include <QShortcut>
 #include <QFontDatabase>
 
@@ -14,19 +13,18 @@
 #include "memoryviewwidget.h"
 #include "graphicsinspector.h"
 #include "breakpointswidget.h"
+#include "consolewindow.h"
 #include "addbreakpointdialog.h"
 #include "exceptiondialog.h"
 #include "rundialog.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , tcpSocket(new QTcpSocket(this))
 {
     setObjectName("MainWindow");
 
-    // Create the core data models, since other object want to connect to them.
     m_pTargetModel = new TargetModel();
-    m_pDispatcher = new Dispatcher(tcpSocket, m_pTargetModel);
+    m_pDispatcher = new Dispatcher(m_session.m_pTcpSocket, m_pTargetModel);
 
     // Top row of buttons
     m_pRunningSquare = new QWidget(this);
@@ -52,20 +50,22 @@ MainWindow::MainWindow(QWidget *parent)
     m_pRegistersTextEdit->setLineWrapMode(QTextEdit::LineWrapMode::NoWrap);
     m_pRegistersTextEdit->setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
-    m_pDisasmWidget0 = new DisasmViewWidget(this, m_pTargetModel, m_pDispatcher, 0);
+    m_pDisasmWidget0 = new DisasmWindow(this, m_pTargetModel, m_pDispatcher, 0);
     m_pDisasmWidget0->setWindowTitle("Disassembly (Alt+D)");
-    m_pDisasmWidget1 = new DisasmViewWidget(this, m_pTargetModel, m_pDispatcher, 1);
+    m_pDisasmWidget1 = new DisasmWindow(this, m_pTargetModel, m_pDispatcher, 1);
     m_pDisasmWidget1->setWindowTitle("Disassembly 2");
-    m_pMemoryViewWidget0 = new MemoryViewWidget(this, m_pTargetModel, m_pDispatcher, 0);
+    m_pMemoryViewWidget0 = new MemoryWindow(this, m_pTargetModel, m_pDispatcher, 0);
     m_pMemoryViewWidget0->setWindowTitle("Memory (Alt+M)");
-    m_pMemoryViewWidget1 = new MemoryViewWidget(this, m_pTargetModel, m_pDispatcher, 1);
+    m_pMemoryViewWidget1 = new MemoryWindow(this, m_pTargetModel, m_pDispatcher, 1);
     m_pMemoryViewWidget1->setWindowTitle("Memory 2");
     m_pGraphicsInspector = new GraphicsInspectorWidget(this, m_pTargetModel, m_pDispatcher);
     m_pGraphicsInspector->setWindowTitle("Graphics Inspector (Alt+G)");
-    m_pBreakpointsWidget = new BreakpointsWidget(this, m_pTargetModel, m_pDispatcher);
+    m_pBreakpointsWidget = new BreakpointsWindow(this, m_pTargetModel, m_pDispatcher);
     m_pBreakpointsWidget->setWindowTitle("Breakpoints (Alt+B)");
+    m_pConsoleWindow = new ConsoleWindow(this, m_pTargetModel, m_pDispatcher);
+
     m_pExceptionDialog = new ExceptionDialog(this, m_pTargetModel, m_pDispatcher);
-    m_pRunDialog = new RunDialog(this, m_pTargetModel, m_pDispatcher);
+    m_pRunDialog = new RunDialog(this, &m_session);
 
     // https://doc.qt.io/qt-5/qtwidgets-layouts-basiclayouts-example.html
     QVBoxLayout *vlayout = new QVBoxLayout;
@@ -97,6 +97,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->addDockWidget(Qt::BottomDockWidgetArea, m_pDisasmWidget1);
     this->addDockWidget(Qt::LeftDockWidgetArea, m_pGraphicsInspector);
     this->addDockWidget(Qt::BottomDockWidgetArea, m_pBreakpointsWidget);
+    this->addDockWidget(Qt::BottomDockWidgetArea, m_pConsoleWindow);
 
     loadSettings();
 
@@ -113,10 +114,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_pTargetModel, &TargetModel::startStopChangedSignalDelayed,this, &MainWindow::startStopDelayedSlot);
 
     // Wire up cross-window requests
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidget0, &MemoryViewWidget::requestAddress);
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidget1, &MemoryViewWidget::requestAddress);
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget0,     &DisasmViewWidget::requestAddress);
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget1,     &DisasmViewWidget::requestAddress);
+    connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidget0, &MemoryWindow::requestAddress);
+    connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidget1, &MemoryWindow::requestAddress);
+    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget0,     &DisasmWindow::requestAddress);
+    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget1,     &DisasmWindow::requestAddress);
 
     // Wire up buttons to actions
     connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClicked);
@@ -149,7 +150,6 @@ MainWindow::~MainWindow()
 	delete m_pDispatcher;
     delete m_pTargetModel;
 }
-
 
 void MainWindow::connectChangedSlot()
 {
@@ -256,6 +256,7 @@ void MainWindow::singleStepClicked()
 
     if (m_pTargetModel->IsRunning())
         return;
+
     m_pDispatcher->SendCommandPacket("step");
 }
 
@@ -327,18 +328,17 @@ void MainWindow::Run()
 {
     m_pRunDialog->setModal(true);
     m_pRunDialog->show();
+    // We can't connect here since the dialog hasn't really run yet.
 }
 
 void MainWindow::Connect()
 {
-    // Create the TCP socket and start listening
-    QHostAddress qha(QHostAddress::LocalHost);
-    tcpSocket->connectToHost(qha, 56001);
+    m_session.Connect();
 }
 
 void MainWindow::Disconnect()
 {
-    tcpSocket->disconnectFromHost();
+    m_session.Disconnect();
 }
 
 void MainWindow::ExceptionsDialog()
@@ -468,6 +468,7 @@ void MainWindow::updateWindowMenu()
     memoryWindowAct1->setChecked(m_pMemoryViewWidget1->isVisible());
     graphicsInspectorAct->setChecked(m_pGraphicsInspector->isVisible());
     breakpointsWindowAct->setChecked(m_pBreakpointsWidget->isVisible());
+    consoleWindowAct->setChecked(m_pConsoleWindow->isVisible());
 }
 
 void MainWindow::updateButtonEnable()
@@ -507,6 +508,7 @@ void MainWindow::loadSettings()
         m_pMemoryViewWidget1->setVisible(false);
         m_pGraphicsInspector->setVisible(true);
         m_pBreakpointsWidget->setVisible(true);
+        m_pConsoleWindow->setVisible(false);
     }
     else
     {
@@ -516,6 +518,7 @@ void MainWindow::loadSettings()
             m_pDisasmWidget0, m_pDisasmWidget1,
             m_pMemoryViewWidget0, m_pMemoryViewWidget1,
             m_pBreakpointsWidget, m_pGraphicsInspector,
+            m_pConsoleWindow,
             nullptr
         };
         QDockWidget** pCurr = wlist;
@@ -552,6 +555,7 @@ void MainWindow::saveSettings()
     m_pMemoryViewWidget0->saveSettings();
     m_pMemoryViewWidget1->saveSettings();
     m_pGraphicsInspector->saveSettings();
+    m_pConsoleWindow->saveSettings();
 }
 
 void MainWindow::menuConnect()
@@ -629,12 +633,17 @@ void MainWindow::createActions()
     breakpointsWindowAct->setStatusTip(tr("Show the Breakpoints window"));
     breakpointsWindowAct->setCheckable(true);
 
+    consoleWindowAct = new QAction(tr("&Console"), this);
+    consoleWindowAct->setStatusTip(tr("Show the Console window"));
+    consoleWindowAct->setCheckable(true);
+
     connect(disasmWindowAct0, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget0); m_pDisasmWidget0->keyFocus(); } );
     connect(disasmWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget1); m_pDisasmWidget1->keyFocus(); } );
     connect(memoryWindowAct0, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget0); m_pMemoryViewWidget0->keyFocus(); } );
     connect(memoryWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget1); m_pMemoryViewWidget1->keyFocus(); } );
     connect(graphicsInspectorAct, &QAction::triggered, this, [=] () { this->enableVis(m_pGraphicsInspector); m_pGraphicsInspector->keyFocus(); } );
     connect(breakpointsWindowAct, &QAction::triggered, this, [=] () { this->enableVis(m_pBreakpointsWidget); m_pBreakpointsWidget->keyFocus(); } );
+    connect(consoleWindowAct,     &QAction::triggered, this, [=] () { this->enableVis(m_pConsoleWindow); m_pConsoleWindow->keyFocus(); } );
 
     // This should be an action
     new QShortcut(QKeySequence(tr("Shift+Alt+B",  "Add Breakpoint...")),  this, SLOT(addBreakpointPressed()));
@@ -674,6 +683,7 @@ void MainWindow::createMenus()
     windowMenu->addAction(memoryWindowAct1);
     windowMenu->addAction(graphicsInspectorAct);
     windowMenu->addAction(breakpointsWindowAct);
+    windowMenu->addAction(consoleWindowAct);
 
     helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(aboutAct);

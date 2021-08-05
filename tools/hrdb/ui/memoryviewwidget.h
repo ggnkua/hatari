@@ -68,7 +68,7 @@ private:
     int GetAddrX() const;
     // Get the x-coord of the hex-character at cursor column
     int GetHexCharX(int column) const;
-    int GetAsciiCharX() const;
+    int GetAsciiCharX(int column) const;
 
     void GetCursorInfo(uint32_t& address, bool& bottomNybble);
     void SetRowCount(uint32_t rowCount);
@@ -80,7 +80,9 @@ private:
     struct Row
     {
         uint32_t m_address;
+
         std::vector<uint8_t> m_rawBytes;
+        std::vector<bool> m_byteChanged;
         QString m_hexText;
         QString m_asciiText;
     };
@@ -101,6 +103,8 @@ private:
     int      m_windowIndex;        // e.g. "memory 0", "memory 1"
     MemorySlot  m_memSlot;
 
+    Memory  m_previousMemory;       // Copy before we restarted the CPU
+
     // Cursor
     int     m_cursorRow;
     int     m_cursorCol;
@@ -112,36 +116,11 @@ private:
     QFont   monoFont;
 };
 
-#if 0
-class MemoryTableView : public QTableView
+class MemoryWindow : public QDockWidget
 {
     Q_OBJECT
 public:
-    MemoryTableView(QWidget* parent, MemoryViewTableModel* pModel, TargetModel* pTargetModel);
-
-public slots:
-
-protected:
-    QModelIndex moveCursor(QAbstractItemView::CursorAction cursorAction, Qt::KeyboardModifiers modifiers);
-private:
-    // override -- this doesn't trigger at the start?
-    virtual void resizeEvent(QResizeEvent*);
-private slots:
-    void RecalcRowCount();
-
-private:
-    MemoryViewTableModel*     m_pTableModel;
-
-    // Remembers which row we right-clicked on
-    int                   m_rightClickRow;
-};
-#endif
-
-class MemoryViewWidget : public QDockWidget
-{
-    Q_OBJECT
-public:
-    MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
+    MemoryWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
 
     // Grab focus and point to the main widget
     void keyFocus();

@@ -159,6 +159,17 @@ void TargetModel::NotifyMemoryChanged(uint32_t address, uint32_t size)
     emit otherMemoryChanged(address, size);
 }
 
+
+// User-added console command. Anything can happen, so tell everything
+// to update
+void TargetModel::ConsoleCommand()
+{
+    emit otherMemoryChanged(0, 0xffffff);
+    emit breakpointsChangedSignal(0);
+    emit symbolTableChangedSignal(0);
+    emit exceptionMaskChanged();
+}
+
 void TargetModel::Flush()
 {
     emit changedFlush(m_changedFlags);

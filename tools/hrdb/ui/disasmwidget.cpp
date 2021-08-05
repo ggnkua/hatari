@@ -21,8 +21,7 @@
 #include "../models/memory.h"
 
 
-
-DisasmWidget2::DisasmWidget2(QWidget *parent, TargetModel *pTargetModel, Dispatcher* pDispatcher, int windowIndex):
+DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatcher* pDispatcher, int windowIndex):
     QWidget(parent),
     m_memory(0, 0),
     m_rowCount(25),
@@ -82,35 +81,35 @@ DisasmWidget2::DisasmWidget2(QWidget *parent, TargetModel *pTargetModel, Dispatc
     new QShortcut(QKeySequence(tr("Ctrl+B", "Toggle breakpoint")),    this, SLOT(toggleBreakpoint()));
 
     // Target connects
-    connect(m_pTargetModel, &TargetModel::startStopChangedSignal, this, &DisasmWidget2::startStopChangedSlot);
-    connect(m_pTargetModel, &TargetModel::memoryChangedSignal, this, &DisasmWidget2::memoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &DisasmWidget2::breakpointsChangedSlot);
-    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &DisasmWidget2::symbolTableChangedSlot);
-    connect(m_pTargetModel, &TargetModel::connectChangedSignal, this, &DisasmWidget2::connectChangedSlot);
-    connect(m_pTargetModel, &TargetModel::registersChangedSignal, this, &DisasmWidget2::CalcOpAddresses);
-    connect(m_pTargetModel, &TargetModel::otherMemoryChanged,       this, &DisasmWidget2::otherMemoryChangedSlot);
+    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &DisasmWidget::startStopChangedSlot);
+    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &DisasmWidget::memoryChangedSlot);
+    connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &DisasmWidget::breakpointsChangedSlot);
+    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &DisasmWidget::symbolTableChangedSlot);
+    connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &DisasmWidget::connectChangedSlot);
+    connect(m_pTargetModel, &TargetModel::registersChangedSignal,   this, &DisasmWidget::CalcOpAddresses);
+    connect(m_pTargetModel, &TargetModel::otherMemoryChanged,       this, &DisasmWidget::otherMemoryChangedSlot);
 
     // UI connects
-    connect(m_pRunUntilAction,       &QAction::triggered,                  this, &DisasmWidget2::runToCursorRightClick);
-    connect(m_pBreakpointAction,     &QAction::triggered,                  this, &DisasmWidget2::toggleBreakpointRightClick);
-    connect(m_pNopAction,            &QAction::triggered,                  this, &DisasmWidget2::nopRightClick);
-    connect(m_pMemViewAddress[0],    &QAction::triggered,                  this, &DisasmWidget2::memoryViewAddr0);
-    connect(m_pMemViewAddress[1],    &QAction::triggered,                  this, &DisasmWidget2::memoryViewAddr1);
-    connect(m_pMemViewAddress[2],    &QAction::triggered,                  this, &DisasmWidget2::memoryViewAddrInst);
-    connect(m_pDisassembleAddress[0],&QAction::triggered,                  this, &DisasmWidget2::disasmViewAddr0);
-    connect(m_pDisassembleAddress[1],&QAction::triggered,                  this, &DisasmWidget2::disasmViewAddr1);
+    connect(m_pRunUntilAction,       &QAction::triggered,                  this, &DisasmWidget::runToCursorRightClick);
+    connect(m_pBreakpointAction,     &QAction::triggered,                  this, &DisasmWidget::toggleBreakpointRightClick);
+    connect(m_pNopAction,            &QAction::triggered,                  this, &DisasmWidget::nopRightClick);
+    connect(m_pMemViewAddress[0],    &QAction::triggered,                  this, &DisasmWidget::memoryViewAddr0);
+    connect(m_pMemViewAddress[1],    &QAction::triggered,                  this, &DisasmWidget::memoryViewAddr1);
+    connect(m_pMemViewAddress[2],    &QAction::triggered,                  this, &DisasmWidget::memoryViewAddrInst);
+    connect(m_pDisassembleAddress[0],&QAction::triggered,                  this, &DisasmWidget::disasmViewAddr0);
+    connect(m_pDisassembleAddress[1],&QAction::triggered,                  this, &DisasmWidget::disasmViewAddr1);
     setMouseTracking(true);
 
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     repaint();
 }
 
-DisasmWidget2::~DisasmWidget2()
+DisasmWidget::~DisasmWidget()
 {
 
 }
 
-void DisasmWidget2::SetAddress(uint32_t addr)
+void DisasmWidget::SetAddress(uint32_t addr)
 {
     // Request memory for this region and save the address.
     m_logicalAddr = addr;
@@ -119,7 +118,7 @@ void DisasmWidget2::SetAddress(uint32_t addr)
 }
 
 // Request enough memory based on m_rowCount and m_logicalAddr
-void DisasmWidget2::RequestMemory()
+void DisasmWidget::RequestMemory()
 {
     uint32_t addr = m_logicalAddr;
     uint32_t lowAddr = (addr > 100) ? addr - 100 : 0;
@@ -130,7 +129,7 @@ void DisasmWidget2::RequestMemory()
     }
 }
 
-bool DisasmWidget2::GetEA(uint32_t row, int operandIndex, uint32_t &addr)
+bool DisasmWidget::GetEA(uint32_t row, int operandIndex, uint32_t &addr)
 {
     if (row >= m_opAddresses.size())
         return false;
@@ -142,7 +141,7 @@ bool DisasmWidget2::GetEA(uint32_t row, int operandIndex, uint32_t &addr)
     return m_opAddresses[row].valid[operandIndex];
 }
 
-bool DisasmWidget2::GetInstructionAddr(int row, uint32_t &addr) const
+bool DisasmWidget::GetInstructionAddr(int row, uint32_t &addr) const
 {
     if (row >= m_disasm.lines.size())
         return false;
@@ -150,7 +149,7 @@ bool DisasmWidget2::GetInstructionAddr(int row, uint32_t &addr) const
     return true;
 }
 
-bool DisasmWidget2::SetAddress(std::string addrStr)
+bool DisasmWidget::SetAddress(std::string addrStr)
 {
     uint32_t addr;
     if (!StringParsers::ParseExpression(addrStr.c_str(), addr,
@@ -163,7 +162,7 @@ bool DisasmWidget2::SetAddress(std::string addrStr)
     return true;
 }
 
-void DisasmWidget2::MoveUp()
+void DisasmWidget::MoveUp()
 {
     if (m_cursorRow != 0)
     {
@@ -211,7 +210,7 @@ void DisasmWidget2::MoveUp()
         SetAddress(0);
 }
 
-void DisasmWidget2::MoveDown()
+void DisasmWidget::MoveDown()
 {
     if (m_requestId != 0)
         return; // not up to date
@@ -240,7 +239,7 @@ void DisasmWidget2::MoveDown()
     }
 }
 
-void DisasmWidget2::PageUp()
+void DisasmWidget::PageUp()
 {
     if (m_requestId != 0)
         return; // not up to date
@@ -252,7 +251,7 @@ void DisasmWidget2::PageUp()
         SetAddress(0);
 }
 
-void DisasmWidget2::PageDown()
+void DisasmWidget::PageDown()
 {
     if (m_requestId != 0)
         return; // not up to date
@@ -264,7 +263,7 @@ void DisasmWidget2::PageDown()
     }
 }
 
-void DisasmWidget2::RunToRow(int row)
+void DisasmWidget::RunToRow(int row)
 {
     if (row >= 0 && row < m_disasm.lines.size())
     {
@@ -273,7 +272,7 @@ void DisasmWidget2::RunToRow(int row)
     }
 }
 
-void DisasmWidget2::startStopChangedSlot()
+void DisasmWidget::startStopChangedSlot()
 {
     // Request new memory for the view
     if (!m_pTargetModel->IsRunning())
@@ -292,7 +291,7 @@ void DisasmWidget2::startStopChangedSlot()
     }
 }
 
-void DisasmWidget2::connectChangedSlot()
+void DisasmWidget::connectChangedSlot()
 {
     if (!m_pTargetModel->IsConnected())
     {
@@ -302,7 +301,7 @@ void DisasmWidget2::connectChangedSlot()
     }
 }
 
-void DisasmWidget2::memoryChangedSlot(int memorySlot, uint64_t commandId)
+void DisasmWidget::memoryChangedSlot(int memorySlot, uint64_t commandId)
 {
     if (memorySlot != m_memSlot)
         return;
@@ -311,12 +310,10 @@ void DisasmWidget2::memoryChangedSlot(int memorySlot, uint64_t commandId)
     if (commandId != m_requestId)
         return;
 
-    printf("Mem changed current\n");
     const Memory* pMemOrig = m_pTargetModel->GetMemory(m_memSlot);
     if (!pMemOrig)
         return;
 
-    printf("Mem changed %x\n", pMemOrig->GetAddress());
     if (m_logicalAddr == kInvalid)
     {
         m_logicalAddr = pMemOrig->GetAddress();
@@ -332,7 +329,7 @@ void DisasmWidget2::memoryChangedSlot(int memorySlot, uint64_t commandId)
     update();
 }
 
-void DisasmWidget2::breakpointsChangedSlot(uint64_t /*commandId*/)
+void DisasmWidget::breakpointsChangedSlot(uint64_t /*commandId*/)
 {
     // Cache data
     m_breakpoints = m_pTargetModel->GetBreakpoints();
@@ -340,7 +337,7 @@ void DisasmWidget2::breakpointsChangedSlot(uint64_t /*commandId*/)
     update();
 }
 
-void DisasmWidget2::symbolTableChangedSlot(uint64_t /*commandId*/)
+void DisasmWidget::symbolTableChangedSlot(uint64_t /*commandId*/)
 {
     // Don't copy here, just force a re-read
 //    emit dataChanged(this->createIndex(0, 0), this->createIndex(m_rowCount - 1, kColCount));
@@ -348,7 +345,7 @@ void DisasmWidget2::symbolTableChangedSlot(uint64_t /*commandId*/)
     update();
 }
 
-void DisasmWidget2::otherMemoryChangedSlot(uint32_t address, uint32_t size)
+void DisasmWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
 {
     // Do a re-request if our memory is touched
     uint32_t ourAddr = m_logicalAddr;
@@ -357,7 +354,7 @@ void DisasmWidget2::otherMemoryChangedSlot(uint32_t address, uint32_t size)
         RequestMemory();
 }
 
-void DisasmWidget2::paintEvent(QPaintEvent* ev)
+void DisasmWidget::paintEvent(QPaintEvent* ev)
 {
     QWidget::paintEvent(ev);
 
@@ -397,38 +394,55 @@ void DisasmWidget2::paintEvent(QPaintEvent* ev)
         painter.drawRect(0, y_curs, rect().width(), m_lineHeight);
     }
 
-    for (int row = 0; row < m_rowTexts.size(); ++row)
+    for (int col = 0; col < kNumColumns; ++col)
     {
-        if (row == m_cursorRow)
-            painter.setPen(pal.highlightedText().color());
-        else
-            painter.setPen(pal.text().color());
+        int x = m_columnLeft[col] * char_width;
+        int x2 = m_columnLeft[col + 1] * char_width;
 
-        int y = y_base + row * m_lineHeight;
-        const RowText& t = m_rowTexts[row];
-
-        painter.drawText(m_symbolCol * char_width, y, t.symbol);
-        painter.drawText(m_addressCol * char_width, y, t.address);
-        if (m_bShowHex)
-            painter.drawText(m_hexCol * char_width, y, t.hex);
-        painter.drawText(m_disasmCol * char_width, y, t.disasm);
-        painter.drawText(m_commentsCol * char_width, y, t.comments);
-
-        if (t.isPc)
+        // Clip the column to prevent overdraw
+        painter.setClipRect(x, 0, x2 - x, height());
+        for (int row = 0; row < m_rowTexts.size(); ++row)
         {
-            /*
-            painter.drawPixmap(pcCol * char_width,
-                               row * m_lineHeight + (m_lineHeight - m_pcPixmap.height()) / 2,
-                               m_pcPixmap);*/
-            painter.drawText(m_pcCol * char_width, y, ">");
-        }
+            if (row == m_cursorRow)
+                painter.setPen(pal.highlightedText().color());
+            else
+                painter.setPen(pal.text().color());
 
-        if (t.isBreakpoint)
-            painter.drawText(m_bpCol * char_width, y, "*");
-    }
+            int y = y_base + row * m_lineHeight;
+            const RowText& t = m_rowTexts[row];
+
+            switch (col)
+            {
+            case kSymbol:
+                painter.drawText(x, y, t.symbol);
+                break;
+            case kAddress:
+                painter.drawText(x, y, t.address);
+                break;
+            case kPC:
+                if (t.isPc)
+                    painter.drawText(x, y, ">");
+                break;
+            case kHex:
+                if (m_bShowHex)
+                    painter.drawText(x, y, t.hex);
+                break;
+            case kDisasm:
+                painter.drawText(x, y, t.disasm);
+                break;
+            case kComments:
+                painter.drawText(x, y, t.comments);
+                break;
+            case kBreakpoint:
+                if (t.isBreakpoint)
+                    painter.drawText(x, y, "*");
+                break;
+            }
+        } // row
+    }   // col
 }
 
-void DisasmWidget2::keyPressEvent(QKeyEvent* event)
+void DisasmWidget::keyPressEvent(QKeyEvent* event)
 {
     switch (event->key())
     {
@@ -441,7 +455,7 @@ void DisasmWidget2::keyPressEvent(QKeyEvent* event)
     QWidget::keyPressEvent(event);
 }
 
-void DisasmWidget2::mouseMoveEvent(QMouseEvent *event)
+void DisasmWidget::mouseMoveEvent(QMouseEvent *event)
 {
     m_mouseRow = int(event->localPos().y() / m_lineHeight);
     if (this->underMouse())
@@ -450,7 +464,21 @@ void DisasmWidget2::mouseMoveEvent(QMouseEvent *event)
     QWidget::mouseMoveEvent(event);
 }
 
-bool DisasmWidget2::event(QEvent* ev)
+void DisasmWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
+        int row = int(event->localPos().y() / m_lineHeight);
+        if (row < m_rowCount)
+        {
+            m_cursorRow = row;
+            if (this->underMouse())
+                update();       // redraw highlight
+        }
+    }
+}
+
+bool DisasmWidget::event(QEvent* ev)
 {
     if (ev->type() == QEvent::Leave)
     {
@@ -461,7 +489,7 @@ bool DisasmWidget2::event(QEvent* ev)
     return QWidget::event(ev);
 }
 
-void DisasmWidget2::CalcDisasm()
+void DisasmWidget::CalcDisasm()
 {
     // Make sure the data we get back matches our expectations...
     if (m_logicalAddr < m_memory.GetAddress())
@@ -541,7 +569,7 @@ void DisasmWidget2::CalcDisasm()
     }
 }
 
-void DisasmWidget2::CalcOpAddresses()
+void DisasmWidget::CalcOpAddresses()
 {
     // Precalc EAs
     m_opAddresses.clear();
@@ -557,7 +585,7 @@ void DisasmWidget2::CalcOpAddresses()
     }
 }
 
-void DisasmWidget2::ToggleBreakpoint(int row)
+void DisasmWidget::ToggleBreakpoint(int row)
 {
     // set a breakpoint
     if (row < 0 || row >= m_disasm.lines.size())
@@ -583,7 +611,7 @@ void DisasmWidget2::ToggleBreakpoint(int row)
     }
 }
 
-void DisasmWidget2::NopRow(int row)
+void DisasmWidget::NopRow(int row)
 {
     if (row >= m_disasm.lines.size())
         return;
@@ -598,7 +626,7 @@ void DisasmWidget2::NopRow(int row)
     m_pDispatcher->SendCommandPacket(command.toStdString().c_str());
 }
 
-void DisasmWidget2::SetRowCount(int count)
+void DisasmWidget::SetRowCount(int count)
 {
     if (count != m_rowCount)
     {
@@ -617,21 +645,21 @@ void DisasmWidget2::SetRowCount(int count)
     }
 }
 
-void DisasmWidget2::SetShowHex(bool show)
+void DisasmWidget::SetShowHex(bool show)
 {
     m_bShowHex = show;
     RecalcColums();
     update();
 }
 
-void DisasmWidget2::SetFollowPC(bool bFollow)
+void DisasmWidget::SetFollowPC(bool bFollow)
 {
     m_bFollowPC = bFollow;
     update();
 }
 
 
-void DisasmWidget2::printEA(const operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
+void DisasmWidget::printEA(const operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
 {
     uint32_t ea;
 
@@ -654,7 +682,7 @@ void DisasmWidget2::printEA(const operand& op, const Registers& regs, uint32_t a
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-void DisasmWidget2::contextMenuEvent(QContextMenuEvent *event)
+void DisasmWidget::contextMenuEvent(QContextMenuEvent *event)
 {
     m_rightClickRow = event->y() / m_lineHeight;
     if (m_rightClickRow < 0 || m_rightClickRow >= m_rowTexts.size())
@@ -685,67 +713,67 @@ void DisasmWidget2::contextMenuEvent(QContextMenuEvent *event)
     m_rightClickMenu.exec(event->globalPos());
 }
 
-void DisasmWidget2::runToCursorRightClick()
+void DisasmWidget::runToCursorRightClick()
 {
     RunToRow(m_rightClickRow);
     m_rightClickRow = -1;
 }
 
-void DisasmWidget2::toggleBreakpointRightClick()
+void DisasmWidget::toggleBreakpointRightClick()
 {
     ToggleBreakpoint(m_rightClickRow);
     m_rightClickRow = -1;
 }
 
-void DisasmWidget2::nopRightClick()
+void DisasmWidget::nopRightClick()
 {
     NopRow(m_rightClickRow);
     m_rightClickRow = -1;
 }
 
-void DisasmWidget2::memoryViewAddrInst()
+void DisasmWidget::memoryViewAddrInst()
 {
     emit m_pTargetModel->addressRequested(1, true, m_rightClickInstructionAddr);
 }
 
-void DisasmWidget2::memoryViewAddr0()
+void DisasmWidget::memoryViewAddr0()
 {
     emit m_pTargetModel->addressRequested(1, true, m_rightClickAddr[0]);
 }
 
-void DisasmWidget2::memoryViewAddr1()
+void DisasmWidget::memoryViewAddr1()
 {
     emit m_pTargetModel->addressRequested(1, true, m_rightClickAddr[1]);
 }
 
-void DisasmWidget2::disasmViewAddr0()
+void DisasmWidget::disasmViewAddr0()
 {
     emit m_pTargetModel->addressRequested(1, false, m_rightClickAddr[0]);
 }
 
-void DisasmWidget2::disasmViewAddr1()
+void DisasmWidget::disasmViewAddr1()
 {
     emit m_pTargetModel->addressRequested(1, false, m_rightClickAddr[1]);
 }
 
-void DisasmWidget2::runToCursor()
+void DisasmWidget::runToCursor()
 {
     if (m_cursorRow != -1)
         RunToRow(m_cursorRow);
 }
 
-void DisasmWidget2::toggleBreakpoint()
+void DisasmWidget::toggleBreakpoint()
 {
     if (m_cursorRow != -1)
         ToggleBreakpoint(m_cursorRow);
 }
 
-void DisasmWidget2::resizeEvent(QResizeEvent* )
+void DisasmWidget::resizeEvent(QResizeEvent* )
 {
     RecalcRowCount();
 }
 
-void DisasmWidget2::RecalcRowCount()
+void DisasmWidget::RecalcRowCount()
 {
     int h = this->rect().height();
     int rowh = m_lineHeight;
@@ -753,28 +781,30 @@ void DisasmWidget2::RecalcRowCount()
         SetRowCount(h / rowh);
 }
 
-void DisasmWidget2::GetLineHeight()
+void DisasmWidget::GetLineHeight()
 {
     monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     QFontMetrics info(monoFont);
     m_lineHeight = info.lineSpacing();
 }
 
-void DisasmWidget2::RecalcColums()
+void DisasmWidget::RecalcColums()
 {
-    m_symbolCol = 1;
-    m_addressCol = m_symbolCol + 19;
-    m_pcCol = m_addressCol + 9;
-    m_bpCol = m_pcCol + 1;
-    m_hexCol = m_bpCol + 2;
-    m_disasmCol = m_bShowHex ? m_hexCol + 10 * 2 + 1 : m_hexCol; // max size 10 bytes (opcode + 2 longs)
-    m_commentsCol = m_disasmCol + 40;
+    int pos = 1;
+    m_columnLeft[kSymbol] = pos; pos += 19;
+    m_columnLeft[kAddress] = pos; pos += 9;
+    m_columnLeft[kPC] = pos; pos += 1;
+    m_columnLeft[kBreakpoint] = pos; pos += 1;
+    m_columnLeft[kHex] = pos; pos += (m_bShowHex) ? 10 * 2 + 1 : 0;
+    m_columnLeft[kDisasm] = pos; pos += 40;
+    m_columnLeft[kComments] = pos; pos += 80;
+    m_columnLeft[kNumColumns] = pos;
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-DisasmViewWidget::DisasmViewWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher, int windowIndex) :
+DisasmWindow::DisasmWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher, int windowIndex) :
     QDockWidget(parent),
     m_pTargetModel(pTargetModel),
     m_pDispatcher(pDispatcher),
@@ -783,7 +813,7 @@ DisasmViewWidget::DisasmViewWidget(QWidget *parent, TargetModel* pTargetModel, D
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
     setObjectName(key);
 
-    m_pDisasmWidget = new DisasmWidget2(this, pTargetModel, pDispatcher, windowIndex);
+    m_pDisasmWidget = new DisasmWidget(this, pTargetModel, pDispatcher, windowIndex);
     m_pDisasmWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
 
     // Top group box
@@ -828,16 +858,16 @@ DisasmViewWidget::DisasmViewWidget(QWidget *parent, TargetModel* pTargetModel, D
     loadSettings();
 
     // Listen for start/stop, so we can update our memory request
-    connect(m_pDisasmWidget,      &DisasmWidget2::addressChanged,       this, &DisasmViewWidget::UpdateTextBox);
-    connect(m_pLineEdit,    &QLineEdit::returnPressed,            this, &DisasmViewWidget::returnPressedSlot);
-    connect(m_pLineEdit,    &QLineEdit::textEdited,               this, &DisasmViewWidget::textChangedSlot);
-    connect(m_pFollowPC,    &QCheckBox::clicked,                  this, &DisasmViewWidget::followPCClickedSlot);
-    connect(m_pShowHex,     &QCheckBox::clicked,                  this, &DisasmViewWidget::showHexClickedSlot);
+    connect(m_pDisasmWidget,      &DisasmWidget::addressChanged,       this, &DisasmWindow::UpdateTextBox);
+    connect(m_pLineEdit,    &QLineEdit::returnPressed,            this, &DisasmWindow::returnPressedSlot);
+    connect(m_pLineEdit,    &QLineEdit::textEdited,               this, &DisasmWindow::textChangedSlot);
+    connect(m_pFollowPC,    &QCheckBox::clicked,                  this, &DisasmWindow::followPCClickedSlot);
+    connect(m_pShowHex,     &QCheckBox::clicked,                  this, &DisasmWindow::showHexClickedSlot);
 
     this->resizeEvent(nullptr);
 }
 
-void DisasmViewWidget::requestAddress(int windowIndex, bool isMemory, uint32_t address)
+void DisasmWindow::requestAddress(int windowIndex, bool isMemory, uint32_t address)
 {
     if (isMemory)
         return;
@@ -851,13 +881,13 @@ void DisasmViewWidget::requestAddress(int windowIndex, bool isMemory, uint32_t a
     setVisible(true);
 }
 
-void DisasmViewWidget::keyFocus()
+void DisasmWindow::keyFocus()
 {
     activateWindow();
     m_pDisasmWidget->setFocus();
 }
 
-void DisasmViewWidget::loadSettings()
+void DisasmWindow::loadSettings()
 {
     QSettings settings;
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
@@ -871,7 +901,7 @@ void DisasmViewWidget::loadSettings()
     settings.endGroup();
 }
 
-void DisasmViewWidget::saveSettings()
+void DisasmWindow::saveSettings()
 {
     QSettings settings;
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
@@ -883,26 +913,26 @@ void DisasmViewWidget::saveSettings()
     settings.endGroup();
 }
 
-void DisasmViewWidget::keyDownPressed()
+void DisasmWindow::keyDownPressed()
 {
     m_pDisasmWidget->MoveDown();
 }
-void DisasmViewWidget::keyUpPressed()
+void DisasmWindow::keyUpPressed()
 {
     m_pDisasmWidget->MoveUp();
 }
 
-void DisasmViewWidget::keyPageDownPressed()
+void DisasmWindow::keyPageDownPressed()
 {
     m_pDisasmWidget->PageDown();
 }
 
-void DisasmViewWidget::keyPageUpPressed()
+void DisasmWindow::keyPageUpPressed()
 {
     m_pDisasmWidget->PageUp();
 }
 
-void DisasmViewWidget::returnPressedSlot()
+void DisasmWindow::returnPressedSlot()
 {
     QColor col = m_pDisasmWidget->SetAddress(m_pLineEdit->text().toStdString()) ?
                       Qt::white : Qt::red;
@@ -912,7 +942,7 @@ void DisasmViewWidget::returnPressedSlot()
     m_pLineEdit->setPalette(pal);
 }
 
-void DisasmViewWidget::textChangedSlot()
+void DisasmWindow::textChangedSlot()
 {
     uint32_t addr;
     QColor col = Qt::green;
@@ -928,17 +958,17 @@ void DisasmViewWidget::textChangedSlot()
     m_pLineEdit->setPalette(pal);
 }
 
-void DisasmViewWidget::showHexClickedSlot()
+void DisasmWindow::showHexClickedSlot()
 {
     m_pDisasmWidget->SetShowHex(m_pShowHex->isChecked());
 }
 
-void DisasmViewWidget::followPCClickedSlot()
+void DisasmWindow::followPCClickedSlot()
 {
     m_pDisasmWidget->SetFollowPC(m_pFollowPC->isChecked());
 }
 
-void DisasmViewWidget::UpdateTextBox()
+void DisasmWindow::UpdateTextBox()
 {
     uint32_t addr = m_pDisasmWidget->GetAddress();
     m_pLineEdit->setText(QString::asprintf("$%x", addr));

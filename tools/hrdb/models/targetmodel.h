@@ -68,6 +68,9 @@ public:
     void SetExceptionMask(const ExceptionMask& mask);
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
 
+    // User-added console command. Anything can happen!
+    void ConsoleCommand();
+
     void Flush();
 
 	// NOTE: all these return copies to avoid data contention

@@ -1405,8 +1405,3 @@ int DebugUI_ParseConsoleCommand(const char* command)
 {
 	return DebugUI_ParseCommand(command);
 }
-
-void DebugUI_Trigger()
-{
-	DebugUI(REASON_USER);
-}

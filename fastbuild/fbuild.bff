@@ -534,10 +534,13 @@ ObjectList( "hrdb_predefs" )         ; Alias
 {
     "$SRC_DIR$/tools/hrdb/ui/mainwindow.h"
     "$SRC_DIR$/tools/hrdb/models/targetmodel.h"
+    "$SRC_DIR$/tools/hrdb/ui/consolewindow.h"
     "$SRC_DIR$/tools/hrdb/ui/disasmwidget.h"
     "$SRC_DIR$/tools/hrdb/ui/memoryviewwidget.h"
     "$SRC_DIR$/tools/hrdb/ui/graphicsinspector.h"
     "$SRC_DIR$/tools/hrdb/ui/breakpointswidget.h"
+    "$SRC_DIR$/tools/hrdb/ui/rundialog.h"
+    "$SRC_DIR$/tools/hrdb/models/session.h"
 }
 Compiler( 'moc' )              ; Alias
 {
@@ -582,12 +585,14 @@ ObjectList( "hrdb_qrc" )         ; Alias
     "$SRC_DIR$/tools/hrdb/models/targetmodel.cpp"
     "$SRC_DIR$/tools/hrdb/models/memory.cpp"
     "$SRC_DIR$/tools/hrdb/models/breakpoint.cpp"
+    "$SRC_DIR$/tools/hrdb/models/session.cpp"
     "$SRC_DIR$/tools/hrdb/models/stringsplitter.cpp"
     "$SRC_DIR$/tools/hrdb/models/symboltable.cpp"
     "$SRC_DIR$/tools/hrdb/models/symboltablemodel.cpp"
     "$SRC_DIR$/tools/hrdb/models/exceptionmask.cpp"
     "$SRC_DIR$/tools/hrdb/ui/addbreakpointdialog.cpp"
     "$SRC_DIR$/tools/hrdb/ui/breakpointswidget.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/consolewindow.cpp"
     "$SRC_DIR$/tools/hrdb/ui/disasmwidget.cpp"
     "$SRC_DIR$/tools/hrdb/ui/mainwindow.cpp"
     "$SRC_DIR$/tools/hrdb/ui/memoryviewwidget.cpp"

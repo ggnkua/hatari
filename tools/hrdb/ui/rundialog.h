@@ -10,7 +10,7 @@ class Session;
 
 class RunDialog : public QDialog
 {
-   // Q_OBJECT
+   Q_OBJECT
 public:
     RunDialog(QWidget* parent, Session* pSession);
     virtual ~RunDialog();

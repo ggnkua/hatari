@@ -30,6 +30,77 @@ class ConsoleWindow;
 class ExceptionDialog;
 class RunDialog;
 
+class RegisterWidget : public QWidget
+{
+    Q_OBJECT
+public:
+    RegisterWidget(QWidget* parent, TargetModel* pTargetModel, Dispatcher* pDispatcher);
+    virtual ~RegisterWidget() override;
+
+    virtual void paintEvent(QPaintEvent*) override;
+    virtual bool event(QEvent *event) override;
+
+private slots:
+    void connectChangedSlot();
+    void startStopChangedSlot();
+    void registersChangedSlot(uint64_t commandId);
+    void memoryChangedSlot(int slot, uint64_t commandId);
+    void symbolTableChangedSlot(uint64_t commandId);
+    void startStopDelayedSlot(int running);
+
+private:
+    void PopulateRegisters();
+    void UpdateFont();
+
+    // Tokens etc
+    enum TokenType
+    {
+        kRegister,
+        kSymbol,
+        kNone,
+    };
+
+    struct Token
+    {
+        int x;
+        int y;
+        QString text;
+
+        TokenType type;
+        uint32_t subIndex;      // subIndex e.g "4" for D4, 0x12345 for symbol address, bitnumber for SR field
+        bool highlight;
+
+        QRect rect;             // bounding rectangle, updated when rendered
+    };
+
+    QString FindSymbol(uint32_t addr);
+
+    void AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex, bool highlight);
+    void AddReg16(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &regs);
+    void AddReg32(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &regs);
+
+    void AddSR(int x, int y, const Registers &prevRegs, const Registers &regs, uint32_t bit, const char *pName);
+    void AddSymbol(int x, int y, uint32_t address);
+
+    QString GetTooltipText(const Token& token);
+
+    Dispatcher*             	m_pDispatcher;
+    TargetModel*                m_pTargetModel;
+
+    // Shown data
+    Registers                   regs;           // current regs
+    Registers                   m_prevRegs;     // regs when PC started
+    Disassembler::disassembly   m_disasm;
+
+    QVector<Token>              m_tokens;
+
+    // Render info
+    QFont monoFont;
+    int y_base;
+    int y_height;
+    int char_width;
+};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -44,11 +115,9 @@ protected:
 private slots:
     void connectChangedSlot();
 	void startStopChangedSlot();
-    void registersChangedSlot(uint64_t commandId);
     void memoryChangedSlot(int slot, uint64_t commandId);
-    void symbolTableChangedSlot(uint64_t commandId);
-    void startStopDelayedSlot(int running);
 
+    // Button callbacks
     void startStopClicked();
     void singleStepClicked();
     void nextClicked();
@@ -73,8 +142,6 @@ private:
     void ExceptionsDialog();
 
 	// Populaters
-	void PopulateRegisters();
-    QString FindSymbol(uint32_t addr);
     void PopulateRunningSquare();
     void updateButtonEnable();
 
@@ -83,13 +150,14 @@ private:
     void saveSettings();
 
     // Our UI widgets
+    QWidget*        m_pRunningSquare;
     QPushButton*	m_pStartStopButton;
     QPushButton*	m_pStepIntoButton;
     QPushButton*	m_pStepOverButton;
     QPushButton*	m_pRunToButton;
     QComboBox*      m_pRunToCombo;
-	QTextEdit*		m_pRegistersTextEdit;
-    QWidget*        m_pRunningSquare;
+
+    RegisterWidget* m_pRegisterWidget;
 
     // Dialogs
     ExceptionDialog*    m_pExceptionDialog;
@@ -109,8 +177,7 @@ private:
     Dispatcher*             	m_pDispatcher;
     TargetModel*                m_pTargetModel;
 
-    // Shown data
-    Registers                   m_prevRegs;
+    // Target data -- used for single-stepping
     Disassembler::disassembly   m_disasm;
 
     // Menus

@@ -606,7 +606,8 @@ static int RemoteDebug_setstd(int nArgc, char *psArgs[], RemoteDebugState* state
 	if (nArgc == 2)
 	{
 		// Create the output file
-		FILE* outpipe = fopen(psArgs[1], "w");
+		const char* filename = psArgs[1];
+		FILE* outpipe = fopen(filename, "w");
 		if (outpipe)
 		{
 			// Switch back to "normal settings"
@@ -618,7 +619,10 @@ static int RemoteDebug_setstd(int nArgc, char *psArgs[], RemoteDebugState* state
 			state->original_debugOutput = debugOutput;
 
 			// Switch over redirect
-#ifndef __WINDOWS__
+#ifdef __WINDOWS__
+			freopen(filename, "w", stdout);
+			freopen(filename, "w", stderr);
+#else
 			stderr = outpipe;
 			stdout = outpipe;
 #endif

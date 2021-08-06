@@ -8,6 +8,9 @@
 #include <QCloseEvent>
 #include <QFileDialog>
 #include <QPushButton>
+#include <QComboBox>
+#include <QTemporaryFile>
+#include <QTextStream>
 
 #include "../models/session.h"
 #include "quicklayout.h"
@@ -41,6 +44,11 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     m_pExecutableTextEdit = new QLineEdit("hatari", this);
     m_pArgsTextEdit = new QLineEdit("", this);
     m_pWorkingDirectoryTextEdit = new QLineEdit("", this);
+    m_pBreakModeCombo = new QComboBox(this);
+    m_pBreakModeCombo->addItem(tr("None"), BreakMode::kNone);
+    m_pBreakModeCombo->addItem(tr("Boot"), BreakMode::kBoot);
+    m_pBreakModeCombo->addItem(tr("Program Start"), BreakMode::kProgStart);
+    m_pBreakModeCombo->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
     gridLayout->addWidget(new QLabel(tr("Executable:"), this), 0, 0);
     gridLayout->addWidget(m_pExecutableTextEdit, 0, 2);
@@ -52,6 +60,9 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     gridLayout->addWidget(new QLabel(tr("Working Directory:"), this), 2, 0);
     gridLayout->addWidget(m_pWorkingDirectoryTextEdit, 2, 2);
     gridLayout->addWidget(pWDButton, 2, 4);
+
+    gridLayout->addWidget(new QLabel(tr("Break at:"), this), 3, 0);
+    gridLayout->addWidget(m_pBreakModeCombo, 3, 2);
 
     gridLayout->setColumnStretch(2, 20);
     gridGroupBox->setLayout(gridLayout);
@@ -84,7 +95,7 @@ void RunDialog::loadSettings()
     m_pExecutableTextEdit->setText(settings.value("exe", QVariant("hatari")).toString());
     m_pArgsTextEdit->setText(settings.value("args", QVariant("")).toString());
     m_pWorkingDirectoryTextEdit->setText(settings.value("workingDirectory", QVariant("")).toString());
-
+    m_pBreakModeCombo->setCurrentIndex(settings.value("breakMode", QVariant("0")).toInt());
     settings.endGroup();
 }
 
@@ -97,6 +108,7 @@ void RunDialog::saveSettings()
     settings.setValue("exe", m_pExecutableTextEdit->text());
     settings.setValue("args", m_pArgsTextEdit->text());
     settings.setValue("workingDirectory", m_pWorkingDirectoryTextEdit->text());
+    settings.setValue("breakMode", m_pBreakModeCombo->currentIndex());
     settings.endGroup();
 }
 
@@ -113,9 +125,39 @@ void RunDialog::closeEvent(QCloseEvent *event)
 
 void RunDialog::okClicked()
 {
-    QProcess proc;
     QStringList args = m_pArgsTextEdit->text().split(" ");
 
+    // First make a temp file for breakpoints etc
+    BreakMode breakMode = (BreakMode) m_pBreakModeCombo->currentIndex();
+    if (breakMode != BreakMode::kNone)
+    {
+        QString tmpContents;
+        QTextStream ref(&tmpContents);
+
+        // Generate some commands for
+        // Break at boot/start commands
+        if (breakMode == BreakMode::kBoot)
+            ref << QString("b pc ! 0 : once\r\n");
+        else if (breakMode == BreakMode::kProgStart)
+            ref << QString("b pc=TEXT && pc<$e00000 : once\r\n");
+
+        // Create the temp file
+        // In theory we need to be careful about reuse?
+        QTemporaryFile& tmp(*m_pSession->m_pStartupFile);
+        if (!tmp.open())
+            return;
+
+        tmp.setTextModeEnabled(true);
+        tmp.write(tmpContents.toUtf8());
+        tmp.close();
+
+        // Prepend the "--parse N" part (backwards!)
+        args.push_front(tmp.fileName());
+        args.push_front("--parse");
+    }
+
+    // Actually launch the program
+    QProcess proc;
     proc.setProgram(m_pExecutableTextEdit->text());
     proc.setArguments(args);
     proc.setWorkingDirectory(m_pWorkingDirectoryTextEdit->text());

@@ -52,11 +52,8 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
     }
     const QPalette& pal = this->palette();
 
-    if (hasFocus())
-    {
-        painter.setPen(QPen(pal.dark(), 6));
-        painter.drawRect(this->rect());
-    }
+    painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
+    painter.drawRect(this->rect());
 
     QWidget::paintEvent(ev);
 }

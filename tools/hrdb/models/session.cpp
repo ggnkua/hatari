@@ -6,6 +6,9 @@ Session::Session() :
     QObject(),
     m_autoConnect(true)
 {
+    m_pStartupFile = new QTemporaryFile(this);
+    m_pLoggingFile = new QTemporaryFile(this);
+
     // Create the core data models, since other object want to connect to them.
     m_pTcpSocket = new QTcpSocket();
 
@@ -17,6 +20,7 @@ Session::Session() :
 
 Session::~Session()
 {
+    m_pLoggingFile->close();
     delete m_pTcpSocket;
     delete m_pTimer;
 }

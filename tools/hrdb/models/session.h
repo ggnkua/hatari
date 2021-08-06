@@ -1,9 +1,11 @@
 #ifndef SESSION_H
 #define SESSION_H
+
 #include <QObject>
 
 class QTcpSocket;
 class QTimer;
+class QTemporaryFile;
 
 // Shared runtime data about the debugging session used by multiple UI components
 // This data isn't persisted over runs (that is saved in Settings)
@@ -17,6 +19,8 @@ public:
     void Disconnect();
 
     QTcpSocket*      m_pTcpSocket;
+    QTemporaryFile*  m_pStartupFile;
+    QTemporaryFile*  m_pLoggingFile;
 
 private slots:
 

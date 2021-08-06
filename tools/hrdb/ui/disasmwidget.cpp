@@ -77,8 +77,8 @@ DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     m_rightClickMenu.addMenu(pEditMenu);
     m_rightClickMenu.addMenu(pViewMenu);
 
-    new QShortcut(QKeySequence(tr("F3",     "Run to cursor")),        this, SLOT(runToCursor()));
-    new QShortcut(QKeySequence(tr("Ctrl+B", "Toggle breakpoint")),    this, SLOT(toggleBreakpoint()));
+    new QShortcut(QKeySequence(tr("Ctrl+H", "Run to Here")),        this, SLOT(runToCursor()));
+    new QShortcut(QKeySequence(tr("Ctrl+B", "Toggle breakpoint")),  this, SLOT(toggleBreakpoint()));
 
     // Target connects
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &DisasmWidget::startStopChangedSlot);
@@ -363,12 +363,8 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
 
     QPainter painter(this);
     const QPalette& pal = this->palette();
-
-    if (hasFocus())
-    {
-        painter.setPen(QPen(pal.dark(), 6));
-        painter.drawRect(this->rect());
-    }
+    painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
+    painter.drawRect(this->rect());
 
     painter.setFont(monoFont);
     QFontMetrics info(painter.fontMetrics());
@@ -408,34 +404,41 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
             else
                 painter.setPen(pal.text().color());
 
-            int y = y_base + row * m_lineHeight;
+            int row_top_y = row * m_lineHeight;
+            int text_y = y_base + row * m_lineHeight;
             const RowText& t = m_rowTexts[row];
 
             switch (col)
             {
             case kSymbol:
-                painter.drawText(x, y, t.symbol);
+                painter.drawText(x, text_y, t.symbol);
                 break;
             case kAddress:
-                painter.drawText(x, y, t.address);
+                painter.drawText(x, text_y, t.address);
                 break;
             case kPC:
                 if (t.isPc)
-                    painter.drawText(x, y, ">");
-                break;
-            case kHex:
-                if (m_bShowHex)
-                    painter.drawText(x, y, t.hex);
-                break;
-            case kDisasm:
-                painter.drawText(x, y, t.disasm);
-                break;
-            case kComments:
-                painter.drawText(x, y, t.comments);
+                    painter.drawText(x, text_y, ">");
                 break;
             case kBreakpoint:
                 if (t.isBreakpoint)
-                    painter.drawText(x, y, "*");
+                {
+                    // Y is halfway between text bottom and row top
+                    int circle_y = (text_y + row_top_y) / 2;
+                    int circle_rad = (text_y - row_top_y) / 2;
+                    painter.setBrush(Qt::red);
+                    painter.drawEllipse(x, circle_y, circle_rad, circle_rad);
+                }
+                break;
+            case kHex:
+                if (m_bShowHex)
+                    painter.drawText(x, text_y, t.hex);
+                break;
+            case kDisasm:
+                painter.drawText(x, text_y, t.disasm);
+                break;
+            case kComments:
+                painter.drawText(x, text_y, t.comments);
                 break;
             }
         } // row
@@ -545,12 +548,11 @@ void DisasmWidget::CalcDisasm()
         Disassembler::print(line.inst, line.address, ref);
 
         // Comments
-        QString str;
         QTextStream refC(&t.comments);
         Registers regs = m_pTargetModel->GetRegs();
         printEA(line.inst.op0, regs, line.address, refC);
-        if (str.size() != 0)
-            ref << "  ";
+        if (t.comments.size() != 0)
+            refC << "  ";
         printEA(line.inst.op1, regs, line.address, refC);
 
         // Breakpoint/PC

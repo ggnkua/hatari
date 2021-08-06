@@ -1,27 +1,30 @@
 #ifndef RUNDIALOG_H
 #define RUNDIALOG_H
 
+#include <QObject>
 #include <QDialog>
 
 class QLineEdit;
+class QComboBox;
 class TargetModel;
 class Dispatcher;
 class Session;
 
 class RunDialog : public QDialog
 {
-   Q_OBJECT
+private:
+    Q_OBJECT
 public:
     RunDialog(QWidget* parent, Session* pSession);
-    virtual ~RunDialog();
+    virtual ~RunDialog() override;
 
     // Settings
     void loadSettings();
     void saveSettings();
 
 protected:
-    virtual void showEvent(QShowEvent *event);
-    virtual void closeEvent(QCloseEvent *event);
+    virtual void showEvent(QShowEvent *event) override;
+    virtual void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void okClicked();
@@ -29,12 +32,21 @@ private slots:
     void workingDirectoryClicked();
 
 private:
+    // UI elements
     QLineEdit*      m_pExecutableTextEdit;
     QLineEdit*      m_pArgsTextEdit;
     QLineEdit*      m_pWorkingDirectoryTextEdit;
+    QComboBox*      m_pBreakModeCombo;
 
-    TargetModel*    m_pTargetModel;
-    Dispatcher*     m_pDispatcher;
+    // What sort of automatic breakpoint to use
+    enum BreakMode
+    {
+        kNone,
+        kBoot,
+        kProgStart
+    };
+
+    // Shared session data pointer (storage for launched process, temp file etc)
     Session*        m_pSession;
 };
 

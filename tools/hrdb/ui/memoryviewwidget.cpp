@@ -390,11 +390,8 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
 
     const QBrush& br = pal.background().color();
     painter.fillRect(this->rect(), br);
-    if (hasFocus())
-    {
-        painter.setPen(QPen(pal.dark(), 6));
-        painter.drawRect(this->rect());
-    }
+    painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
+    painter.drawRect(this->rect());
 
     int y_base = info.ascent();
     int char_width = info.horizontalAdvance("0");

@@ -541,6 +541,8 @@ ObjectList( "hrdb_predefs" )         ; Alias
     "$SRC_DIR$/tools/hrdb/ui/breakpointswidget.h"
     "$SRC_DIR$/tools/hrdb/ui/rundialog.h"
     "$SRC_DIR$/tools/hrdb/models/session.h"
+    "$SRC_DIR$/tools/hrdb/ui/addbreakpointdialog.h"
+    "$SRC_DIR$/tools/hrdb/ui/exceptiondialog.h"                                                                
 }
 Compiler( 'moc' )              ; Alias
 {

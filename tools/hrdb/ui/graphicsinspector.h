@@ -10,6 +10,7 @@ class QLineEdit;
 class QAbstractItemModel;
 class QSpinBox;
 class QCheckBox;
+class QComboBox;
 
 class TargetModel;
 class Dispatcher;
@@ -51,30 +52,41 @@ public:
     void keyFocus();
     void loadSettings();
     void saveSettings();
-
+private:
     void connectChangedSlot();
     void startStopChangedSlot();
     void memoryChangedSlot(int memorySlot, uint64_t commandId);
+    void otherMemoryChangedSlot(uint32_t address, uint32_t size);
     void textEditChangedSlot();
     void followVideoChangedSlot();
-    void otherMemoryChangedSlot(uint32_t address, uint32_t size);
 
-public slots:
+private slots:
+    void modeChangedSlot(int index);
     void widthChangedSlot(int width);
     void heightChangedSlot(int height);
 protected:
     virtual void keyPressEvent(QKeyEvent *ev);
 
 private:
+    enum Mode
+    {
+        k4Bitplane,
+        k2Bitplane,
+        k1Bitplane
+    };
+
     void UpdateCheckBoxes();
     void RequestMemory();
     bool SetAddressFromVideo();
     void DisplayAddress();
 
+    static int32_t BytesPerMode(Mode mode);
+
     QLineEdit*      m_pLineEdit;
+    QComboBox*      m_pModeComboBox;
     QSpinBox*       m_pWidthSpinBox;
     QSpinBox*       m_pHeightSpinBox;
-    QCheckBox*      m_pFollowVideoCheckBox;
+    QCheckBox*      m_pLockToVideoCheckBox;
 
     NonAntiAliasImage*         m_pImageWidget;
 
@@ -83,11 +95,11 @@ private:
     QAbstractItemModel* m_pSymbolTableModel;
     QVector<QRgb>   m_colours;
 
+    Mode            m_mode;
     uint32_t        m_address;
     int             m_width;
     int             m_height;
 
-    bool            m_bLockToVideo;
     uint64_t        m_requestIdBitmap;
     uint64_t        m_requestIdPalette;
 };

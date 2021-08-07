@@ -37,8 +37,12 @@ ConsoleWindow::ConsoleWindow(QWidget *parent, TargetModel* pTargetModel, Dispatc
 
     loadSettings();
 
+    connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &ConsoleWindow::connectChangedSlot);
     // Connect text entry
-    connect(m_pLineEdit, &QLineEdit::returnPressed,         this, &ConsoleWindow::textEditChangedSlot);
+    connect(m_pLineEdit,     &QLineEdit::returnPressed,          this, &ConsoleWindow::textEditChangedSlot);
+
+    // Refresh enable state
+    connectChangedSlot();
 }
 
 void ConsoleWindow::keyFocus()
@@ -63,6 +67,12 @@ void ConsoleWindow::saveSettings()
 
     settings.setValue("geometry", saveGeometry());
     settings.endGroup();
+}
+
+void ConsoleWindow::connectChangedSlot()
+{
+    bool enable = m_pTargetModel->IsConnected();
+    m_pLineEdit->setEnabled(enable);
 }
 
 void ConsoleWindow::textEditChangedSlot()

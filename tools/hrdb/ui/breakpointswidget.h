@@ -77,11 +77,13 @@ public:
 public slots:
 
 private slots:
+
+    void connectChangedSlot();
     void addBreakpointClicked();
     void deleteBreakpointClicked();
-
 private:
     BreakpointsTableView*     m_pTableView;
+    QPushButton*              m_pAddButton;
     QPushButton*              m_pDeleteButton;
 
     BreakpointsTableModel* pModel;

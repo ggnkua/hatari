@@ -376,12 +376,8 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
 {
     QWidget::paintEvent(ev);
 
-#if 1
     // CAREFUL! This could lead to an infinite loop of redraws if we are not.
     RecalcRowCount();
-
-    if (m_rows.size() == 0)
-        return;
 
     QPainter painter(this);
     painter.setFont(monoFont);
@@ -392,6 +388,9 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
     painter.fillRect(this->rect(), br);
     painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
     painter.drawRect(this->rect());
+
+    if (m_rows.size() == 0)
+        return;
 
     int y_base = info.ascent();
     int char_width = info.horizontalAdvance("0");
@@ -446,7 +445,6 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
         painter.setPen(pal.highlightedText().color());
         painter.drawText(x_curs, y_base + y_curs, st);
     }
-#endif
 }
 
 void MemoryWidget::keyPressEvent(QKeyEvent* event)

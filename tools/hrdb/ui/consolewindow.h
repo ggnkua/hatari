@@ -22,7 +22,8 @@ public:
     void loadSettings();
     void saveSettings();
 
-public slots:
+private slots:
+    void connectChangedSlot();
     void textEditChangedSlot();
 
 private:

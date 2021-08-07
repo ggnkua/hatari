@@ -168,9 +168,9 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel,
     QVBoxLayout* pMainLayout = new QVBoxLayout;
     auto pMainRegion = new QWidget(this);   // whole panel
 
-    QPushButton* pAddButton = new QPushButton(tr("Add..."), this);
+    m_pAddButton = new QPushButton(tr("Add..."), this);
     m_pDeleteButton = new QPushButton(tr("Delete"), this);
-    QWidget* topWidgets[] = {pAddButton, m_pDeleteButton, nullptr};
+    QWidget* topWidgets[] = {m_pAddButton, m_pDeleteButton, nullptr};
 
     pMainLayout->addWidget(CreateHorizLayout(this, topWidgets) );
     pMainLayout->addWidget(m_pTableView);
@@ -178,14 +178,25 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel,
     pMainRegion->setLayout(pMainLayout);
     setWidget(pMainRegion);
 
-    connect(pAddButton,      &QAbstractButton::clicked, this, &BreakpointsWindow::addBreakpointClicked);
-    connect(m_pDeleteButton, &QAbstractButton::clicked, this, &BreakpointsWindow::deleteBreakpointClicked);
+    connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &BreakpointsWindow::connectChangedSlot);
+    connect(m_pAddButton,    &QAbstractButton::clicked,          this, &BreakpointsWindow::addBreakpointClicked);
+    connect(m_pDeleteButton, &QAbstractButton::clicked,          this, &BreakpointsWindow::deleteBreakpointClicked);
+
+    // Refresh buttons
+    connectChangedSlot();
 }
 
 void BreakpointsWindow::keyFocus()
 {
     activateWindow();
     m_pTableView->setFocus();
+}
+
+void BreakpointsWindow::connectChangedSlot()
+{
+    bool enable = m_pTargetModel->IsConnected();
+    m_pAddButton->setEnabled(enable);
+    m_pDeleteButton->setEnabled(enable);
 }
 
 void BreakpointsWindow::addBreakpointClicked()

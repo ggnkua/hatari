@@ -260,7 +260,7 @@ void RegisterWidget::PopulateRegisters()
 
     uint32_t ex = GET_REG(regs, EX);
     if (ex != 0)
-        AddToken(1, 4, QString::asprintf("EXCEPTION: %s", ExceptionMask::GetName(ex)), TokenType::kNone, 0, true);
+        AddToken(1, 3, QString::asprintf("EXCEPTION: %s", ExceptionMask::GetName(ex)), TokenType::kNone, 0, true);
 
     for (uint32_t reg = 0; reg < 8; ++reg)
     {

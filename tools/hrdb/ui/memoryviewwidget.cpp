@@ -666,7 +666,9 @@ void MemoryWindow::requestAddress(int windowIndex, bool isMemory, uint32_t addre
     m_pMemoryWidget->SetAddress(std::to_string(address));
     m_pLockCheckBox->setChecked(false);
     setVisible(true);
+    this->keyFocus();
 }
+
 
 void MemoryWindow::textEditChangedSlot()
 {

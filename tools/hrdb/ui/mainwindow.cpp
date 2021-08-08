@@ -279,9 +279,7 @@ void RegisterWidget::PopulateRegisters()
 void RegisterWidget::UpdateFont()
 {
     monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    QPainter painter(this);
-    painter.setFont(monoFont);
-    QFontMetrics info(painter.fontMetrics());
+    QFontMetrics info(monoFont);
     y_base = info.ascent();
     y_height = info.lineSpacing();
     char_width = info.horizontalAdvance("0");

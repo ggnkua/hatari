@@ -126,10 +126,8 @@ private:
     void showMemMenu2Shown();
 
     // Callbacks when "show in Memory X" etc is selected
-    void disasmView1Trigger();
-    void disasmView2Trigger();
-    void memoryView1Trigger();
-    void memoryView2Trigger();
+    void disasmViewTrigger(int windowIndex);
+    void memoryViewTrigger(int windowIndex);
 
     // Layout functions
     void RecalcRowCount();
@@ -161,7 +159,8 @@ private:
     // These actions are shared by *all* menus in m_pShowMemMenus.
     // The "active" address, m_rightClickActiveAddress, is set when the relevant
     // m_pShowMemMenus menu is about to be shown.
-    QAction*              m_pShowWindowActions[4];
+    QAction*              m_pShowDisasmWindowActions[kNumDisasmViews];
+    QAction*              m_pShowMemoryWindowActions[kNumMemoryViews];
 
     // Column layout
     bool                  m_bShowHex;

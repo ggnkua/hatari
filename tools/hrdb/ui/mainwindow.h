@@ -37,7 +37,10 @@ public:
     RegisterWidget(QWidget* parent, TargetModel* pTargetModel, Dispatcher* pDispatcher);
     virtual ~RegisterWidget() override;
 
+protected:
     virtual void paintEvent(QPaintEvent*) override;
+    virtual void mouseMoveEvent(QMouseEvent *event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *event) override;
     virtual bool event(QEvent *event) override;
 
 private slots:
@@ -47,6 +50,10 @@ private slots:
     void memoryChangedSlot(int slot, uint64_t commandId);
     void symbolTableChangedSlot(uint64_t commandId);
     void startStopDelayedSlot(int running);
+
+    // Callbacks when "show in Memory X" etc is selected
+    void disasmViewTrigger(int windowIndex);
+    void memoryViewTrigger(int windowIndex);
 
 private:
     void PopulateRegisters();
@@ -70,7 +77,7 @@ private:
         uint32_t subIndex;      // subIndex e.g "4" for D4, 0x12345 for symbol address, bitnumber for SR field
         bool highlight;
 
-        QRect rect;             // bounding rectangle, updated when rendered
+        QRectF rect;             // bounding rectangle, updated when rendered
     };
 
     QString FindSymbol(uint32_t addr);
@@ -83,6 +90,11 @@ private:
     void AddSymbol(int x, int y, uint32_t address);
 
     QString GetTooltipText(const Token& token);
+    void UpdateTokenUnderMouse(const QPointF& pos);
+
+    // UI Elements
+    QAction*                    m_pShowDisasmWindowActions[kNumDisasmViews];
+    QAction*                    m_pShowMemoryWindowActions[kNumMemoryViews];
 
     Dispatcher*             	m_pDispatcher;
     TargetModel*                m_pTargetModel;
@@ -94,11 +106,15 @@ private:
 
     QVector<Token>              m_tokens;
 
+    // Mouse data
+    int                         m_tokenUnderMouseIndex;      // -1 for none
+    Token                       m_tokenUnderMouse;           // copy of relevant token (for menus etc)
+
     // Render info
-    QFont monoFont;
-    int y_base;
-    int y_height;
-    int char_width;
+    QFont                       m_monoFont;
+    int                         m_yTextBase;
+    int                         m_yRowHeight;
+    int                         m_charWidth;
 };
 
 class MainWindow : public QMainWindow
@@ -164,10 +180,8 @@ private:
     RunDialog*          m_pRunDialog;
 
     // Docking windows
-    DisasmWindow*           m_pDisasmWidget0;
-    DisasmWindow*           m_pDisasmWidget1;
-    MemoryWindow*           m_pMemoryViewWidget0;
-    MemoryWindow*           m_pMemoryViewWidget1;
+    DisasmWindow*               m_pDisasmWidgets[kNumDisasmViews];
+    MemoryWindow*               m_pMemoryViewWidgets[kNumMemoryViews];
     GraphicsInspectorWidget*    m_pGraphicsInspector;
     BreakpointsWindow*          m_pBreakpointsWidget;
     ConsoleWindow*              m_pConsoleWindow;
@@ -196,10 +210,8 @@ private:
 
     QAction *exceptionsAct;
 
-    QAction *disasmWindowAct0;
-    QAction *disasmWindowAct1;
-    QAction *memoryWindowAct0;
-    QAction *memoryWindowAct1;
+    QAction *disasmWindowActs[kNumDisasmViews];
+    QAction *memoryWindowActs[kNumMemoryViews];
     QAction *graphicsInspectorAct;
     QAction *breakpointsWindowAct;
     QAction *consoleWindowAct;

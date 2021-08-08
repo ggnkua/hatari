@@ -55,16 +55,21 @@ DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     m_pBreakpointAction = new QAction(tr("Toggle Breakpoint"), this);
     m_pNopAction = new QAction(tr("Replace with NOPs"), this);
 
-    m_pShowWindowActions[0] = new QAction("Show in Disassembly 1", this);
-    m_pShowWindowActions[1] = new QAction("Show in Disassembly 2", this);
-    m_pShowWindowActions[2] = new QAction("Show in Memory 1", this);
-    m_pShowWindowActions[3] = new QAction("Show in Memory 2", this);
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        m_pShowDisasmWindowActions[i] = new QAction(QString::asprintf("Show in Disassembly %d", i + 1), this);
 
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        m_pShowMemoryWindowActions[i] = new QAction(QString::asprintf("Show in Memory %d", i + 1), this);
+
+    // Add all the above actions to all 3 "top" menus;
     for (int showMenu = 0; showMenu < 3; ++showMenu)
     {
         m_pShowMemMenus[showMenu] = new QMenu("", this);
-        for (int i = 0; i < 4; ++i)
-            m_pShowMemMenus[showMenu]->addAction(m_pShowWindowActions[i]);
+        for (int i = 0; i < kNumDisasmViews; ++i)
+            m_pShowMemMenus[showMenu]->addAction(m_pShowDisasmWindowActions[i]);
+
+        for (int i = 0; i < kNumMemoryViews; ++i)
+            m_pShowMemMenus[showMenu]->addAction(m_pShowMemoryWindowActions[i]);
     }
 
     m_pEditMenu = new QMenu("Edit", this);
@@ -91,12 +96,12 @@ DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     connect(m_pShowMemMenus[1],      &QMenu::aboutToShow, this, &DisasmWidget::showMemMenu1Shown);
     connect(m_pShowMemMenus[2],      &QMenu::aboutToShow, this, &DisasmWidget::showMemMenu2Shown);
 
-    connect(m_pShowWindowActions[0], &QAction::triggered, this, &DisasmWidget::disasmView1Trigger);
-    connect(m_pShowWindowActions[1], &QAction::triggered, this, &DisasmWidget::disasmView2Trigger);
-    connect(m_pShowWindowActions[2], &QAction::triggered, this, &DisasmWidget::memoryView1Trigger);
-    connect(m_pShowWindowActions[3], &QAction::triggered, this, &DisasmWidget::memoryView2Trigger);
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        connect(m_pShowDisasmWindowActions[i], &QAction::triggered, this, [=] () { this->disasmViewTrigger(i); } );
 
-    //connect(m_pDisassembleAddress[1],&QAction::triggered,                  this, &DisasmWidget::disasmViewAddr1);
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        connect(m_pShowMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->memoryViewTrigger(i); } );
+
     setMouseTracking(true);
 
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
@@ -744,39 +749,26 @@ void DisasmWidget::nopRightClick()
 void DisasmWidget::showMemMenu0Shown()
 {
     m_rightClickActiveAddress = m_showMenuAddresses[0];
-    std::cout << "MENU 0" << std::endl;
 }
 
 void DisasmWidget::showMemMenu1Shown()
 {
     m_rightClickActiveAddress = m_showMenuAddresses[1];
-    std::cout << "MENU 1" << std::endl;
 }
 
 void DisasmWidget::showMemMenu2Shown()
 {
     m_rightClickActiveAddress = m_showMenuAddresses[2];
-    std::cout << "MENU 2" << std::endl;
 }
 
-void DisasmWidget::disasmView1Trigger()
+void DisasmWidget::disasmViewTrigger(int windowIndex)
 {
-    emit m_pTargetModel->addressRequested(0, false, m_rightClickActiveAddress);
+    emit m_pTargetModel->addressRequested(windowIndex, false, m_rightClickActiveAddress);
 }
 
-void DisasmWidget::disasmView2Trigger()
+void DisasmWidget::memoryViewTrigger(int windowIndex)
 {
-    emit m_pTargetModel->addressRequested(1, false, m_rightClickActiveAddress);
-}
-
-void DisasmWidget::memoryView1Trigger()
-{
-    emit m_pTargetModel->addressRequested(0, true, m_rightClickActiveAddress);
-}
-
-void DisasmWidget::memoryView2Trigger()
-{
-    emit m_pTargetModel->addressRequested(1, true, m_rightClickActiveAddress);
+    emit m_pTargetModel->addressRequested(windowIndex, true, m_rightClickActiveAddress);
 }
 
 void DisasmWidget::runToCursor()

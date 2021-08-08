@@ -170,7 +170,7 @@ void GraphicsInspectorWidget::loadSettings()
     restoreGeometry(settings.value("geometry").toByteArray());
     m_width = settings.value("width", QVariant(20)).toInt();
     m_height = settings.value("height", QVariant(200)).toInt();
-    m_mode = static_cast<Mode>(settings.value("mode", QVariant(200)).toInt());
+    m_mode = static_cast<Mode>(settings.value("mode", QVariant((int)Mode::k4Bitplane)).toInt());
 
     m_pWidthSpinBox->setValue(m_width);
     m_pHeightSpinBox->setValue(m_height);

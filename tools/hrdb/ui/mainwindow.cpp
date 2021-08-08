@@ -59,9 +59,16 @@ static QString CreateNumberTooltip(uint32_t value)
 RegisterWidget::RegisterWidget(QWidget *parent, TargetModel *pTargetModel, Dispatcher *pDispatcher) :
     QWidget(parent),
     m_pDispatcher(pDispatcher),
-    m_pTargetModel(pTargetModel)
+    m_pTargetModel(pTargetModel),
+    m_tokenUnderMouseIndex(-1)
 {
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        m_pShowDisasmWindowActions[i] = new QAction(QString::asprintf("Show in Disassembly %d", i + 1), this);
+
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        m_pShowMemoryWindowActions[i] = new QAction(QString::asprintf("Show in Memory %d", i + 1), this);
 
     // Listen for target changes
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,        this, &RegisterWidget::startStopChangedSlot);
@@ -70,6 +77,13 @@ RegisterWidget::RegisterWidget(QWidget *parent, TargetModel *pTargetModel, Dispa
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,           this, &RegisterWidget::memoryChangedSlot);
     connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal,      this, &RegisterWidget::symbolTableChangedSlot);
     connect(m_pTargetModel, &TargetModel::startStopChangedSignalDelayed, this, &RegisterWidget::startStopDelayedSlot);
+
+    // Handle click on right-click menu items
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        connect(m_pShowDisasmWindowActions[i], &QAction::triggered, this, [=] () { this->disasmViewTrigger(i); } );
+
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        connect(m_pShowMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->memoryViewTrigger(i); } );
 
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     setMouseTracking(true);
@@ -86,7 +100,7 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
     QWidget::paintEvent(ev);
 
     QPainter painter(this);
-    painter.setFont(monoFont);
+    painter.setFont(m_monoFont);
     QFontMetrics info(painter.fontMetrics());
     const QPalette& pal = this->palette();
 
@@ -98,46 +112,89 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
     for (int i = 0; i < m_tokens.size(); ++i)
     {
         Token& tok = m_tokens[i];
-        painter.setPen(tok.highlight ? Qt::red : pal.text().color());
-        painter.drawText(tok.x * char_width, y_base + tok.y * y_height, tok.text);
-
-        int x = tok.x * char_width;
-        int y = 0 + tok.y * y_height;
+        int x = tok.x * m_charWidth;
+        int y = 0 + tok.y * m_yRowHeight;
         int w = info.horizontalAdvance(tok.text);
-        int h = y_height;
+        int h = m_yRowHeight;
         tok.rect.setRect(x, y, w, h);
+
+        painter.setPen(tok.highlight ? Qt::red : pal.text().color());
+
+        if (i == m_tokenUnderMouseIndex && tok.type != TokenType::kNone)
+        {
+            painter.setBrush(pal.highlight());
+            painter.setPen(Qt::NoPen);
+            painter.drawRect(tok.rect);
+            painter.setPen(pal.highlightedText().color());
+        }
+
+        painter.drawText(tok.x * m_charWidth, m_yTextBase + tok.y * m_yRowHeight, tok.text);
+    }
+}
+
+void RegisterWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    UpdateTokenUnderMouse(event->localPos());
+    QWidget::mouseMoveEvent(event);
+    update();
+}
+
+void RegisterWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    if (m_tokenUnderMouseIndex == -1)
+        return;
+
+    // Right click menus are instantiated on demand, so we can
+    // dynamically add to them
+    QMenu menu(this);
+
+    // Add the default actions
+    if (m_tokenUnderMouse.type == TokenType::kRegister)
+    {
+        QMenu* pAddressMenu = new QMenu("", &menu);
+        pAddressMenu->setTitle(QString::asprintf("Address $%08x", regs.Get(m_tokenUnderMouse.subIndex)));
+        for (int i = 0; i < kNumDisasmViews; ++i)
+            pAddressMenu->addAction(m_pShowDisasmWindowActions[i]);
+
+        for (int i = 0; i < kNumMemoryViews; ++i)
+            pAddressMenu->addAction(m_pShowMemoryWindowActions[i]);
+
+        menu.addMenu(pAddressMenu);
+
+        // Run it
+        menu.exec(event->globalPos());
     }
 }
 
 bool RegisterWidget::event(QEvent *event)
 {
-
     if (event->type() == QEvent::ToolTip) {
-        QHelpEvent *helpEvent = static_cast<QHelpEvent *>(event);
-        int index = -1;
-        for (int i = 0; i < m_tokens.size(); ++i)
-        {
-            const Token& tok = m_tokens[i];
-            if (tok.rect.contains(helpEvent->pos()))
-            {
-                index = i;
-                break;
-            }
-        }
 
+        QHelpEvent *helpEvent = static_cast<QHelpEvent *>(event);
+        int index = m_tokenUnderMouseIndex;
+        QString text;
         if (index != -1)
-        {
-            QString text = GetTooltipText(m_tokens[index]);
-            if (text.size() != 0)
-                QToolTip::showText(helpEvent->globalPos(), text);
-        }
+            text = GetTooltipText(m_tokens[index]);
+
+        if (text.size() != 0)
+            QToolTip::showText(helpEvent->globalPos(), text);
         else
         {
             QToolTip::hideText();
             event->ignore();
         }
-
         return true;
+    }
+    else if (event->type() == QEvent::Leave)
+    {
+        m_tokenUnderMouseIndex = -1;
+        update();
+    }
+    else if (event->type() == QEvent::Enter)
+    {
+        QEnterEvent* pEnterEvent = static_cast<QEnterEvent* >(event);
+        UpdateTokenUnderMouse(pEnterEvent->localPos());
+        update();
     }
     return QWidget::event(event);
 }
@@ -206,6 +263,19 @@ void RegisterWidget::symbolTableChangedSlot(uint64_t /*commandId*/)
 {
     PopulateRegisters();
 }
+
+void RegisterWidget::disasmViewTrigger(int windowIndex)
+{
+    uint32_t regValue = regs.Get(m_tokenUnderMouse.subIndex);
+    emit m_pTargetModel->addressRequested(windowIndex, false, regValue);
+}
+
+void RegisterWidget::memoryViewTrigger(int windowIndex)
+{
+    uint32_t regValue = regs.Get(m_tokenUnderMouse.subIndex);
+    emit m_pTargetModel->addressRequested(windowIndex, true, regValue);
+}
+
 
 void RegisterWidget::PopulateRegisters()
 {
@@ -278,11 +348,11 @@ void RegisterWidget::PopulateRegisters()
 
 void RegisterWidget::UpdateFont()
 {
-    monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    QFontMetrics info(monoFont);
-    y_base = info.ascent();
-    y_height = info.lineSpacing();
-    char_width = info.horizontalAdvance("0");
+    m_monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    QFontMetrics info(m_monoFont);
+    m_yTextBase = info.ascent();
+    m_yRowHeight = info.lineSpacing();
+    m_charWidth = info.horizontalAdvance("0");
 }
 
 QString RegisterWidget::FindSymbol(uint32_t addr)
@@ -366,6 +436,22 @@ QString RegisterWidget::GetTooltipText(const RegisterWidget::Token& token)
     return "";
 }
 
+void RegisterWidget::UpdateTokenUnderMouse(const QPointF& mousePos)
+{
+    // Update the token
+    m_tokenUnderMouseIndex = -1;
+    for (int i = 0; i < m_tokens.size(); ++i)
+    {
+        const Token& tok = m_tokens[i];
+        if (tok.rect.contains(mousePos))
+        {
+            m_tokenUnderMouseIndex = i;
+            m_tokenUnderMouse = tok;
+            break;
+        }
+    }
+}
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -391,14 +477,24 @@ MainWindow::MainWindow(QWidget *parent)
     // Register/status window
     m_pRegisterWidget = new RegisterWidget(this, m_pTargetModel, m_pDispatcher);
 
-    m_pDisasmWidget0 = new DisasmWindow(this, m_pTargetModel, m_pDispatcher, 0);
-    m_pDisasmWidget0->setWindowTitle("Disassembly (Alt+D)");
-    m_pDisasmWidget1 = new DisasmWindow(this, m_pTargetModel, m_pDispatcher, 1);
-    m_pDisasmWidget1->setWindowTitle("Disassembly 2");
-    m_pMemoryViewWidget0 = new MemoryWindow(this, m_pTargetModel, m_pDispatcher, 0);
-    m_pMemoryViewWidget0->setWindowTitle("Memory (Alt+M)");
-    m_pMemoryViewWidget1 = new MemoryWindow(this, m_pTargetModel, m_pDispatcher, 1);
-    m_pMemoryViewWidget1->setWindowTitle("Memory 2");
+    for (int i = 0; i < kNumDisasmViews; ++i)
+    {
+        m_pDisasmWidgets[i] = new DisasmWindow(this, m_pTargetModel, m_pDispatcher, i);
+        if (i == 0)
+            m_pDisasmWidgets[i]->setWindowTitle("Disassembly 1 (Alt+D)");
+        else
+            m_pDisasmWidgets[i]->setWindowTitle(QString::asprintf("Disassembly %d", i + 1));
+    }
+
+    for (int i = 0; i < kNumMemoryViews; ++i)
+    {
+        m_pMemoryViewWidgets[i] = new MemoryWindow(this, m_pTargetModel, m_pDispatcher, i);
+        if (i == 0)
+            m_pMemoryViewWidgets[i]->setWindowTitle("Memory 1 (Alt+M)");
+        else
+            m_pMemoryViewWidgets[i]->setWindowTitle(QString::asprintf("Memory %d", i + 1));
+    }
+
     m_pGraphicsInspector = new GraphicsInspectorWidget(this, m_pTargetModel, m_pDispatcher);
     m_pGraphicsInspector->setWindowTitle("Graphics Inspector (Alt+G)");
     m_pBreakpointsWidget = new BreakpointsWindow(this, m_pTargetModel, m_pDispatcher);
@@ -432,10 +528,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     setCentralWidget(pMainGroupBox);
 
-    this->addDockWidget(Qt::BottomDockWidgetArea, m_pDisasmWidget0);
-    this->addDockWidget(Qt::RightDockWidgetArea, m_pMemoryViewWidget0);
-    this->addDockWidget(Qt::BottomDockWidgetArea, m_pMemoryViewWidget1);
-    this->addDockWidget(Qt::BottomDockWidgetArea, m_pDisasmWidget1);
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        this->addDockWidget(Qt::BottomDockWidgetArea, m_pDisasmWidgets[i]);
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        this->addDockWidget(Qt::RightDockWidgetArea, m_pMemoryViewWidgets[i]);
+
     this->addDockWidget(Qt::LeftDockWidgetArea, m_pGraphicsInspector);
     this->addDockWidget(Qt::BottomDockWidgetArea, m_pBreakpointsWidget);
     this->addDockWidget(Qt::BottomDockWidgetArea, m_pConsoleWindow);
@@ -452,10 +549,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,    this, &MainWindow::memoryChangedSlot);
 
     // Wire up cross-window requests
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidget0, &MemoryWindow::requestAddress);
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidget1, &MemoryWindow::requestAddress);
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget0,     &DisasmWindow::requestAddress);
-    connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidget1,     &DisasmWindow::requestAddress);
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        connect(m_pTargetModel, &TargetModel::addressRequested, m_pDisasmWidgets[i],     &DisasmWindow::requestAddress);
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        connect(m_pTargetModel, &TargetModel::addressRequested, m_pMemoryViewWidgets[i], &MemoryWindow::requestAddress);
 
     // Wire up buttons to actions
     connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClicked);
@@ -681,10 +778,12 @@ void MainWindow::PopulateRunningSquare()
 
 void MainWindow::updateWindowMenu()
 {
-    disasmWindowAct0->setChecked(m_pDisasmWidget0->isVisible());
-    disasmWindowAct1->setChecked(m_pDisasmWidget1->isVisible());
-    memoryWindowAct0->setChecked(m_pMemoryViewWidget0->isVisible());
-    memoryWindowAct1->setChecked(m_pMemoryViewWidget1->isVisible());
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        disasmWindowActs[i]->setChecked(m_pDisasmWidgets[i]->isVisible());
+
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        memoryWindowActs[i]->setChecked(m_pMemoryViewWidgets[i]->isVisible());
+
     graphicsInspectorAct->setChecked(m_pGraphicsInspector->isVisible());
     breakpointsWindowAct->setChecked(m_pBreakpointsWidget->isVisible());
     consoleWindowAct->setChecked(m_pConsoleWindow->isVisible());
@@ -721,21 +820,18 @@ void MainWindow::loadSettings()
     if(!restoreState(settings.value("windowState").toByteArray()))
     {
         // Default docking status
-        m_pDisasmWidget0->setVisible(true);
-        m_pDisasmWidget1->setVisible(false);
-        m_pMemoryViewWidget0->setVisible(true);
-        m_pMemoryViewWidget1->setVisible(false);
+        for (int i = 0; i < kNumDisasmViews; ++i)
+            m_pDisasmWidgets[i]->setVisible(i == 0);
+        for (int i = 0; i < kNumMemoryViews; ++i)
+            m_pMemoryViewWidgets[i]->setVisible(i == 0);
         m_pGraphicsInspector->setVisible(true);
         m_pBreakpointsWidget->setVisible(true);
         m_pConsoleWindow->setVisible(false);
     }
     else
     {
-
         QDockWidget* wlist[] =
         {
-            m_pDisasmWidget0, m_pDisasmWidget1,
-            m_pMemoryViewWidget0, m_pMemoryViewWidget1,
             m_pBreakpointsWidget, m_pGraphicsInspector,
             m_pConsoleWindow,
             nullptr
@@ -751,6 +847,12 @@ void MainWindow::loadSettings()
             }
             ++pCurr;
         }
+        for (int i = 0; i < kNumDisasmViews; ++i)
+            if (m_pDisasmWidgets[i]->isFloating())
+                m_pDisasmWidgets[i]->activateWindow();
+        for (int i = 0; i < kNumMemoryViews; ++i)
+            if (m_pMemoryViewWidgets[i]->isFloating())
+                m_pMemoryViewWidgets[i]->activateWindow();
     }
 
     m_pRunToCombo->setCurrentIndex(settings.value("runto", QVariant(0)).toInt());
@@ -768,11 +870,10 @@ void MainWindow::saveSettings()
         settings.setValue("runto", m_pRunToCombo->currentIndex());
         settings.endGroup();
     }
-
-    m_pDisasmWidget0->saveSettings();
-    m_pDisasmWidget1->saveSettings();
-    m_pMemoryViewWidget0->saveSettings();
-    m_pMemoryViewWidget1->saveSettings();
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        m_pDisasmWidgets[i]->saveSettings();
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        m_pMemoryViewWidgets[i]->saveSettings();
     m_pGraphicsInspector->saveSettings();
     m_pConsoleWindow->saveSettings();
 }
@@ -797,7 +898,6 @@ void MainWindow::aboutQt()
 {
 }
 
-//! [4]
 void MainWindow::createActions()
 {
     // "File"
@@ -824,23 +924,25 @@ void MainWindow::createActions()
     connect(exceptionsAct, &QAction::triggered, this, &MainWindow::ExceptionsDialog);
 
     // "Window"
-    disasmWindowAct0 = new QAction(tr("Disassembly 1"), this);
-    disasmWindowAct0->setShortcut(QKeySequence("Alt+D"));
-    disasmWindowAct0->setStatusTip(tr("Show the memory window"));
-    disasmWindowAct0->setCheckable(true);
+    for (int i = 0; i < kNumDisasmViews; ++i)
+    {
+        disasmWindowActs[i] = new QAction(m_pDisasmWidgets[i]->windowTitle(), this);
+        disasmWindowActs[i]->setStatusTip(tr("Show the disassembly window"));
+        disasmWindowActs[i]->setCheckable(true);
 
-    disasmWindowAct1 = new QAction(tr("&Disassembly 2"), this);
-    disasmWindowAct1->setStatusTip(tr("Show the memory window"));
-    disasmWindowAct1->setCheckable(true);
+        if (i == 0)
+            disasmWindowActs[i]->setShortcut(QKeySequence("Alt+D"));
+    }
 
-    memoryWindowAct0 = new QAction(tr("&Memory 1"), this);
-    memoryWindowAct0->setShortcut(QKeySequence("Alt+M"));
-    memoryWindowAct0->setStatusTip(tr("Show the memory window"));
-    memoryWindowAct0->setCheckable(true);
+    for (int i = 0; i < kNumMemoryViews; ++i)
+    {
+        memoryWindowActs[i] = new QAction(m_pMemoryViewWidgets[i]->windowTitle(), this);
+        memoryWindowActs[i]->setStatusTip(tr("Show the memory window"));
+        memoryWindowActs[i]->setCheckable(true);
 
-    memoryWindowAct1 = new QAction(tr("Memory 2"), this);
-    memoryWindowAct1->setStatusTip(tr("Show the memory window"));
-    memoryWindowAct1->setCheckable(true);
+        if (i == 0)
+            memoryWindowActs[i]->setShortcut(QKeySequence("Alt+M"));
+    }
 
     graphicsInspectorAct = new QAction(tr("&Graphics Inspector"), this);
     graphicsInspectorAct->setShortcut(QKeySequence("Alt+G"));
@@ -856,10 +958,12 @@ void MainWindow::createActions()
     consoleWindowAct->setStatusTip(tr("Show the Console window"));
     consoleWindowAct->setCheckable(true);
 
-    connect(disasmWindowAct0, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget0); m_pDisasmWidget0->keyFocus(); } );
-    connect(disasmWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidget1); m_pDisasmWidget1->keyFocus(); } );
-    connect(memoryWindowAct0, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget0); m_pMemoryViewWidget0->keyFocus(); } );
-    connect(memoryWindowAct1, &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidget1); m_pMemoryViewWidget1->keyFocus(); } );
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        connect(disasmWindowActs[i], &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidgets[i]); m_pDisasmWidgets[i]->keyFocus(); } );
+
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        connect(memoryWindowActs[i], &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidgets[i]); m_pMemoryViewWidgets[i]->keyFocus(); } );
+
     connect(graphicsInspectorAct, &QAction::triggered, this, [=] () { this->enableVis(m_pGraphicsInspector); m_pGraphicsInspector->keyFocus(); } );
     connect(breakpointsWindowAct, &QAction::triggered, this, [=] () { this->enableVis(m_pBreakpointsWidget); m_pBreakpointsWidget->keyFocus(); } );
     connect(consoleWindowAct,     &QAction::triggered, this, [=] () { this->enableVis(m_pConsoleWindow); m_pConsoleWindow->keyFocus(); } );
@@ -877,9 +981,7 @@ void MainWindow::createActions()
     connect(aboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
     connect(aboutQtAct, &QAction::triggered, this, &MainWindow::aboutQt);
 }
-//! [7]
 
-//! [8]
 void MainWindow::createMenus()
 {
     // "File"
@@ -896,10 +998,14 @@ void MainWindow::createMenus()
     editMenu->addSeparator();
 
     windowMenu = menuBar()->addMenu(tr("&Window"));
-    windowMenu->addAction(disasmWindowAct0);
-    windowMenu->addAction(disasmWindowAct1);
-    windowMenu->addAction(memoryWindowAct0);
-    windowMenu->addAction(memoryWindowAct1);
+    for (int i = 0; i < kNumDisasmViews; ++i)
+        windowMenu->addAction(disasmWindowActs[i]);
+    windowMenu->addSeparator();
+
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        windowMenu->addAction(memoryWindowActs[i]);
+    windowMenu->addSeparator();
+
     windowMenu->addAction(graphicsInspectorAct);
     windowMenu->addAction(breakpointsWindowAct);
     windowMenu->addAction(consoleWindowAct);

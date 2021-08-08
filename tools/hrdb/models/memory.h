@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <assert.h>
 
+static const int kNumDisasmViews = 2;
+static const int kNumMemoryViews = 4;
+
 enum MemorySlot
 {
     kNone,          // e.g. regs
@@ -11,13 +14,12 @@ enum MemorySlot
 
     kVideo,         // memory from $ff8200 to $ff8270
 
-    kDisasm0,       // general disassembly view memory
-    kDisasm1,       // secondary disassembly
+    kDisasm0,       // general disassembly view memory (K slots)
 
-    kMemoryView0,   // general memory view memory
-    kMemoryView1,   // second memory view window
+    kMemoryView0 = kDisasm0 + kNumDisasmViews,   // general memory view memorys (K Slots)
 
-    kGraphicsInspector,         // gfx bitmap
+    kGraphicsInspector = kMemoryView0 + kNumMemoryViews,         // gfx bitmap
+
     kGraphicsInspectorPalette,  // gfx palette
     kMemorySlotCount
 };

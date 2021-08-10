@@ -9,6 +9,7 @@
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
+#include "quicklayout.h"
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -28,7 +29,9 @@ ConsoleWindow::ConsoleWindow(QWidget *parent, TargetModel* pTargetModel, Dispatc
     auto pMainRegion = new QWidget(this);   // whole panel
     auto pTopRegion = new QWidget(this);      // top buttons/edits
 
+    SetMargins(pTopLayout);
     pTopLayout->addWidget(m_pLineEdit);
+    SetMargins(pMainLayout);
     pMainLayout->addWidget(pTopRegion);
 
     pTopRegion->setLayout(pTopLayout);

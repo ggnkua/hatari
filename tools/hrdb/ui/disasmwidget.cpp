@@ -19,7 +19,8 @@
 #include "../models/stringparsers.h"
 #include "../models/symboltablemodel.h"
 #include "../models/memory.h"
-
+#include "../models/session.h"
+#include "quicklayout.h"
 
 DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatcher* pDispatcher, int windowIndex):
     QWidget(parent),
@@ -125,14 +126,14 @@ void DisasmWidget::RequestMemory()
 {
     uint32_t addr = m_logicalAddr;
     uint32_t lowAddr = (addr > 100) ? addr - 100 : 0;
-    uint32_t size = ((m_rowCount * 10) + 100);
+    uint32_t size = static_cast<uint32_t>((m_rowCount * 10) + 100);
     if (m_pTargetModel->IsConnected())
     {
         m_requestId = m_pDispatcher->RequestMemory(m_memSlot, lowAddr, size);
     }
 }
 
-bool DisasmWidget::GetEA(uint32_t row, int operandIndex, uint32_t &addr)
+bool DisasmWidget::GetEA(int row, int operandIndex, uint32_t &addr)
 {
     if (row >= m_opAddresses.size())
         return false;
@@ -228,7 +229,7 @@ void DisasmWidget::MoveDown()
     if (m_disasm.lines.size() > 0)
     {
         // Find our current line in disassembly
-        for (size_t i = 0; i < m_disasm.lines.size(); ++i)
+        for (int i = 0; i < m_disasm.lines.size(); ++i)
         {
             if (m_disasm.lines[i].address == m_logicalAddr)
             {
@@ -244,6 +245,13 @@ void DisasmWidget::MoveDown()
 
 void DisasmWidget::PageUp()
 {
+    if (m_cursorRow != 0)
+    {
+        m_cursorRow = 0;
+        update();
+        return;
+    }
+
     if (m_requestId != 0)
         return; // not up to date
 
@@ -256,6 +264,14 @@ void DisasmWidget::PageUp()
 
 void DisasmWidget::PageDown()
 {
+    if (m_rowCount > 0 && m_cursorRow < m_rowCount - 1)
+    {
+        // Just move to the bottom row
+        m_cursorRow = m_rowCount - 1;
+        update();
+        return;
+    }
+
     if (m_requestId != 0)
         return; // not up to date
 
@@ -352,7 +368,7 @@ void DisasmWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
 {
     // Do a re-request if our memory is touched
     uint32_t ourAddr = m_logicalAddr;
-    uint32_t ourSize = ((m_rowCount * 10) + 100);
+    uint32_t ourSize = static_cast<uint32_t>((m_rowCount * 10) + 100);
     if (Overlaps(ourAddr, ourSize, address, size))
         RequestMemory();
 }
@@ -376,21 +392,23 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
     if (m_disasm.lines.size() == 0)
         return;
 
-    int char_width = info.horizontalAdvance("0");
-    int y_base = info.ascent();
+    const int char_width = info.horizontalAdvance("0");
+    const int y_ascent = info.ascent();
 
+    // Highlight the mouse
+    if (m_mouseRow != -1)
     {
-        if (m_mouseRow != -1)
-        {
-            painter.setPen(Qt::PenStyle::DashLine);
-            painter.setBrush(Qt::BrushStyle::NoBrush);
-            painter.drawRect(0, m_mouseRow * m_lineHeight, rect().width(), m_lineHeight);
-        }
+        painter.setPen(Qt::PenStyle::DashLine);
+        painter.setBrush(Qt::BrushStyle::NoBrush);
+        painter.drawRect(0, GetPixelFromRow(m_mouseRow), rect().width(), m_lineHeight);
+    }
 
-        int y_curs = m_cursorRow * m_lineHeight;       // compensate for descenders TODO use ascent()
+    // Highlight the cursor row
+    if (m_cursorRow != -1)
+    {
         painter.setPen(Qt::PenStyle::NoPen);
         painter.setBrush(pal.highlight());
-        painter.drawRect(0, y_curs, rect().width(), m_lineHeight);
+        painter.drawRect(0, GetPixelFromRow(m_cursorRow), rect().width(), m_lineHeight);
     }
 
     for (int col = 0; col < kNumColumns; ++col)
@@ -402,14 +420,16 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
         painter.setClipRect(x, 0, x2 - x, height());
         for (int row = 0; row < m_rowTexts.size(); ++row)
         {
+            const RowText& t = m_rowTexts[row];
             if (row == m_cursorRow)
                 painter.setPen(pal.highlightedText().color());
+            else if (t.isPc)
+                painter.setPen(Qt::darkGreen);
             else
                 painter.setPen(pal.text().color());
 
-            int row_top_y = row * m_lineHeight;
-            int text_y = y_base + row * m_lineHeight;
-            const RowText& t = m_rowTexts[row];
+            int row_top_y = GetPixelFromRow(row);
+            int text_y = y_ascent + row_top_y;
 
             switch (col)
             {
@@ -463,7 +483,9 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
 
 void DisasmWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    m_mouseRow = int(event->localPos().y() / m_lineHeight);
+    m_mouseRow = GetRowFromPixel(int(event->localPos().y()));
+    if (m_mouseRow >= m_rowCount)
+        m_mouseRow = -1;  // hide if off the bottom
     if (this->underMouse())
         update();       // redraw highlight
 
@@ -474,7 +496,7 @@ void DisasmWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        int row = int(event->localPos().y() / m_lineHeight);
+        int row = GetRowFromPixel(int(event->localPos().y()));
         if (row < m_rowCount)
         {
             m_cursorRow = row;
@@ -513,7 +535,7 @@ void DisasmWidget::CalcDisasm()
 
     // Recalc Text (which depends on e.g. symbols
     m_rowTexts.clear();
-    for (size_t row = 0; row < m_disasm.lines.size(); ++row)
+    for (int row = 0; row < m_disasm.lines.size(); ++row)
     {
         RowText t;
         Disassembler::line& line = m_disasm.lines[row];
@@ -580,7 +602,7 @@ void DisasmWidget::CalcOpAddresses()
     m_opAddresses.clear();
     m_opAddresses.resize(m_disasm.lines.size());
     const Registers& regs = m_pTargetModel->GetRegs();
-    for (size_t i = 0; i < m_disasm.lines.size(); ++i)
+    for (int i = 0; i < m_disasm.lines.size(); ++i)
     {
         const instruction& inst = m_disasm.lines[i].inst;
         OpAddresses& addrs = m_opAddresses[i];
@@ -633,9 +655,10 @@ void DisasmWidget::NopRow(int row)
 
 void DisasmWidget::SetRowCount(int count)
 {
+    if (count < 1)
+        count = 1;
     if (count != m_rowCount)
     {
-//        emit beginResetModel();
         m_rowCount = count;
 
         // Do we need more data?
@@ -645,8 +668,6 @@ void DisasmWidget::SetRowCount(int count)
             // We need more memory
             RequestMemory();
         }
-
-//        emit endResetModel();
     }
 }
 
@@ -689,7 +710,7 @@ void DisasmWidget::printEA(const operand& op, const Registers& regs, uint32_t ad
 //-----------------------------------------------------------------------------
 void DisasmWidget::contextMenuEvent(QContextMenuEvent *event)
 {
-    m_rightClickRow = event->y() / m_lineHeight;
+    m_rightClickRow = GetRowFromPixel(event->y());
     if (m_rightClickRow < 0 || m_rightClickRow >= m_rowTexts.size())
         return;
 
@@ -790,7 +811,7 @@ void DisasmWidget::resizeEvent(QResizeEvent* )
 
 void DisasmWidget::RecalcRowCount()
 {
-    int h = this->rect().height();
+    int h = this->rect().height() - Session::kWidgetBorderY * 2;
     int rowh = m_lineHeight;
     if (rowh != 0)
         SetRowCount(h / rowh);
@@ -814,6 +835,18 @@ void DisasmWidget::RecalcColums()
     m_columnLeft[kDisasm] = pos; pos += 40;
     m_columnLeft[kComments] = pos; pos += 80;
     m_columnLeft[kNumColumns] = pos;
+}
+
+int DisasmWidget::GetPixelFromRow(int row) const
+{
+    return Session::kWidgetBorderY + row * m_lineHeight;
+}
+
+int DisasmWidget::GetRowFromPixel(int y) const
+{
+    if (!m_lineHeight)
+        return 0;
+    return (y - Session::kWidgetBorderY) / m_lineHeight;
 }
 
 //-----------------------------------------------------------------------------
@@ -851,10 +884,12 @@ DisasmWindow::DisasmWindow(QWidget *parent, TargetModel* pTargetModel, Dispatche
     auto pTopRegion = new QWidget(this);    // top buttons/edits
     //pMainGroupBox->setFlat(true);
 
+    SetMargins(pTopLayout);
     pTopLayout->addWidget(m_pLineEdit);
     pTopLayout->addWidget(m_pShowHex);
     pTopLayout->addWidget(m_pFollowPC);
 
+    SetMargins(pMainLayout);
     pMainLayout->addWidget(pTopRegion);
     pMainLayout->addWidget(m_pDisasmWidget);
     pMainLayout->setAlignment(Qt::Alignment(Qt::AlignTop));

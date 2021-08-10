@@ -13,6 +13,13 @@ class Session : public QObject
 {
     Q_OBJECT
 public:
+
+    // DRAWING LAYOUT OPTIONS
+    // Add a 4-pixel offset to shift away from the focus rectangle
+    static const int kWidgetBorderX = 6;
+    static const int kWidgetBorderY = 4;
+
+    // Standard functions
     Session();
     virtual ~Session();
     void Connect();

@@ -70,8 +70,14 @@ private:
     int GetHexCharX(int column) const;
     int GetAsciiCharX(int column) const;
 
+    // Convert from row ID to a pixel Y (top pixel in the drawn row)
+    int GetPixelFromRow(int row) const;
+
+    // Convert from pixel Y to a row ID
+    int GetRowFromPixel(int y) const;
+
     void GetCursorInfo(uint32_t& address, bool& bottomNybble);
-    void SetRowCount(uint32_t rowCount);
+    void SetRowCount(int rowCount);
 
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
@@ -81,39 +87,38 @@ private:
     {
         uint32_t m_address;
 
-        std::vector<uint8_t> m_rawBytes;
-        std::vector<bool> m_byteChanged;
+        QVector<uint8_t> m_rawBytes;
+        QVector<bool> m_byteChanged;
         QString m_hexText;
         QString m_asciiText;
     };
 
-    std::vector<Row> m_rows;
+    QVector<Row> m_rows;
     // Positions of each column (need to multiply by m_charWidth for pixel position)
-    std::vector<uint32_t> m_columnPositions;
+    QVector<int32_t> m_columnPositions;
 
     std::string m_addressExpression;
-    bool    m_isLocked;
-    uint32_t m_address;
+    bool        m_isLocked;
+    uint32_t    m_address;
 
-    uint32_t m_bytesPerRow;
-    Mode     m_mode;
+    int         m_bytesPerRow;
+    Mode        m_mode;
 
-    uint32_t m_rowCount;
-    uint64_t m_requestId;
-    int      m_windowIndex;        // e.g. "memory 0", "memory 1"
+    int         m_rowCount;
+    uint64_t    m_requestId;
+    int         m_windowIndex;        // e.g. "memory 0", "memory 1"
     MemorySlot  m_memSlot;
 
-    Memory  m_previousMemory;       // Copy before we restarted the CPU
+    Memory      m_previousMemory;       // Copy before we restarted the CPU
 
     // Cursor
-    int     m_cursorRow;
-    int     m_cursorCol;
-
+    int         m_cursorRow;
+    int         m_cursorCol;
 
     // rendering info
-    int     m_charWidth;            // font width in pixels
-    int     m_lineHeight;           // font height in pixels
-    QFont   monoFont;
+    int         m_charWidth;            // font width in pixels
+    int         m_lineHeight;           // font height in pixels
+    QFont       monoFont;
 };
 
 class MemoryWindow : public QDockWidget

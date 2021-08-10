@@ -3,48 +3,6 @@
 #include <iostream>
 #include <QTimer>
 
-//-----------------------------------------------------------------------------
-const char* Registers::s_names[] =
-{
-	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
-	"A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7",
-	"PC", "SR", 
-	"USP", "ISP",
-	"EX",
-    // Vars
-    "AesOpcode",
-    "Basepage",
-    "BiosOpcode",
-    "BSS",
-    "CpuInstr",
-    "CpuOpcodeType",
-    "CycleCounter",
-    "DATA",
-    "DspInstr",
-    "DspOpcodeType",
-    "FrameCycles",
-    "GemdosOpcode",
-    "HBL",
-    "LineAOpcode",
-    "LineCycles",
-    "LineFOpcode",
-    "NextPC",
-    "OsCallParam",
-    "TEXT",
-    "TEXTEnd",
-    "VBL",
-    "VdiOpcode",
-    "XbiosOpcode",
-    nullptr
-};
-
-Registers::Registers()
-{
-	for (int i = 0; i < Registers::REG_COUNT; ++i)
-		m_value[i] = 0;
-}
-
-
 void TargetChangedFlags::Clear()
 {
     for (int i = 0; i < kChangedStateCount; ++i)
@@ -60,20 +18,20 @@ TargetModel::TargetModel() :
     m_bRunning(true)
 {
     for (int i = 0; i < MemorySlot::kMemorySlotCount; ++i)
-        m_pTestMemory[i] = nullptr;
+        m_pMemory[i] = nullptr;
 
     m_changedFlags.Clear();
 
-    m_pTimer = new QTimer(this);
-    connect(m_pTimer, &QTimer::timeout, this, &TargetModel::delayedTimer);
+    m_pDelayedUpdateTimer = new QTimer(this);
+    connect(m_pDelayedUpdateTimer, &QTimer::timeout, this, &TargetModel::delayedTimer);
 }
 
 TargetModel::~TargetModel()
 {
     for (int i = 0; i < MemorySlot::kMemorySlotCount; ++i)
-        delete m_pTestMemory[i];
+        delete m_pMemory[i];
 
-    delete m_pTimer;
+    delete m_pDelayedUpdateTimer;
 }
 
 void TargetModel::SetConnected(int connected)
@@ -100,12 +58,12 @@ void TargetModel::SetStatus(bool running, uint32_t pc)
     m_changedFlags.SetChanged(TargetChangedFlags::kPC);
     emit startStopChangedSignal();
 
-    m_pTimer->stop();
+    m_pDelayedUpdateTimer->stop();
 
     //    if (!m_bRunning)
     {
-        m_pTimer->setSingleShot(true);
-        m_pTimer->start(500);
+        m_pDelayedUpdateTimer->setSingleShot(true);
+        m_pDelayedUpdateTimer->start(500);
     }
 }
 
@@ -124,10 +82,10 @@ void TargetModel::SetRegisters(const Registers& regs, uint64_t commandId)
 
 void TargetModel::SetMemory(MemorySlot slot, const Memory* pMem, uint64_t commandId)
 {
-    if (m_pTestMemory[slot])
-        delete m_pTestMemory[slot];
+    if (m_pMemory[slot])
+        delete m_pMemory[slot];
 
-    m_pTestMemory[slot] = pMem;
+    m_pMemory[slot] = pMem;
     m_changedFlags.SetMemoryChanged(slot);
     emit memoryChangedSignal(slot, commandId);
 }
@@ -178,6 +136,12 @@ void TargetModel::Flush()
 
 void TargetModel::delayedTimer()
 {
-    m_pTimer->stop();
+    m_pDelayedUpdateTimer->stop();
     emit startStopChangedSignalDelayed(m_bRunning);
 }
+
+bool IsMachineST(MACHINETYPE type)
+{
+    return (type == MACHINE_ST || type == MACHINE_MEGA_ST);
+}
+

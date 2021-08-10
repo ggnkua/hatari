@@ -133,7 +133,7 @@ int Disassembler::decode_inst(buffer_reader& buf, instruction& inst)
     return decode(buf, inst);
 }
 
-int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, uint32_t address, uint32_t maxLines)
+int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, uint32_t address, int32_t maxLines)
 {
     while (buf.get_remain() >= 2)
     {
@@ -369,6 +369,43 @@ void Disassembler::print(const instruction& inst, /*const symbols& symbols, */ u
 
     if (inst.op0.type != OpType::INVALID)
     {
+        ::print(inst.op0, /*symbols,*/ inst_address, ref);
+    }
+
+    if (inst.op1.type != OpType::INVALID)
+    {
+        ref << ",";
+        ::print(inst.op1, /*symbols,*/ inst_address, ref);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void Disassembler::print_terse(const instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref)
+{
+    if (inst.opcode == Opcode::NONE)
+    {
+        ref << "dc.w " << to_hex32(inst.header);
+        return;
+    }
+    QString opcode = instruction_names[inst.opcode];
+    switch (inst.suffix)
+    {
+        case Suffix::BYTE:
+            opcode += ".b"; break;
+        case Suffix::WORD:
+            opcode += ".w"; break;
+        case Suffix::LONG:
+            opcode += ".l"; break;
+        case Suffix::SHORT:
+            opcode += ".s"; break;
+        default:
+            break;
+    }
+    ref << opcode;
+
+    if (inst.op0.type != OpType::INVALID)
+    {
+        ref << " ";
         ::print(inst.op0, /*symbols,*/ inst_address, ref);
     }
 

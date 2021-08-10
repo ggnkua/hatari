@@ -166,6 +166,7 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel,
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;
+    SetMargins(pMainLayout);
     auto pMainRegion = new QWidget(this);   // whole panel
 
     m_pAddButton = new QPushButton(tr("Add..."), this);

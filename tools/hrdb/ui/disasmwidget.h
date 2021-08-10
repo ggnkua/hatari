@@ -29,7 +29,7 @@ public:
     bool GetFollowPC() const    { return m_bFollowPC; }
     bool GetShowHex() const     { return m_bShowHex; }
     bool GetInstructionAddr(int row, uint32_t& addr) const;
-    bool GetEA(uint32_t row, int operandIndex, uint32_t &addr);
+    bool GetEA(int row, int operandIndex, uint32_t &addr);
 
     bool SetAddress(std::string addr);
     void MoveUp();
@@ -81,7 +81,7 @@ private:
     };
 
     Disassembler::disassembly m_disasm;
-    std::vector<OpAddresses> m_opAddresses;
+    QVector<OpAddresses> m_opAddresses;
     struct RowText
     {
         QString     symbol;
@@ -94,7 +94,7 @@ private:
         QString     disasm;
         QString     comments;
     };
-    std::vector<RowText>    m_rowTexts;
+    QVector<RowText>    m_rowTexts;
 
     Breakpoints m_breakpoints;
     int         m_rowCount;
@@ -133,6 +133,12 @@ private:
     void RecalcRowCount();
     void GetLineHeight();
     void RecalcColums();
+
+    // Convert from row ID to a pixel Y (top pixel in the drawn row)
+    int GetPixelFromRow(int row) const;
+
+    // Convert from pixel Y to a row ID
+    int GetRowFromPixel(int y) const;
 
     TargetModel*          m_pTargetModel;   // for inter-window comms
     Dispatcher*           m_pDispatcher;

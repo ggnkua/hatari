@@ -18,9 +18,9 @@ enum MemorySlot
 
     kMemoryView0 = kDisasm0 + kNumDisasmViews,   // general memory view memorys (K Slots)
 
-    kGraphicsInspector = kMemoryView0 + kNumMemoryViews,         // gfx bitmap
+    kGraphicsInspector = kMemoryView0 + kNumMemoryViews,    // gfx bitmap
+    kGraphicsInspectorVideoRegs,                            // same as kVideo but synced with graphics inspector requests
 
-    kGraphicsInspectorPalette,  // gfx palette
     kMemorySlotCount
 };
 

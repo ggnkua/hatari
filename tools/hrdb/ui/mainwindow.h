@@ -63,8 +63,17 @@ private:
     enum TokenType
     {
         kRegister,
-        kSymbol,
+        kSymbol,                // aka an arbitray "address"
+        kStatusRegisterBit,
         kNone,
+    };
+
+    enum TokenColour
+    {
+        kNormal,
+        kChanged,
+        kInactive,
+        kCode
     };
 
     struct Token
@@ -75,22 +84,28 @@ private:
 
         TokenType type;
         uint32_t subIndex;      // subIndex e.g "4" for D4, 0x12345 for symbol address, bitnumber for SR field
-        bool highlight;
+        TokenColour colour;     // how to draw it
 
-        QRectF rect;             // bounding rectangle, updated when rendered
+        QRectF rect;            // bounding rectangle, updated when rendered
     };
 
     QString FindSymbol(uint32_t addr);
 
-    void AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex, bool highlight);
-    void AddReg16(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &regs);
-    void AddReg32(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &regs);
+    int AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex = 0, TokenColour colour = TokenColour::kNormal);
+    int AddReg16(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
+    int AddReg32(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
 
-    void AddSR(int x, int y, const Registers &prevRegs, const Registers &regs, uint32_t bit, const char *pName);
-    void AddSymbol(int x, int y, uint32_t address);
+    int AddSR(int x, int y, const Registers &prevRegs, const Registers &m_currRegs, uint32_t bit, const char *pName);
+    int AddSymbol(int x, int y, uint32_t address);
 
     QString GetTooltipText(const Token& token);
-    void UpdateTokenUnderMouse(const QPointF& pos);
+    void UpdateTokenUnderMouse();
+
+    // Convert from row ID to a pixel Y (top pixel in the drawn row)
+    int GetPixelFromRow(int row) const;
+
+    // Convert from pixel Y to a row ID
+    int GetRowFromPixel(int y) const;
 
     // UI Elements
     QAction*                    m_pShowDisasmWindowActions[kNumDisasmViews];
@@ -100,20 +115,22 @@ private:
     TargetModel*                m_pTargetModel;
 
     // Shown data
-    Registers                   regs;           // current regs
+    Registers                   m_currRegs;     // current regs
     Registers                   m_prevRegs;     // regs when PC started
     Disassembler::disassembly   m_disasm;
 
     QVector<Token>              m_tokens;
 
     // Mouse data
+    QPointF                     m_mousePos;                  // last updated position
     int                         m_tokenUnderMouseIndex;      // -1 for none
     Token                       m_tokenUnderMouse;           // copy of relevant token (for menus etc)
+    uint32_t                    m_addressUnderMouse;
 
     // Render info
     QFont                       m_monoFont;
-    int                         m_yTextBase;
-    int                         m_yRowHeight;
+    int                         m_yAscent;        // Font ascent (offset from top for drawing)
+    int                         m_lineHeight;
     int                         m_charWidth;
 };
 

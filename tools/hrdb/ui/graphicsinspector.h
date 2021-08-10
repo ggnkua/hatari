@@ -21,24 +21,35 @@ class NonAntiAliasImage : public QWidget
     Q_OBJECT
     Q_DISABLE_COPY(NonAntiAliasImage)
 public:
-    explicit NonAntiAliasImage(QWidget* parent = Q_NULLPTR);
-    const QPixmap& pixmap() const
-    {
-        return m_pixmap;
-    }
-    void setPixmap(const QPixmap& px)
-    {
-        m_pixmap = px;
-        update();
-    }
+    explicit NonAntiAliasImage(QWidget* parent);
+    virtual ~NonAntiAliasImage() override;
+
+    void setPixmap(int width, int height);
+    uint8_t* AllocBitmap(int size);
+    void SetRunning(bool runFlag);
+
+    QVector<QRgb>   m_colours;
+
+    const QString& GetString() { return m_infoString; }
+signals:
+    void StringChanged();
+
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void mouseMoveEvent(QMouseEvent *event) override;
 private:
-    QPixmap m_pixmap;
-    QPointF m_mousePos;
-};
+    void UpdateString();
 
+    QPixmap         m_pixmap;
+    QPointF         m_mousePos;
+
+    // Underlying bitmap data
+    uint8_t*        m_pBitmap;
+    int             m_bitmapSize;
+
+    QString         m_infoString;
+    bool            m_bRunningMask;
+};
 
 class GraphicsInspectorWidget : public QDockWidget
 {
@@ -55,15 +66,20 @@ public:
 private:
     void connectChangedSlot();
     void startStopChangedSlot();
+    void startStopDelayedChangedSlot();
     void memoryChangedSlot(int memorySlot, uint64_t commandId);
     void otherMemoryChangedSlot(uint32_t address, uint32_t size);
     void textEditChangedSlot();
-    void followVideoChangedSlot();
+    void lockAddressToVideoChangedSlot();
+    void lockFormatToVideoChangedSlot();
+    void lockPaletteToVideoChangedSlot();
 
 private slots:
     void modeChangedSlot(int index);
+    void paletteChangedSlot(int index);
     void widthChangedSlot(int width);
     void heightChangedSlot(int height);
+    void StringChangedSlot();
 protected:
     virtual void keyPressEvent(QKeyEvent *ev);
 
@@ -72,28 +88,50 @@ private:
     {
         k4Bitplane,
         k2Bitplane,
-        k1Bitplane
+        k1Bitplane,
     };
 
-    void UpdateCheckBoxes();
+    enum Palette
+    {
+        kGreyscale,
+        kContrast1
+    };
+
+    void UpdateUIElements();
     void RequestMemory();
+
     bool SetAddressFromVideo();
     void DisplayAddress();
 
+    // Either copy from registers, or use the user settings
+    void UpdatePaletteFromSettings();
+
+    // Copy format from video regs if required
+    void UpdateFormatFromSettings();
+
+    // Get the effective data by checking the "lock to" flags and
+    // using them if necessary.
+    GraphicsInspectorWidget::Mode GetEffectiveMode() const;
+    int GetEffectiveWidth() const;
+    int GetEffectiveHeight() const;
+
     static int32_t BytesPerMode(Mode mode);
 
-    QLineEdit*      m_pLineEdit;
+    QLineEdit*      m_pAddressLineEdit;
     QComboBox*      m_pModeComboBox;
     QSpinBox*       m_pWidthSpinBox;
     QSpinBox*       m_pHeightSpinBox;
-    QCheckBox*      m_pLockToVideoCheckBox;
+    QCheckBox*      m_pLockAddressToVideoCheckBox;
+    QCheckBox*      m_pLockFormatToVideoCheckBox;
+    QCheckBox*      m_pLockPaletteToVideoCheckBox;
+    QComboBox*      m_pPaletteComboBox;
+    QLabel*         m_pInfoLabel;
 
     NonAntiAliasImage*         m_pImageWidget;
 
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
     QAbstractItemModel* m_pSymbolTableModel;
-    QVector<QRgb>   m_colours;
 
     Mode            m_mode;
     uint32_t        m_address;
@@ -101,7 +139,7 @@ private:
     int             m_height;
 
     uint64_t        m_requestIdBitmap;
-    uint64_t        m_requestIdPalette;
+    uint64_t        m_requestIdVideoRegs;
 };
 
 #endif // GRAPHICSINSPECTOR_H

@@ -38,7 +38,8 @@ SOURCES += \
     ui/memoryviewwidget.cpp \
     ui/rundialog.cpp \
     ui/consolewindow.cpp \
-    models/session.cpp
+    models/session.cpp \
+    models/registers.cpp
 
 HEADERS += \
     hopper/buffer.h \
@@ -66,7 +67,8 @@ HEADERS += \
     ui/memoryviewwidget.h \
     ui/quicklayout.h \
     ui/rundialog.h \
-    ui/consolewindow.h
+    ui/consolewindow.h \
+    hardware/hardware_st.h
 
 RESOURCES     = hrdb.qrc    
 

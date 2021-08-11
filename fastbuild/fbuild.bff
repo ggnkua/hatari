@@ -541,6 +541,7 @@ ObjectList( "hrdb_predefs" )         ; Alias
     "$SRC_DIR$/tools/hrdb/ui/breakpointswidget.h"
     "$SRC_DIR$/tools/hrdb/ui/rundialog.h"
     "$SRC_DIR$/tools/hrdb/models/session.h"
+    "$SRC_DIR$/tools/hrdb/models/registers.h"
     "$SRC_DIR$/tools/hrdb/ui/addbreakpointdialog.h"
     "$SRC_DIR$/tools/hrdb/ui/exceptiondialog.h"                                                                
 }
@@ -588,6 +589,7 @@ ObjectList( "hrdb_qrc" )         ; Alias
     "$SRC_DIR$/tools/hrdb/models/memory.cpp"
     "$SRC_DIR$/tools/hrdb/models/breakpoint.cpp"
     "$SRC_DIR$/tools/hrdb/models/session.cpp"
+    "$SRC_DIR$/tools/hrdb/models/registers.cpp"
     "$SRC_DIR$/tools/hrdb/models/stringsplitter.cpp"
     "$SRC_DIR$/tools/hrdb/models/symboltable.cpp"
     "$SRC_DIR$/tools/hrdb/models/symboltablemodel.cpp"

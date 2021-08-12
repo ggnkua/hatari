@@ -861,10 +861,9 @@ DisasmWindow::DisasmWindow(QWidget *parent, TargetModel* pTargetModel, Dispatche
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
     setObjectName(key);
 
+    // Construction. Do in order of tabbing
     m_pDisasmWidget = new DisasmWidget(this, pTargetModel, pDispatcher, windowIndex);
     m_pDisasmWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
-
-    // Top group box
     m_pLineEdit = new QLineEdit(this);
     m_pShowHex = new QCheckBox("Show hex", this);
     m_pShowHex->setTristate(false);

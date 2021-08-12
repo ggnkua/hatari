@@ -610,6 +610,10 @@ MainWindow::MainWindow(QWidget *parent)
     m_pTargetModel = new TargetModel();
     m_pDispatcher = new Dispatcher(m_session.m_pTcpSocket, m_pTargetModel);
 
+    // Creation - done in Tab order
+    // Register/status window
+    m_pRegisterWidget = new RegisterWidget(this, m_pTargetModel, m_pDispatcher);
+
     // Top row of buttons
     m_pRunningSquare = new QWidget(this);
     m_pRunningSquare->setFixedSize(10, 25);
@@ -623,9 +627,6 @@ MainWindow::MainWindow(QWidget *parent)
     m_pRunToCombo->insertItem(1, "RTE");
     m_pRunToCombo->insertItem(2, "Next VBL");
     m_pRunToCombo->insertItem(3, "Next HBL");
-
-    // Register/status window
-    m_pRegisterWidget = new RegisterWidget(this, m_pTargetModel, m_pDispatcher);
 
     for (int i = 0; i < kNumDisasmViews; ++i)
     {

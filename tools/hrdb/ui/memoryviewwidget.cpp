@@ -601,24 +601,24 @@ MemoryWindow::MemoryWindow(QWidget *parent, TargetModel* pTargetModel, Dispatche
     QString key = QString::asprintf("MemoryView%d", m_windowIndex);
     setObjectName(key);
 
-    // Make the data first
+    m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
+    QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
+    pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
+
+    // Construction. Do in order of tabbing
     m_pMemoryWidget = new MemoryWidget(this, pTargetModel, pDispatcher, windowIndex);
     m_pMemoryWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+
+    m_pLineEdit = new QLineEdit(this);
+    m_pLineEdit->setCompleter(pCompl);
+
+    m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
 
     m_pComboBox = new QComboBox(this);
     m_pComboBox->insertItem(MemoryWidget::kModeByte, "Byte");
     m_pComboBox->insertItem(MemoryWidget::kModeWord, "Word");
     m_pComboBox->insertItem(MemoryWidget::kModeLong, "Long");
     m_pComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
-
-    m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
-
-    m_pLineEdit = new QLineEdit(this);
-    m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
-    QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
-    pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
-
-    m_pLineEdit->setCompleter(pCompl);
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;

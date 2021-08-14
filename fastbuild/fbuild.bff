@@ -2,7 +2,8 @@
 ; They cannot be derived easily sadly
 .GCC_BIN_DIR="C:\msys64\mingw32\bin"
 .SRC_DIR="D:\a\hatari\hatari"
-.MINGW_ROOT="C:\msys64"
+.MINGW_ROOT="C:\msys64\mingw32"
+.PLATFORM_NAME="i686-w64-mingw32"
 
 ; Derived variables
 .GCC                  = "$GCC_BIN_DIR$\gcc.exe"
@@ -10,7 +11,7 @@
 .AR                   = "$GCC_BIN_DIR$\ar.exe"
 .RANLIB               = "$GCC_BIN_DIR$\ranlib.exe"
 .WINDRES              = "$GCC_BIN_DIR$\windres.exe"
-.SDL2_INCLUDES_FOLDER = "$MINGW_ROOT$/mingw32/include/SDL2"
+.SDL2_INCLUDES_FOLDER = "$MINGW_ROOT$/include/SDL2"
 
 .INCLUDES_COMMON = "-I$MINGW_ROOT$/usr/include"
                   +" -I$SRC_DIR$/src/includes"
@@ -25,7 +26,7 @@
 .INCLUDES_DEBUG  = .INCLUDES_COMMON
 .INCLUDES_FALCON = .INCLUDES_COMMON
 .INCLUDES_GUISDL = .INCLUDES_COMMON
-.INCLUDES_HATARI = "-I$MINGW_ROOT$/mingw32/i686-w64-mingw32/include $INCLUDES_COMMON$"
+.INCLUDES_HATARI = "-I$MINGW_ROOT$/$PLATFORM_NAME$/include $INCLUDES_COMMON$"
 
 .CFLAGS_COMMON  = '-DCONFDIR=\".\" '
                  +' -DWITH_SDL2'
@@ -422,7 +423,7 @@ Exec( "run_windres" )  ; (optional) Alias
   .ExecWorkingDir         ="."                                                                               ; (optional) Working dir to set for executable
 }
 
-.LIBS_HATARI=" -lmingw32 $MINGW_ROOT$/mingw32/bin/SDL2.dll -lpthread $MINGW_ROOT$/mingw32/lib/libSDL2main.a -lws2_32 -lpthread -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lkernel32 -Xlinker -Map=output.map"
+.LIBS_HATARI=" -lmingw32 $MINGW_ROOT$/bin/SDL2.dll -lpthread $MINGW_ROOT$/lib/libSDL2main.a -lws2_32 -lpthread -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lkernel32 -Xlinker -Map=output.map"
 Executable( "hatari_exe" )        ; (optional) Alias
 {
   .Linker                  =.GCC         ; Linker executable to use
@@ -474,19 +475,19 @@ Executable( "hatari_exe" )        ; (optional) Alias
             +" -DQT_CORE_LIB"
             +" -DQT_NEEDS_QMAIN"
 .MOC_INCLUDES="--include hrdb/moc_predefs.h"
-            +" -I$MINGW_ROOT$/mingw32/share/qt5/mkspecs/win32-g++"
+            +" -I$MINGW_ROOT$/share/qt5/mkspecs/win32-g++"
             +" -I$SRC_DIR$/hatari_git/tools/hrdb"
-            +" -I$MINGW_ROOT$/mingw32/include/QtWidgets"
-            +" -I$MINGW_ROOT$/mingw32/include/QtGui"
-            +" -I$MINGW_ROOT$/mingw32/include/QtNetwork"
-            +" -I$MINGW_ROOT$/mingw32/include/QtCore"
-            +" -I$MINGW_ROOT$/mingw32/include/c++/10.2.0"
-            +" -I$MINGW_ROOT$/mingw32/include/c++/10.2.0/i686-w64-mingw32"
-            +" -I$MINGW_ROOT$/mingw32/include/c++/10.2.0/backward"
-            +" -I$MINGW_ROOT$/mingw32/lib/gcc/i686-w64-mingw32/10.2.0/include"
-            +" -I$MINGW_ROOT$/mingw32/include"
-            +" -I$MINGW_ROOT$/mingw32/lib/gcc/i686-w64-mingw32/10.2.0/include-fixed"
-            +" -I$MINGW_ROOT$/mingw32/i686-w64-mingw32/include"
+            +" -I$MINGW_ROOT$/include/QtWidgets"
+            +" -I$MINGW_ROOT$/include/QtGui"
+            +" -I$MINGW_ROOT$/include/QtNetwork"
+            +" -I$MINGW_ROOT$/include/QtCore"
+            +" -I$MINGW_ROOT$/include/c++/10.2.0"
+            +" -I$MINGW_ROOT$/include/c++/10.2.0/$PLATFORM_NAME$"
+            +" -I$MINGW_ROOT$/include/c++/10.2.0/backward"
+            +" -I$MINGW_ROOT$/lib/gcc/$PLATFORM_NAME$/10.2.0/include"
+            +" -I$MINGW_ROOT$/include"
+            +" -I$MINGW_ROOT$/lib/gcc/$PLATFORM_NAME$/10.2.0/include-fixed"
+            +" -I$MINGW_ROOT$/$PLATFORM_NAME$/include"
 .HRDB_CFLAGS ="-fno-keep-inline-dllexport"
             +" -O2"
             +" -std=gnu++11"
@@ -497,13 +498,13 @@ Executable( "hatari_exe" )        ; (optional) Alias
             +" -mthreads"
             +" $MOC_DEFINES$"
 .HRDB_PATHS  ="-I."
-            +" -I$MINGW_ROOT$/mingw32/include/QtWidgets"
-            +" -I$MINGW_ROOT$/mingw32/include/QtGui"
-            +" -I$MINGW_ROOT$/mingw32/include/QtNetwork"
-            +" -I$MINGW_ROOT$/mingw32/include/QtCore"
+            +" -I$MINGW_ROOT$/include/QtWidgets"
+            +" -I$MINGW_ROOT$/include/QtGui"
+            +" -I$MINGW_ROOT$/include/QtNetwork"
+            +" -I$MINGW_ROOT$/include/QtCore"
             +" -I$SRC_DIR$/tools/hrdb"
             +" -I/include"
-            +" -I$MINGW_ROOT$/mingw32/share/qt5/mkspecs/win32-g++"
+            +" -I$MINGW_ROOT$/share/qt5/mkspecs/win32-g++"
 
 ; moc.predefs is essentially compiling an empty source code with -E (and some other flags) so it'll produce
 ; a text file with #define stuff. However we tell fastbuild that the compiler we use is gcc then it does
@@ -619,7 +620,7 @@ Executable( "hrdb_exe" )        ; (optional) Alias
 {
   .Linker                  =.GPP         ; Linker executable to use
   .LinkerOutput            ="hrdb.exe"   ; Output from linker
-  .LinkerOptions           ="-Wl,--dynamicbase,--nxcompat,--no-seh -Wl,-s -Wl,-subsystem,windows -mthreads  -o %2 %1 $MINGW_ROOT$/mingw32/lib/libQt5Widgets.dll.a $MINGW_ROOT$/mingw32/lib/libQt5Gui.dll.a $MINGW_ROOT$/mingw32/lib/libQt5Network.dll.a $MINGW_ROOT$/mingw32/lib/libQt5Core.dll.a  -lglu32 -lopengl32 -lgdi32 -luser32 -lmingw32 $MINGW_ROOT$/mingw32/lib/libqtmain.a -lshell32 "; Options to pass to linker
+  .LinkerOptions           ="-Wl,--dynamicbase,--nxcompat,--no-seh -Wl,-s -Wl,-subsystem,windows -mthreads  -o %2 %1 $MINGW_ROOT$/lib/libQt5Widgets.dll.a $MINGW_ROOT$/lib/libQt5Gui.dll.a $MINGW_ROOT$/lib/libQt5Network.dll.a $MINGW_ROOT$/lib/libQt5Core.dll.a  -lglu32 -lopengl32 -lgdi32 -luser32 -lmingw32 $MINGW_ROOT$/lib/libqtmain.a -lshell32 "; Options to pass to linker
   .Libraries               ={"hrdb_obj"} ; Libraries to link into executable
 }
 

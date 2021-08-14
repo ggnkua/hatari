@@ -544,6 +544,7 @@ ObjectList( "hrdb_predefs" )         ; Alias
     "$SRC_DIR$/tools/hrdb/models/registers.h"
     "$SRC_DIR$/tools/hrdb/ui/addbreakpointdialog.h"
     "$SRC_DIR$/tools/hrdb/ui/exceptiondialog.h"                                                                
+    "$SRC_DIR$/tools/hrdb/ui/prefsdialog.h"
 }
 Compiler( 'moc' )              ; Alias
 {
@@ -603,6 +604,7 @@ ObjectList( "hrdb_qrc" )         ; Alias
     "$SRC_DIR$/tools/hrdb/ui/exceptiondialog.cpp"
     "$SRC_DIR$/tools/hrdb/ui/graphicsinspector.cpp"
     "$SRC_DIR$/tools/hrdb/ui/rundialog.cpp"
+    "$SRC_DIR$/tools/hrdb/ui/prefsdialog.cpp"
 }
 ObjectList( "hrdb_obj" )         ; Alias
 {

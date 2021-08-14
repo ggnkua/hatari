@@ -29,11 +29,13 @@ protected:
 private slots:
     void okClicked();
     void exeClicked();
+    void prgClicked();
     void workingDirectoryClicked();
 
 private:
     // UI elements
     QLineEdit*      m_pExecutableTextEdit;
+    QLineEdit*      m_pPrgTextEdit;
     QLineEdit*      m_pArgsTextEdit;
     QLineEdit*      m_pWorkingDirectoryTextEdit;
     QComboBox*      m_pBreakModeCombo;

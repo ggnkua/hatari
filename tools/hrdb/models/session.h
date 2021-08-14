@@ -2,10 +2,13 @@
 #define SESSION_H
 
 #include <QObject>
+#include <QFont>
 
 class QTcpSocket;
 class QTimer;
 class QTemporaryFile;
+class Dispatcher;
+class TargetModel;
 
 // Shared runtime data about the debugging session used by multiple UI components
 // This data isn't persisted over runs (that is saved in Settings)
@@ -13,6 +16,15 @@ class Session : public QObject
 {
     Q_OBJECT
 public:
+
+    // Settings shared across the app and stored centrally.
+    class Settings
+    {
+    public:
+        QFont       m_font;
+        // GRAPHICS INSPECTOR
+        bool        m_bSquarePixels;
+    };
 
     // DRAWING LAYOUT OPTIONS
     // Add a 4-pixel offset to shift away from the focus rectangle
@@ -25,9 +37,24 @@ public:
     void Connect();
     void Disconnect();
 
-    QTcpSocket*      m_pTcpSocket;
-    QTemporaryFile*  m_pStartupFile;
-    QTemporaryFile*  m_pLoggingFile;
+    QTcpSocket*     m_pTcpSocket;
+    QTemporaryFile* m_pStartupFile;
+    QTemporaryFile* m_pLoggingFile;
+
+    // Connection data
+    Dispatcher*     m_pDispatcher;
+    TargetModel*    m_pTargetModel;
+
+    const Settings& GetSettings() const;
+    // Apply settings in prefs dialog.
+    // Also emits settingsChanged()
+    void SetSettings(const Settings& newSettings);
+
+    void loadSettings();
+    void saveSettings();
+
+signals:
+    void settingsChanged();
 
 private slots:
 
@@ -36,6 +63,9 @@ private slots:
 private:
     QTimer*          m_pTimer;
     bool             m_autoConnect;
+
+    // Actual stored settings object
+    Settings        m_settings;
 };
 
 #endif // SESSION_H

@@ -5,6 +5,7 @@
 #include <QTableView>
 #include "../models/memory.h"
 
+class Session;
 class TargetModel;
 class Dispatcher;
 class QComboBox;
@@ -29,7 +30,7 @@ public:
         kModeLong
     };
 
-    MemoryWidget(QWidget* parent, TargetModel* pTargetModel, Dispatcher* pDispatcher, int windowIndex);
+    MemoryWidget(QWidget* parent, Session* pSession, int windowIndex);
 
     uint32_t GetRowCount() const { return m_rowCount; }
     Mode GetMode() const { return m_mode; }
@@ -44,6 +45,7 @@ public slots:
     void startStopChangedSlot();
     void connectChangedSlot();
     void otherMemoryChangedSlot(uint32_t address, uint32_t size);
+    void settingsChangedSlot();
 
 protected:
     virtual void paintEvent(QPaintEvent*);
@@ -64,7 +66,7 @@ private:
     void resizeEvent(QResizeEvent *event);
     void RecalcRowCount();
 
-    void RecalcSizes();
+    void UpdateFont();
     int GetAddrX() const;
     // Get the x-coord of the hex-character at cursor column
     int GetHexCharX(int column) const;
@@ -79,6 +81,7 @@ private:
     void GetCursorInfo(uint32_t& address, bool& bottomNybble);
     void SetRowCount(int rowCount);
 
+    Session*        m_pSession;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
 
@@ -118,14 +121,14 @@ private:
     // rendering info
     int         m_charWidth;            // font width in pixels
     int         m_lineHeight;           // font height in pixels
-    QFont       monoFont;
+    QFont       m_monoFont;
 };
 
 class MemoryWindow : public QDockWidget
 {
     Q_OBJECT
 public:
-    MemoryWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
+    MemoryWindow(QWidget *parent, Session* pSession, int windowIndex);
 
     // Grab focus and point to the main widget
     void keyFocus();
@@ -141,11 +144,12 @@ public slots:
     void modeComboBoxChanged(int index);
 
 private:
-    QLineEdit*           m_pLineEdit;
-    QComboBox*           m_pComboBox;
-    QCheckBox*           m_pLockCheckBox;
-    MemoryWidget*        m_pMemoryWidget;
+    QLineEdit*          m_pLineEdit;
+    QComboBox*          m_pComboBox;
+    QCheckBox*          m_pLockCheckBox;
+    MemoryWidget*       m_pMemoryWidget;
 
+    Session*            m_pSession;
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
     QAbstractItemModel* m_pSymbolTableModel;

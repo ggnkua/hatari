@@ -12,6 +12,7 @@ class QSpinBox;
 class QCheckBox;
 class QComboBox;
 
+class Session;
 class TargetModel;
 class Dispatcher;
 
@@ -21,7 +22,7 @@ class NonAntiAliasImage : public QWidget
     Q_OBJECT
     Q_DISABLE_COPY(NonAntiAliasImage)
 public:
-    explicit NonAntiAliasImage(QWidget* parent);
+    NonAntiAliasImage(QWidget* parent, Session* pSession);
     virtual ~NonAntiAliasImage() override;
 
     void setPixmap(int width, int height);
@@ -37,9 +38,14 @@ signals:
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void mouseMoveEvent(QMouseEvent *event) override;
+
+private slots:
+    void settingsChangedSlot();
+
 private:
     void UpdateString();
 
+    Session*        m_pSession;
     QPixmap         m_pixmap;
     QPointF         m_mousePos;
 
@@ -56,7 +62,7 @@ class GraphicsInspectorWidget : public QDockWidget
     Q_OBJECT
 public:
     GraphicsInspectorWidget(QWidget *parent,
-                            TargetModel* pTargetModel, Dispatcher* pDispatcher);
+                            Session* pSession);
     ~GraphicsInspectorWidget();
 
     // Grab focus and point to the main widget
@@ -146,8 +152,10 @@ private:
 
     NonAntiAliasImage*         m_pImageWidget;
 
+    Session*        m_pSession;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
+
     QAbstractItemModel* m_pSymbolTableModel;
 
     Mode            m_mode;

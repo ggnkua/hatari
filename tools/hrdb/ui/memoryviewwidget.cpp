@@ -21,11 +21,12 @@
 #include "../models/session.h"
 #include "quicklayout.h"
 
-MemoryWidget::MemoryWidget(QWidget *parent, TargetModel *pTargetModel, Dispatcher* pDispatcher,
+MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
                                            int windowIndex) :
     QWidget(parent),
-    m_pTargetModel(pTargetModel),
-    m_pDispatcher(pDispatcher),
+    m_pSession(pSession),
+    m_pTargetModel(pSession->m_pTargetModel),
+    m_pDispatcher(pSession->m_pDispatcher),
     m_isLocked(false),
     m_address(0),
     m_bytesPerRow(16),
@@ -39,7 +40,7 @@ MemoryWidget::MemoryWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
 {
     m_memSlot = static_cast<MemorySlot>(MemorySlot::kMemoryView0 + m_windowIndex);
 
-    RecalcSizes();
+    UpdateFont();
     SetMode(Mode::kModeByte);
     setFocus();
     setFocusPolicy(Qt::StrongFocus);
@@ -47,6 +48,7 @@ MemoryWidget::MemoryWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &MemoryWidget::startStopChangedSlot);
     connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &MemoryWidget::connectChangedSlot);
     connect(m_pTargetModel, &TargetModel::otherMemoryChanged,       this, &MemoryWidget::otherMemoryChangedSlot);
+    connect(m_pSession,     &Session::settingsChanged,              this, &MemoryWidget::settingsChangedSlot);
 }
 
 bool MemoryWidget::SetAddress(std::string expression)
@@ -379,6 +381,14 @@ void MemoryWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
     RequestMemory();
 }
 
+void MemoryWidget::settingsChangedSlot()
+{
+    UpdateFont();
+    RecalcRowCount();
+    RequestMemory();
+    update();
+}
+
 void MemoryWidget::paintEvent(QPaintEvent* ev)
 {
     QWidget::paintEvent(ev);
@@ -387,7 +397,7 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
     RecalcRowCount();
 
     QPainter painter(this);
-    painter.setFont(monoFont);
+    painter.setFont(m_monoFont);
     QFontMetrics info(painter.fontMetrics());
     const QPalette& pal = this->palette();
 
@@ -545,10 +555,10 @@ void MemoryWidget::RecalcRowCount()
     }
 }
 
-void MemoryWidget::RecalcSizes()
+void MemoryWidget::UpdateFont()
 {
-    monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    QFontMetrics info(monoFont);
+    m_monoFont = m_pSession->GetSettings().m_font;
+    QFontMetrics info(m_monoFont);
     m_lineHeight = info.lineSpacing();
 }
 
@@ -591,10 +601,11 @@ void MemoryWidget::GetCursorInfo(uint32_t &address, bool &bottomNybble)
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-MemoryWindow::MemoryWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher, int windowIndex) :
+MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) :
     QDockWidget(parent),
-    m_pTargetModel(pTargetModel),
-    m_pDispatcher(pDispatcher),
+    m_pSession(pSession),
+    m_pTargetModel(pSession->m_pTargetModel),
+    m_pDispatcher(pSession->m_pDispatcher),
     m_windowIndex(windowIndex)
 {
     this->setWindowTitle(QString::asprintf("Memory %d", windowIndex + 1));
@@ -606,7 +617,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, TargetModel* pTargetModel, Dispatche
     pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
 
     // Construction. Do in order of tabbing
-    m_pMemoryWidget = new MemoryWidget(this, pTargetModel, pDispatcher, windowIndex);
+    m_pMemoryWidget = new MemoryWidget(this, pSession, windowIndex);
     m_pMemoryWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
 
     m_pLineEdit = new QLineEdit(this);
@@ -707,5 +718,4 @@ void MemoryWindow::lockChangedSlot()
 void MemoryWindow::modeComboBoxChanged(int index)
 {
     m_pMemoryWidget->SetMode((MemoryWidget::Mode)index);
-    //m_pTableView->resizeColumnToContents(MemoryWidget::kColData);
 }

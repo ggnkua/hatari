@@ -311,20 +311,31 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref)
             ref << to_hex32(operand.absolute_long.longaddr);
             return;
         case OpType::PC_DISP:
-            ref << operand.pc_disp.disp << "(pc)";
+        {
+            uint32_t target_address;
+            calc_relative_address(operand, inst_address, target_address);
+            ref << to_hex32(target_address);
+            ref << "(pc)";
             return;
+        }
         case OpType::PC_DISP_INDEX:
-            ref << operand.pc_disp_index.disp << "(pc,d" << operand.pc_disp_index.d_reg <<
+        {
+            uint32_t target_address;
+            calc_relative_address(operand, inst_address, target_address);
+            ref << to_hex32(target_address) << "(pc,d" << operand.pc_disp_index.d_reg <<
                    (operand.pc_disp_index.is_long ? ".l" : ".w") << ")";
             return;
+        }
         case OpType::MOVEM_REG:
             print_movem_mask(operand.movem_reg.reg_mask, ref);
             return;
         case OpType::RELATIVE_BRANCH:
+        {
             uint32_t target_address;
             calc_relative_address(operand, inst_address, target_address);
             ref << to_hex32(target_address);
             return;
+        }
         case OpType::IMMEDIATE:
             ref << "#" << to_hex32(operand.imm.val0);
             return;

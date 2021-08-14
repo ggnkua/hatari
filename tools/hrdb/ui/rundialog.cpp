@@ -39,10 +39,12 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     QGridLayout *gridLayout = new QGridLayout;
 
     QPushButton* pExeButton = new QPushButton(tr("Browse..."), this);
+    QPushButton* pPrgButton = new QPushButton(tr("Browse..."), this);
     QPushButton* pWDButton = new QPushButton(tr("Browse..."), this);
 
     m_pExecutableTextEdit = new QLineEdit("hatari", this);
     m_pArgsTextEdit = new QLineEdit("", this);
+    m_pPrgTextEdit = new QLineEdit("", this);
     m_pWorkingDirectoryTextEdit = new QLineEdit("", this);
     m_pBreakModeCombo = new QComboBox(this);
     m_pBreakModeCombo->addItem(tr("None"), BreakMode::kNone);
@@ -50,19 +52,36 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     m_pBreakModeCombo->addItem(tr("Program Start"), BreakMode::kProgStart);
     m_pBreakModeCombo->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
-    gridLayout->addWidget(new QLabel(tr("Executable:"), this), 0, 0);
-    gridLayout->addWidget(m_pExecutableTextEdit, 0, 2);
-    gridLayout->addWidget(pExeButton, 0, 4);
+    QLabel* pArgumentLink = new QLabel(this);
+    pArgumentLink->setText("<a href=\"https://hatari.tuxfamily.org/doc/manual.html#Command_line_options_and_arguments\">Info...</a>");
+    pArgumentLink->setOpenExternalLinks(true);
+    pArgumentLink->setTextInteractionFlags(Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse);
+    pArgumentLink->setTextFormat(Qt::RichText);
 
-    gridLayout->addWidget(new QLabel("Arguments:", this), 1, 0);
-    gridLayout->addWidget(m_pArgsTextEdit, 1, 2);
+    int row = 0;
+    gridLayout->addWidget(new QLabel(tr("Executable:"), this), row, 0);
+    gridLayout->addWidget(m_pExecutableTextEdit, row, 2);
+    gridLayout->addWidget(pExeButton, row, 4);
+    ++row;
 
-    gridLayout->addWidget(new QLabel(tr("Working Directory:"), this), 2, 0);
-    gridLayout->addWidget(m_pWorkingDirectoryTextEdit, 2, 2);
-    gridLayout->addWidget(pWDButton, 2, 4);
+    gridLayout->addWidget(new QLabel(tr("Run Program/Image:"), this), row, 0);
+    gridLayout->addWidget(m_pPrgTextEdit, row, 2);
+    gridLayout->addWidget(pPrgButton, row, 4);
+    ++row;
 
-    gridLayout->addWidget(new QLabel(tr("Break at:"), this), 3, 0);
-    gridLayout->addWidget(m_pBreakModeCombo, 3, 2);
+    gridLayout->addWidget(new QLabel("Additional options:", this), row, 0);
+    gridLayout->addWidget(m_pArgsTextEdit, row, 2);
+    gridLayout->addWidget(pArgumentLink, row, 4);
+    ++row;
+
+    gridLayout->addWidget(new QLabel(tr("Working Directory:"), this), row, 0);
+    gridLayout->addWidget(m_pWorkingDirectoryTextEdit, row, 2);
+    gridLayout->addWidget(pWDButton, row, 4);
+    ++row;
+
+    gridLayout->addWidget(new QLabel(tr("Break at:"), this), row, 0);
+    gridLayout->addWidget(m_pBreakModeCombo, row, 2);
+    ++row;
 
     gridLayout->setColumnStretch(2, 20);
     gridGroupBox->setLayout(gridLayout);
@@ -73,6 +92,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     pLayout->addWidget(pButtonContainer);
 
     connect(pExeButton, &QPushButton::clicked, this, &RunDialog::exeClicked);
+    connect(pPrgButton, &QPushButton::clicked, this, &RunDialog::prgClicked);
     connect(pWDButton, &QPushButton::clicked, this, &RunDialog::workingDirectoryClicked);
     connect(pOkButton, &QPushButton::clicked, this, &RunDialog::okClicked);
     connect(pOkButton, &QPushButton::clicked, this, &RunDialog::accept);
@@ -94,6 +114,7 @@ void RunDialog::loadSettings()
     restoreGeometry(settings.value("geometry").toByteArray());
     m_pExecutableTextEdit->setText(settings.value("exe", QVariant("hatari")).toString());
     m_pArgsTextEdit->setText(settings.value("args", QVariant("")).toString());
+    m_pPrgTextEdit->setText(settings.value("prg", QVariant("")).toString());
     m_pWorkingDirectoryTextEdit->setText(settings.value("workingDirectory", QVariant("")).toString());
     m_pBreakModeCombo->setCurrentIndex(settings.value("breakMode", QVariant("0")).toInt());
     settings.endGroup();
@@ -107,6 +128,7 @@ void RunDialog::saveSettings()
     settings.setValue("geometry", saveGeometry());
     settings.setValue("exe", m_pExecutableTextEdit->text());
     settings.setValue("args", m_pArgsTextEdit->text());
+    settings.setValue("prg", m_pPrgTextEdit->text());
     settings.setValue("workingDirectory", m_pWorkingDirectoryTextEdit->text());
     settings.setValue("breakMode", m_pBreakModeCombo->currentIndex());
     settings.endGroup();
@@ -125,7 +147,13 @@ void RunDialog::closeEvent(QCloseEvent *event)
 
 void RunDialog::okClicked()
 {
-    QStringList args = m_pArgsTextEdit->text().split(" ");
+    QStringList args;
+
+    // Start with the "other args" then add the rest around it
+    QString otherArgsText = m_pArgsTextEdit->text();
+    otherArgsText = otherArgsText.trimmed();
+    if (otherArgsText.size() != 0)
+        args = otherArgsText.split(" ");
 
     // First make a temp file for breakpoints etc
     BreakMode breakMode = (BreakMode) m_pBreakModeCombo->currentIndex();
@@ -156,6 +184,10 @@ void RunDialog::okClicked()
         args.push_front("--parse");
     }
 
+    QString prgText = m_pPrgTextEdit->text().trimmed();
+    if (prgText.size() != 0)
+        args.push_back(prgText);
+
     // Actually launch the program
     QProcess proc;
     proc.setProgram(m_pExecutableTextEdit->text());
@@ -172,6 +204,18 @@ void RunDialog::exeClicked()
           tr("Choose Hatari executable"));
     if (filename.size() != 0)
         m_pExecutableTextEdit->setText(filename);
+    saveSettings();
+}
+
+void RunDialog::prgClicked()
+{
+    QString filter = "Programs (*.prg *.tos *.ttp);;Images (*.st *.stx *.msa *.ipf)";
+    QString filename = QFileDialog::getOpenFileName(this,
+          tr("Choose program or image"),
+          QString(), //dir
+          filter);
+    if (filename.size() != 0)
+        m_pPrgTextEdit->setText(filename);
     saveSettings();
 }
 

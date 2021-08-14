@@ -22,7 +22,7 @@
 #include "../models/session.h"
 #include "quicklayout.h"
 
-DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatcher* pDispatcher, int windowIndex):
+DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     QWidget(parent),
     m_memory(0, 0),
     m_rowCount(25),
@@ -31,8 +31,9 @@ DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     m_requestId(0),
     m_bFollowPC(true),
     m_windowIndex(windowIndex),
-    m_pTargetModel(pTargetModel),
-    m_pDispatcher(pDispatcher),
+    m_pSession(pSession),
+    m_pTargetModel(pSession->m_pTargetModel),
+    m_pDispatcher(pSession->m_pDispatcher),
     m_rightClickActiveAddress(0),
     m_bShowHex(true),
     m_rightClickRow(-1),
@@ -40,7 +41,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     m_mouseRow(-1)
 {
     RecalcColums();
-    GetLineHeight();
+    UpdateFont();
 
     SetRowCount(8);
     setMinimumSize(0, 10 * m_lineHeight);
@@ -103,6 +104,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     for (int i = 0; i < kNumMemoryViews; ++i)
         connect(m_pShowMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->memoryViewTrigger(i); } );
 
+    connect(m_pSession, &Session::settingsChanged, this, &DisasmWidget::settingsChangedSlot);
     setMouseTracking(true);
 
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
@@ -385,7 +387,7 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
     painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
     painter.drawRect(this->rect());
 
-    painter.setFont(monoFont);
+    painter.setFont(m_monoFont);
     QFontMetrics info(painter.fontMetrics());
 
     // Anything to show?
@@ -792,6 +794,14 @@ void DisasmWidget::memoryViewTrigger(int windowIndex)
     emit m_pTargetModel->addressRequested(windowIndex, true, m_rightClickActiveAddress);
 }
 
+void DisasmWidget::settingsChangedSlot()
+{
+    UpdateFont();
+    RecalcRowCount();
+    RequestMemory();
+    update();
+}
+
 void DisasmWidget::runToCursor()
 {
     if (m_cursorRow != -1)
@@ -817,10 +827,10 @@ void DisasmWidget::RecalcRowCount()
         SetRowCount(h / rowh);
 }
 
-void DisasmWidget::GetLineHeight()
+void DisasmWidget::UpdateFont()
 {
-    monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    QFontMetrics info(monoFont);
+    m_monoFont = m_pSession->GetSettings().m_font;
+    QFontMetrics info(m_monoFont);
     m_lineHeight = info.lineSpacing();
 }
 
@@ -832,7 +842,7 @@ void DisasmWidget::RecalcColums()
     m_columnLeft[kPC] = pos; pos += 1;
     m_columnLeft[kBreakpoint] = pos; pos += 1;
     m_columnLeft[kHex] = pos; pos += (m_bShowHex) ? 10 * 2 + 1 : 0;
-    m_columnLeft[kDisasm] = pos; pos += 40;
+    m_columnLeft[kDisasm] = pos; pos += 8+18+9+1; // movea.l $12345678(pc,d0.w),$12345678
     m_columnLeft[kComments] = pos; pos += 80;
     m_columnLeft[kNumColumns] = pos;
 }
@@ -852,17 +862,18 @@ int DisasmWidget::GetRowFromPixel(int y) const
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-DisasmWindow::DisasmWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher, int windowIndex) :
+DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) :
     QDockWidget(parent),
-    m_pTargetModel(pTargetModel),
-    m_pDispatcher(pDispatcher),
+    m_pSession(pSession),
+    m_pTargetModel(pSession->m_pTargetModel),
+    m_pDispatcher(pSession->m_pDispatcher),
     m_windowIndex(windowIndex)
 {
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
     setObjectName(key);
 
     // Construction. Do in order of tabbing
-    m_pDisasmWidget = new DisasmWidget(this, pTargetModel, pDispatcher, windowIndex);
+    m_pDisasmWidget = new DisasmWidget(this, pSession, windowIndex);
     m_pDisasmWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
     m_pLineEdit = new QLineEdit(this);
     m_pShowHex = new QCheckBox("Show hex", this);
@@ -901,7 +912,6 @@ DisasmWindow::DisasmWindow(QWidget *parent, TargetModel* pTargetModel, Dispatche
     QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
     pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
     m_pLineEdit->setCompleter(pCompl);
-
 
     // Now that everything is set up we can load the setings
     loadSettings();

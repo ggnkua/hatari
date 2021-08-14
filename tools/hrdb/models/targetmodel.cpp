@@ -41,8 +41,7 @@ void TargetModel::SetConnected(int connected)
     if (connected == 0)
     {
         // Clear out lots of data from the model
-        SymbolTable dummy;
-        SetSymbolTable(dummy, 0);
+        m_symbolTable.Reset();
 
         Breakpoints dummyBreak;
         SetBreakpoints(dummyBreak, 0);
@@ -97,9 +96,9 @@ void TargetModel::SetBreakpoints(const Breakpoints& bps, uint64_t commandId)
     emit breakpointsChangedSignal(commandId);
 }
 
-void TargetModel::SetSymbolTable(const SymbolTable& syms, uint64_t commandId)
+void TargetModel::SetSymbolTable(const SymbolSubTable& syms, uint64_t commandId)
 {
-    m_symbolTable = syms;
+    m_symbolTable.SetHatariSubTable(syms);
     m_changedFlags.SetChanged(TargetChangedFlags::kSymbolTable);
     emit symbolTableChangedSignal(commandId);
 }

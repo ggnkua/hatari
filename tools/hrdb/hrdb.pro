@@ -39,7 +39,8 @@ SOURCES += \
     ui/rundialog.cpp \
     ui/consolewindow.cpp \
     models/session.cpp \
-    models/registers.cpp
+    models/registers.cpp \
+    ui/prefsdialog.cpp
 
 HEADERS += \
     hopper/buffer.h \
@@ -68,7 +69,8 @@ HEADERS += \
     ui/quicklayout.h \
     ui/rundialog.h \
     ui/consolewindow.h \
-    hardware/hardware_st.h
+    hardware/hardware_st.h \
+    ui/prefsdialog.h
 
 RESOURCES     = hrdb.qrc    
 

@@ -64,7 +64,9 @@ public:
     void SetRegisters(const Registers& regs, uint64_t commandId);
     void SetMemory(MemorySlot slot, const Memory* pMem, uint64_t commandId);
     void SetBreakpoints(const Breakpoints& bps, uint64_t commandId);
-    void SetSymbolTable(const SymbolTable& syms, uint64_t commandId);
+
+    // Set Hatari's subtable of symbols
+    void SetSymbolTable(const SymbolSubTable& syms, uint64_t commandId);
     void SetExceptionMask(const ExceptionMask& mask);
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
 

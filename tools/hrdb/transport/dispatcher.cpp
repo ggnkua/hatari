@@ -363,19 +363,18 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         if (!StringParsers::ParseHexString(countStr.c_str(), count))
             return;
 
-        SymbolTable syms;
+        SymbolSubTable syms;
         for (uint32_t i = 0; i < count; ++i)
         {
-            Symbol sym;
-            sym.name = splitResp.Split('`');
+            std::string name = splitResp.Split('`');
             std::string addrStr = splitResp.Split(' ');
-            if (!StringParsers::ParseHexString(addrStr.c_str(), sym.address))
+            uint32_t address;
+            if (!StringParsers::ParseHexString(addrStr.c_str(), address))
                 return;
-            sym.type = splitResp.Split(' ');
-            sym.size = 0;
-            syms.AddInternal(sym);
+            std::string type = splitResp.Split(' ');
+            uint32_t size = 0;
+            syms.AddSymbol(name, address, size, type);
         }
-        syms.AddComplete(); // cache the address map lookup
         m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
     }
     else if (type == "exmask")

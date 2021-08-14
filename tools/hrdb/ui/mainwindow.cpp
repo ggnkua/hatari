@@ -19,6 +19,7 @@
 #include "exceptiondialog.h"
 #include "rundialog.h"
 #include "quicklayout.h"
+#include "prefsdialog.h"
 
 static QString CreateNumberTooltip(uint32_t value, uint32_t prevValue)
 {
@@ -76,10 +77,11 @@ static QString MakeBracket(QString str)
     return QString("(") + str + ")";
 }
 
-RegisterWidget::RegisterWidget(QWidget *parent, TargetModel *pTargetModel, Dispatcher *pDispatcher) :
+RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     QWidget(parent),
-    m_pDispatcher(pDispatcher),
-    m_pTargetModel(pTargetModel),
+    m_pSession(pSession),
+    m_pDispatcher(pSession->m_pDispatcher),
+    m_pTargetModel(pSession->m_pTargetModel),
     m_tokenUnderMouseIndex(-1)
 {
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -105,6 +107,7 @@ RegisterWidget::RegisterWidget(QWidget *parent, TargetModel *pTargetModel, Dispa
     for (int i = 0; i < kNumMemoryViews; ++i)
         connect(m_pShowMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->memoryViewTrigger(i); } );
 
+    connect(m_pSession, &Session::settingsChanged, this, &RegisterWidget::settingsChangedSlot);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     setMouseTracking(true);
     UpdateFont();
@@ -277,6 +280,14 @@ void RegisterWidget::startStopDelayedSlot(int running)
         AddToken(1, 1, tr("Running, Ctrl+R to break..."), TokenType::kNone, 0);
         update();
     }
+}
+
+void RegisterWidget::settingsChangedSlot()
+{
+    UpdateFont();
+    PopulateRegisters();
+    UpdateTokenUnderMouse();
+    update();
 }
 
 void RegisterWidget::registersChangedSlot(uint64_t /*commandId*/)
@@ -480,7 +491,7 @@ void RegisterWidget::PopulateRegisters()
 
 void RegisterWidget::UpdateFont()
 {
-    m_monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    m_monoFont = m_pSession->GetSettings().m_font;
     QFontMetrics info(m_monoFont);
     m_yAscent = info.ascent();
     m_lineHeight = info.lineSpacing();
@@ -606,13 +617,12 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setObjectName("MainWindow");
-
-    m_pTargetModel = new TargetModel();
-    m_pDispatcher = new Dispatcher(m_session.m_pTcpSocket, m_pTargetModel);
+    m_pTargetModel = m_session.m_pTargetModel;
+    m_pDispatcher = m_session.m_pDispatcher;
 
     // Creation - done in Tab order
     // Register/status window
-    m_pRegisterWidget = new RegisterWidget(this, m_pTargetModel, m_pDispatcher);
+    m_pRegisterWidget = new RegisterWidget(this, &m_session);
 
     // Top row of buttons
     m_pRunningSquare = new QWidget(this);
@@ -630,7 +640,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
-        m_pDisasmWidgets[i] = new DisasmWindow(this, m_pTargetModel, m_pDispatcher, i);
+        m_pDisasmWidgets[i] = new DisasmWindow(this, &m_session, i);
         if (i == 0)
             m_pDisasmWidgets[i]->setWindowTitle("Disassembly 1 (Alt+D)");
         else
@@ -639,14 +649,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     for (int i = 0; i < kNumMemoryViews; ++i)
     {
-        m_pMemoryViewWidgets[i] = new MemoryWindow(this, m_pTargetModel, m_pDispatcher, i);
+        m_pMemoryViewWidgets[i] = new MemoryWindow(this, &m_session, i);
         if (i == 0)
             m_pMemoryViewWidgets[i]->setWindowTitle("Memory 1 (Alt+M)");
         else
             m_pMemoryViewWidgets[i]->setWindowTitle(QString::asprintf("Memory %d", i + 1));
     }
 
-    m_pGraphicsInspector = new GraphicsInspectorWidget(this, m_pTargetModel, m_pDispatcher);
+    m_pGraphicsInspector = new GraphicsInspectorWidget(this, &m_session);
     m_pGraphicsInspector->setWindowTitle("Graphics Inspector (Alt+G)");
     m_pBreakpointsWidget = new BreakpointsWindow(this, m_pTargetModel, m_pDispatcher);
     m_pBreakpointsWidget->setWindowTitle("Breakpoints (Alt+B)");
@@ -654,6 +664,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_pExceptionDialog = new ExceptionDialog(this, m_pTargetModel, m_pDispatcher);
     m_pRunDialog = new RunDialog(this, &m_session);
+    m_pPrefsDialog = new ::PrefsDialog(this, &m_session);
 
     // https://doc.qt.io/qt-5/qtwidgets-layouts-basiclayouts-example.html
     QVBoxLayout *vlayout = new QVBoxLayout;
@@ -715,7 +726,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_pRunToButton, &QAbstractButton::clicked, this, &MainWindow::runToClicked);
 
     // Wire up menu appearance
-    connect(windowMenu, &QMenu::aboutToShow, this, &MainWindow::updateWindowMenu);
+    connect(m_pWindowMenu, &QMenu::aboutToShow, this, &MainWindow::updateWindowMenu);
 
 	// Keyboard shortcuts
     new QShortcut(QKeySequence(tr("Ctrl+R", "Start/Stop")),         this, SLOT(startStopClicked()));
@@ -725,7 +736,7 @@ MainWindow::MainWindow(QWidget *parent)
     new QShortcut(QKeySequence(tr("u",      "Run Until")),          this, SLOT(runToClicked()));
 
     // Try initial connect
-    Connect();
+    ConnectTriggered();
 
     // Update everything
     connectChangedSlot();
@@ -778,7 +789,7 @@ void MainWindow::startStopChangedSlot()
         m_pDispatcher->RequestMemory(MemorySlot::kVideo, HardwareST::VIDEO_REGS_BASE, 0x70);
 
         // Only re-request symbols if we didn't find any the first time
-        if (m_pTargetModel->GetSymbolTable().m_userSymbolCount == 0)  // NO CHECK
+        if (m_pTargetModel->GetSymbolTable().GetHatariSubTable().Count() == 0)
             m_pDispatcher->SendCommandPacket("symlist");
     }
     PopulateRunningSquare();
@@ -888,27 +899,33 @@ void MainWindow::breakPressed()
 }
 
 // Actions
-void MainWindow::Run()
+void MainWindow::RunTriggered()
 {
     m_pRunDialog->setModal(true);
     m_pRunDialog->show();
     // We can't connect here since the dialog hasn't really run yet.
 }
 
-void MainWindow::Connect()
+void MainWindow::ConnectTriggered()
 {
     m_session.Connect();
 }
 
-void MainWindow::Disconnect()
+void MainWindow::DisconnectTriggered()
 {
     m_session.Disconnect();
 }
 
-void MainWindow::ExceptionsDialog()
+void MainWindow::ExceptionsDialogTriggered()
 {
     m_pExceptionDialog->setModal(true);
     m_pExceptionDialog->show();
+}
+
+void MainWindow::PrefsDialogTriggered()
+{
+    m_pPrefsDialog->setModal(true);
+    m_pPrefsDialog->show();
 }
 
 void MainWindow::PopulateRunningSquare()
@@ -933,14 +950,14 @@ void MainWindow::PopulateRunningSquare()
 void MainWindow::updateWindowMenu()
 {
     for (int i = 0; i < kNumDisasmViews; ++i)
-        disasmWindowActs[i]->setChecked(m_pDisasmWidgets[i]->isVisible());
+        m_pDisasmWindowActs[i]->setChecked(m_pDisasmWidgets[i]->isVisible());
 
     for (int i = 0; i < kNumMemoryViews; ++i)
-        memoryWindowActs[i]->setChecked(m_pMemoryViewWidgets[i]->isVisible());
+        m_pMemoryWindowActs[i]->setChecked(m_pMemoryViewWidgets[i]->isVisible());
 
-    graphicsInspectorAct->setChecked(m_pGraphicsInspector->isVisible());
-    breakpointsWindowAct->setChecked(m_pBreakpointsWidget->isVisible());
-    consoleWindowAct->setChecked(m_pConsoleWindow->isVisible());
+    m_pGraphicsInspectorAct->setChecked(m_pGraphicsInspector->isVisible());
+    m_pBreakpointsWindowAct->setChecked(m_pBreakpointsWidget->isVisible());
+    m_pConsoleWindowAct->setChecked(m_pConsoleWindow->isVisible());
 }
 
 void MainWindow::updateButtonEnable()
@@ -957,10 +974,10 @@ void MainWindow::updateButtonEnable()
     m_pRunToButton->setEnabled(isConnected && !isRunning);
 
     // Menu items...
-    connectAct->setEnabled(!isConnected);
-    disconnectAct->setEnabled(isConnected);
+    m_pConnectAct->setEnabled(!isConnected);
+    m_pDisconnectAct->setEnabled(isConnected);
 
-    exceptionsAct->setEnabled(isConnected);
+    m_pExceptionsAct->setEnabled(isConnected);
 }
 
 
@@ -1034,12 +1051,12 @@ void MainWindow::saveSettings()
 
 void MainWindow::menuConnect()
 {
-    Connect();
+    ConnectTriggered();
 }
 
 void MainWindow::menuDisconnect()
 {
-    Disconnect();
+    DisconnectTriggered();
 }
 
 void MainWindow::about()
@@ -1055,118 +1072,123 @@ void MainWindow::aboutQt()
 void MainWindow::createActions()
 {
     // "File"
-    runAct = new QAction(tr("&Run..."), this);
-    runAct->setStatusTip(tr("Run Hatari"));
-    connect(runAct, &QAction::triggered, this, &MainWindow::Run);
+    m_pRunAct = new QAction(tr("&Run..."), this);
+    m_pRunAct->setStatusTip(tr("Run Hatari"));
+    connect(m_pRunAct, &QAction::triggered, this, &MainWindow::RunTriggered);
 
-    connectAct = new QAction(tr("&Connect"), this);
-    connectAct->setStatusTip(tr("Connect to Hatari"));
-    connect(connectAct, &QAction::triggered, this, &MainWindow::Connect);
+    m_pConnectAct = new QAction(tr("&Connect"), this);
+    m_pConnectAct->setStatusTip(tr("Connect to Hatari"));
+    connect(m_pConnectAct, &QAction::triggered, this, &MainWindow::ConnectTriggered);
 
-    disconnectAct = new QAction(tr("&Disconnect"), this);
-    disconnectAct->setStatusTip(tr("Disconnect from Hatari"));
-    connect(disconnectAct, &QAction::triggered, this, &MainWindow::Disconnect);
+    m_pDisconnectAct = new QAction(tr("&Disconnect"), this);
+    m_pDisconnectAct->setStatusTip(tr("Disconnect from Hatari"));
+    connect(m_pDisconnectAct, &QAction::triggered, this, &MainWindow::DisconnectTriggered);
 
-    exitAct = new QAction(tr("E&xit"), this);
-    exitAct->setShortcuts(QKeySequence::Quit);
-    exitAct->setStatusTip(tr("Exit the application"));
-    connect(exitAct, &QAction::triggered, this, &QWidget::close);
+    m_pExitAct = new QAction(tr("E&xit"), this);
+    m_pExitAct->setShortcuts(QKeySequence::Quit);
+    m_pExitAct->setStatusTip(tr("Exit the application"));
+    connect(m_pExitAct, &QAction::triggered, this, &QWidget::close);
 
     // Edit
-    exceptionsAct = new QAction(tr("&Exceptions..."), this);
-    exceptionsAct->setStatusTip(tr("Disconnect from Hatari"));
-    connect(exceptionsAct, &QAction::triggered, this, &MainWindow::ExceptionsDialog);
+    m_pExceptionsAct = new QAction(tr("&Exceptions..."), this);
+    m_pExceptionsAct->setStatusTip(tr("Disconnect from Hatari"));
+    connect(m_pExceptionsAct, &QAction::triggered, this, &MainWindow::ExceptionsDialogTriggered);
+
+    m_pPrefsAct = new QAction(tr("&Preferences..."), this);
+    m_pPrefsAct->setStatusTip(tr("Set options and preferences"));
+    connect(m_pPrefsAct, &QAction::triggered, this, &MainWindow::PrefsDialogTriggered);
 
     // "Window"
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
-        disasmWindowActs[i] = new QAction(m_pDisasmWidgets[i]->windowTitle(), this);
-        disasmWindowActs[i]->setStatusTip(tr("Show the disassembly window"));
-        disasmWindowActs[i]->setCheckable(true);
+        m_pDisasmWindowActs[i] = new QAction(m_pDisasmWidgets[i]->windowTitle(), this);
+        m_pDisasmWindowActs[i]->setStatusTip(tr("Show the disassembly window"));
+        m_pDisasmWindowActs[i]->setCheckable(true);
 
         if (i == 0)
-            disasmWindowActs[i]->setShortcut(QKeySequence("Alt+D"));
+            m_pDisasmWindowActs[i]->setShortcut(QKeySequence("Alt+D"));
     }
 
     for (int i = 0; i < kNumMemoryViews; ++i)
     {
-        memoryWindowActs[i] = new QAction(m_pMemoryViewWidgets[i]->windowTitle(), this);
-        memoryWindowActs[i]->setStatusTip(tr("Show the memory window"));
-        memoryWindowActs[i]->setCheckable(true);
+        m_pMemoryWindowActs[i] = new QAction(m_pMemoryViewWidgets[i]->windowTitle(), this);
+        m_pMemoryWindowActs[i]->setStatusTip(tr("Show the memory window"));
+        m_pMemoryWindowActs[i]->setCheckable(true);
 
         if (i == 0)
-            memoryWindowActs[i]->setShortcut(QKeySequence("Alt+M"));
+            m_pMemoryWindowActs[i]->setShortcut(QKeySequence("Alt+M"));
     }
 
-    graphicsInspectorAct = new QAction(tr("&Graphics Inspector"), this);
-    graphicsInspectorAct->setShortcut(QKeySequence("Alt+G"));
-    graphicsInspectorAct->setStatusTip(tr("Show the Graphics Inspector"));
-    graphicsInspectorAct->setCheckable(true);
+    m_pGraphicsInspectorAct = new QAction(tr("&Graphics Inspector"), this);
+    m_pGraphicsInspectorAct->setShortcut(QKeySequence("Alt+G"));
+    m_pGraphicsInspectorAct->setStatusTip(tr("Show the Graphics Inspector"));
+    m_pGraphicsInspectorAct->setCheckable(true);
 
-    breakpointsWindowAct = new QAction(tr("&Breakpoints"), this);
-    breakpointsWindowAct->setShortcut(QKeySequence("Alt+B"));
-    breakpointsWindowAct->setStatusTip(tr("Show the Breakpoints window"));
-    breakpointsWindowAct->setCheckable(true);
+    m_pBreakpointsWindowAct = new QAction(tr("&Breakpoints"), this);
+    m_pBreakpointsWindowAct->setShortcut(QKeySequence("Alt+B"));
+    m_pBreakpointsWindowAct->setStatusTip(tr("Show the Breakpoints window"));
+    m_pBreakpointsWindowAct->setCheckable(true);
 
-    consoleWindowAct = new QAction(tr("&Console"), this);
-    consoleWindowAct->setStatusTip(tr("Show the Console window"));
-    consoleWindowAct->setCheckable(true);
+    m_pConsoleWindowAct = new QAction(tr("&Console"), this);
+    m_pConsoleWindowAct->setStatusTip(tr("Show the Console window"));
+    m_pConsoleWindowAct->setCheckable(true);
 
     for (int i = 0; i < kNumDisasmViews; ++i)
-        connect(disasmWindowActs[i], &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidgets[i]); m_pDisasmWidgets[i]->keyFocus(); } );
+        connect(m_pDisasmWindowActs[i], &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidgets[i]); m_pDisasmWidgets[i]->keyFocus(); } );
 
     for (int i = 0; i < kNumMemoryViews; ++i)
-        connect(memoryWindowActs[i], &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidgets[i]); m_pMemoryViewWidgets[i]->keyFocus(); } );
+        connect(m_pMemoryWindowActs[i], &QAction::triggered, this,     [=] () { this->enableVis(m_pMemoryViewWidgets[i]); m_pMemoryViewWidgets[i]->keyFocus(); } );
 
-    connect(graphicsInspectorAct, &QAction::triggered, this, [=] () { this->enableVis(m_pGraphicsInspector); m_pGraphicsInspector->keyFocus(); } );
-    connect(breakpointsWindowAct, &QAction::triggered, this, [=] () { this->enableVis(m_pBreakpointsWidget); m_pBreakpointsWidget->keyFocus(); } );
-    connect(consoleWindowAct,     &QAction::triggered, this, [=] () { this->enableVis(m_pConsoleWindow); m_pConsoleWindow->keyFocus(); } );
+    connect(m_pGraphicsInspectorAct, &QAction::triggered, this, [=] () { this->enableVis(m_pGraphicsInspector); m_pGraphicsInspector->keyFocus(); } );
+    connect(m_pBreakpointsWindowAct, &QAction::triggered, this, [=] () { this->enableVis(m_pBreakpointsWidget); m_pBreakpointsWidget->keyFocus(); } );
+    connect(m_pConsoleWindowAct,     &QAction::triggered, this, [=] () { this->enableVis(m_pConsoleWindow); m_pConsoleWindow->keyFocus(); } );
 
     // This should be an action
     new QShortcut(QKeySequence(tr("Shift+Alt+B",  "Add Breakpoint...")),  this, SLOT(addBreakpointPressed()));
 
     // "About"
-    aboutAct = new QAction(tr("&About"), this);
-    aboutAct->setStatusTip(tr("Show the application's About box"));
-    connect(aboutAct, &QAction::triggered, this, &MainWindow::about);
+    m_pAboutAct = new QAction(tr("&About"), this);
+    m_pAboutAct->setStatusTip(tr("Show the application's About box"));
+    connect(m_pAboutAct, &QAction::triggered, this, &MainWindow::about);
 
-    aboutQtAct = new QAction(tr("About &Qt"), this);
-    aboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
-    connect(aboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
-    connect(aboutQtAct, &QAction::triggered, this, &MainWindow::aboutQt);
+    m_pAboutQtAct = new QAction(tr("About &Qt"), this);
+    m_pAboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
+    connect(m_pAboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
+    connect(m_pAboutQtAct, &QAction::triggered, this, &MainWindow::aboutQt);
 }
 
 void MainWindow::createMenus()
 {
     // "File"
-    fileMenu = menuBar()->addMenu(tr("&File"));
-    fileMenu->addAction(runAct);
-    fileMenu->addAction(connectAct);
-    fileMenu->addAction(disconnectAct);
-    fileMenu->addSeparator();
-    fileMenu->addAction(exitAct);
+    m_pFileMenu = menuBar()->addMenu(tr("&File"));
+    m_pFileMenu->addAction(m_pRunAct);
+    m_pFileMenu->addAction(m_pConnectAct);
+    m_pFileMenu->addAction(m_pDisconnectAct);
+    m_pFileMenu->addSeparator();
+    m_pFileMenu->addAction(m_pExitAct);
 
-    editMenu = menuBar()->addMenu(tr("&Edit"));
-    editMenu->addSeparator();
-    editMenu->addAction(exceptionsAct);
-    editMenu->addSeparator();
+    m_pEditMenu = menuBar()->addMenu(tr("&Edit"));
+    m_pEditMenu->addSeparator();
+    m_pEditMenu->addAction(m_pExceptionsAct);
+    m_pEditMenu->addSeparator();
+    m_pEditMenu->addAction(m_pPrefsAct);
 
-    windowMenu = menuBar()->addMenu(tr("&Window"));
+    m_pWindowMenu = menuBar()->addMenu(tr("&Window"));
     for (int i = 0; i < kNumDisasmViews; ++i)
-        windowMenu->addAction(disasmWindowActs[i]);
-    windowMenu->addSeparator();
+        m_pWindowMenu->addAction(m_pDisasmWindowActs[i]);
+    m_pWindowMenu->addSeparator();
 
     for (int i = 0; i < kNumMemoryViews; ++i)
-        windowMenu->addAction(memoryWindowActs[i]);
-    windowMenu->addSeparator();
+        m_pWindowMenu->addAction(m_pMemoryWindowActs[i]);
+    m_pWindowMenu->addSeparator();
 
-    windowMenu->addAction(graphicsInspectorAct);
-    windowMenu->addAction(breakpointsWindowAct);
-    windowMenu->addAction(consoleWindowAct);
+    m_pWindowMenu->addAction(m_pGraphicsInspectorAct);
+    m_pWindowMenu->addAction(m_pBreakpointsWindowAct);
+    m_pWindowMenu->addAction(m_pConsoleWindowAct);
 
-    helpMenu = menuBar()->addMenu(tr("&Help"));
-    helpMenu->addAction(aboutAct);
-    helpMenu->addAction(aboutQtAct);
+    m_pHelpMenu = menuBar()->addMenu(tr("&Help"));
+    m_pHelpMenu->addAction(m_pAboutAct);
+    m_pHelpMenu->addAction(m_pAboutQtAct);
 }
 
 void MainWindow::enableVis(QWidget* pWidget)

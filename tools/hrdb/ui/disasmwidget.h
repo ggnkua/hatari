@@ -8,6 +8,7 @@
 #include "../models/breakpoint.h"
 #include "../models/memory.h"
 
+class Session;
 class TargetModel;
 class Dispatcher;
 class QCheckBox;
@@ -18,7 +19,7 @@ class DisasmWidget : public QWidget
 {
     Q_OBJECT
 public:
-    DisasmWidget(QWidget * parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
+    DisasmWidget(QWidget * parent, Session* m_pSession, int windowIndex);
     virtual ~DisasmWidget() override;
 
     // "The model emits signals to indicate changes. For example, dataChanged() is emitted whenever items of data made available by the model are changed"
@@ -128,10 +129,11 @@ private:
     // Callbacks when "show in Memory X" etc is selected
     void disasmViewTrigger(int windowIndex);
     void memoryViewTrigger(int windowIndex);
+    void settingsChangedSlot();
 
     // Layout functions
     void RecalcRowCount();
-    void GetLineHeight();
+    void UpdateFont();
     void RecalcColums();
 
     // Convert from row ID to a pixel Y (top pixel in the drawn row)
@@ -140,6 +142,7 @@ private:
     // Convert from pixel Y to a row ID
     int GetRowFromPixel(int y) const;
 
+    Session*              m_pSession;
     TargetModel*          m_pTargetModel;   // for inter-window comms
     Dispatcher*           m_pDispatcher;
 
@@ -194,7 +197,7 @@ private:
     // rendering info
     int                   m_charWidth;            // font width in pixels
     int                   m_lineHeight;           // font height in pixels
-    QFont                 monoFont;
+    QFont                 m_monoFont;
 };
 
 
@@ -202,7 +205,7 @@ class DisasmWindow : public QDockWidget
 {
     Q_OBJECT
 public:
-    DisasmWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
+    DisasmWindow(QWidget *parent, Session* pSession, int windowIndex);
 
     // Grab focus and point to the main widget
     void keyFocus();
@@ -234,6 +237,7 @@ private:
     QLineEdit*      m_pLineEdit;
     QCheckBox*      m_pShowHex;
     QCheckBox*      m_pFollowPC;
+    Session*        m_pSession;
     DisasmWidget*   m_pDisasmWidget;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;

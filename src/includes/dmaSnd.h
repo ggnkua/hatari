@@ -16,6 +16,9 @@ extern Uint16 nDmaSoundControl;
 
 extern void DmaSnd_Reset(bool bCold);
 extern void DmaSnd_MemorySnapShot_Capture(bool bSave);
+
+extern Uint8 DmaSnd_Get_XSINT_Line(void);
+
 extern void DmaSnd_GenerateSamples(int nMixBufIdx, int nSamplesToGenerate);
 extern void DmaSnd_STE_HBL_Update(void);
 
@@ -45,5 +48,8 @@ extern void DmaSnd_MicrowireMask_WriteWord(void);
 extern void DmaSnd_Init_Bass_and_Treble_Tables(void);
 
 extern void DmaSnd_Info(FILE *fp, Uint32 dummy);
+
+/* Sync memory/state that might need to be inspected by the Remote Debug system */
+extern void DmaSnd_RemoteDebugSync(void);
 
 #endif /* HATARI_DMASND_H */

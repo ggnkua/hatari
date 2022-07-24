@@ -7,7 +7,7 @@
 static const int kNumDisasmViews = 2;
 static const int kNumMemoryViews = 4;
 
-enum MemorySlot
+enum MemorySlot : int
 {
     kNone,          // e.g. regs
     kMainPC,        // Memory around the stopped PC for the main view (to allow stepping etc)
@@ -21,6 +21,17 @@ enum MemorySlot
     kGraphicsInspector = kMemoryView0 + kNumMemoryViews,    // gfx bitmap
     kGraphicsInspectorVideoRegs,                            // same as kVideo but synced with graphics inspector requests
 
+    kHardwareWindowMmu,
+    kHardwareWindowVideo,
+    kHardwareWindowMfp,
+    kHardwareWindowBlitter,
+    kHardwareWindowMfpVecs,
+    kHardwareWindowDmaSnd,
+
+    kHardwareWindowStart = kHardwareWindowMmu,
+    kHardwareWindowEnd = kHardwareWindowDmaSnd,
+
+    kBasePage,          // Bottom 256 bytes for vectors
     kMemorySlotCount
 };
 
@@ -28,7 +39,7 @@ enum MemorySlot
 bool Overlaps(uint32_t addr1, uint32_t size1, uint32_t addr2, uint32_t size);
 
 // A block of memory pulled from the target.
-struct Memory
+class Memory
 {
 public:
     Memory(uint32_t addr, uint32_t size);
@@ -67,6 +78,10 @@ public:
         return Get(offset);
     }
 
+    bool HasAddressMulti(uint32_t address, uint32_t numBytes) const;
+    // Read multiple bytes and put into 32-bit word. So can read byte/word/long
+    uint32_t ReadAddressMulti(uint32_t address, uint32_t numBytes = 1) const;
+
     uint32_t GetSize() const
     {
         return m_size;
@@ -77,6 +92,7 @@ public:
         return m_pData;
     }
 
+    // Deep copy of the data for caching.
     Memory& operator=(const Memory& other);
 
 private:

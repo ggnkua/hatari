@@ -63,6 +63,9 @@ public:
 
     // See if this is a branch and whether it would be taken
     static bool isBranch(const instruction &inst, const Registers& regs, bool& takeBranch);
+
+    // See if this is a branch instruction and where it points (i.e. its effective address)
+    static bool getBranchTarget(uint32_t instAddr, const instruction &inst, uint32_t& target);
 };
 
 #endif // DISASSEMBLER_H

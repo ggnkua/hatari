@@ -11,6 +11,7 @@
 #include "../models/targetmodel.h"
 #include "../models/disassembler.h"
 #include "../models/session.h"
+#include "showaddressactions.h"
 
 class QPushButton;
 class QLabel;
@@ -27,6 +28,8 @@ class MemoryWindow;
 class GraphicsInspectorWidget;
 class BreakpointsWindow;
 class ConsoleWindow;
+class HardwareWindow;
+class ProfileWindow;
 class ExceptionDialog;
 class RunDialog;
 class PrefsDialog;
@@ -52,10 +55,6 @@ private slots:
     void symbolTableChangedSlot(uint64_t commandId);
     void startStopDelayedSlot(int running);
     void settingsChangedSlot();
-
-    // Callbacks when "show in Memory X" etc is selected
-    void disasmViewTrigger(int windowIndex);
-    void memoryViewTrigger(int windowIndex);
 
 private:
     void PopulateRegisters();
@@ -110,8 +109,7 @@ private:
     int GetRowFromPixel(int y) const;
 
     // UI Elements
-    QAction*                    m_pShowDisasmWindowActions[kNumDisasmViews];
-    QAction*                    m_pShowMemoryWindowActions[kNumMemoryViews];
+    ShowAddressActions          m_showAddressActions;
 
     Session*                    m_pSession;
     Dispatcher*             	m_pDispatcher;
@@ -142,11 +140,11 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    MainWindow(Session& session, QWidget *parent = nullptr);
+    ~MainWindow() override;
 
 protected:
-    virtual void closeEvent(QCloseEvent *event);
+    virtual void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void connectChangedSlot();
@@ -157,6 +155,8 @@ private slots:
     void startStopClicked();
     void singleStepClicked();
     void nextClicked();
+    void skipPressed();
+
     void runToClicked();
     void addBreakpointPressed();
     void breakPressed();
@@ -167,14 +167,17 @@ private slots:
 
     void about();
     void aboutQt();
+
 private:
     void updateWindowMenu();
 
     // QAction callbacks
     // File Menu
-    void RunTriggered();
+    void LaunchTriggered();
+    void QuickLaunchTriggered();
     void ConnectTriggered();
     void DisconnectTriggered();
+    void WarmResetTriggered();
 
     // Exception Menu
     void ExceptionsDialogTriggered();
@@ -209,9 +212,11 @@ private:
     GraphicsInspectorWidget*    m_pGraphicsInspector;
     BreakpointsWindow*          m_pBreakpointsWidget;
     ConsoleWindow*              m_pConsoleWindow;
+    HardwareWindow*             m_pHardwareWindow;
+    ProfileWindow*              m_pProfileWindow;
 
     // Low-level data
-    Session                     m_session;
+    Session&                    m_session;
     Dispatcher*             	m_pDispatcher;
     TargetModel*                m_pTargetModel;
 
@@ -220,6 +225,7 @@ private:
 
     // Menus
     void createActions();
+    void createToolBar();
     void createMenus();
 
     // Shared function to show a sub-window, called by Action callbacks
@@ -230,9 +236,11 @@ private:
     QMenu* m_pWindowMenu;
     QMenu* m_pHelpMenu;
 
-    QAction* m_pRunAct;
+    QAction* m_pLaunchAct;
+    QAction* m_pQuickLaunchAct;
     QAction* m_pConnectAct;
     QAction* m_pDisconnectAct;
+    QAction* m_pWarmResetAct;
     QAction* m_pExitAct;
 
     QAction* m_pExceptionsAct;
@@ -245,6 +253,8 @@ private:
     QAction* m_pGraphicsInspectorAct;
     QAction* m_pBreakpointsWindowAct;
     QAction* m_pConsoleWindowAct;
+    QAction* m_pHardwareWindowAct;
+    QAction* m_pProfileWindowAct;
 
     QAction* m_pAboutAct;
     QAction* m_pAboutQtAct;

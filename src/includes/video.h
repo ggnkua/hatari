@@ -186,6 +186,8 @@ extern void	Video_InitTimings(void);
 extern void	Video_SetTimings( MACHINETYPE MachineType , VIDEOTIMINGMODE Mode );
 extern const char* Video_GetTimings_Name ( void );
 
+extern Uint8	Video_Get_MONO_Line ( void );
+
 extern void	Video_ConvertPosition( int FrameCycles , int *pHBL , int *pLineCycles );
 extern void	Video_GetPosition( int *pFrameCycles , int *pHBL , int *pLineCycles );
 extern void	Video_GetPosition_OnWriteAccess( int *pFrameCycles , int *pHBL , int *pLineCycles );
@@ -259,5 +261,8 @@ extern void Video_TTColorRegs_Write(void);
 extern void Video_TTColorRegs_STRegWrite(void);
 
 extern void Video_Info(FILE *fp, Uint32 dummy);
+
+/* Sync memory/state that might need to be inspected by the Remote Debug system */
+extern void Video_RemoteDebugSync(void);
 
 #endif  /* HATARI_VIDEO_H */

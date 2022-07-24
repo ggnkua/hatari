@@ -782,7 +782,7 @@ static void Main_Init(void)
 	
 	/* done as last, needs CPU & DSP running... */
 	DebugUI_Init();
-    RemoteDebug_Init();
+	RemoteDebug_Init();
 }
 
 
@@ -867,7 +867,7 @@ static void Main_StatusbarSetup(void)
 	};
 	const char *name;
 	bool named;
-	SDLKey key;
+	SDL_Keycode key;
 	int i;
 
 	named = false;

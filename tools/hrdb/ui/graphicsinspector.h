@@ -5,6 +5,9 @@
 #include <QObject>
 
 // Forward declarations
+#include "../models/session.h"
+#include "nonantialiasimage.h"
+
 class QLabel;
 class QLineEdit;
 class QAbstractItemModel;
@@ -12,50 +15,8 @@ class QSpinBox;
 class QCheckBox;
 class QComboBox;
 
-class Session;
 class TargetModel;
 class Dispatcher;
-
-// Taken from https://forum.qt.io/topic/94996/qlabel-and-image-antialiasing/5
-class NonAntiAliasImage : public QWidget
-{
-    Q_OBJECT
-    Q_DISABLE_COPY(NonAntiAliasImage)
-public:
-    NonAntiAliasImage(QWidget* parent, Session* pSession);
-    virtual ~NonAntiAliasImage() override;
-
-    void setPixmap(int width, int height);
-    uint8_t* AllocBitmap(int size);
-    void SetRunning(bool runFlag);
-
-    QVector<QRgb>   m_colours;
-
-    const QString& GetString() { return m_infoString; }
-signals:
-    void StringChanged();
-
-protected:
-    virtual void paintEvent(QPaintEvent*) override;
-    virtual void mouseMoveEvent(QMouseEvent *event) override;
-
-private slots:
-    void settingsChangedSlot();
-
-private:
-    void UpdateString();
-
-    Session*        m_pSession;
-    QPixmap         m_pixmap;
-    QPointF         m_mousePos;
-
-    // Underlying bitmap data
-    uint8_t*        m_pBitmap;
-    int             m_bitmapSize;
-
-    QString         m_infoString;
-    bool            m_bRunningMask;
-};
 
 class GraphicsInspectorWidget : public QDockWidget
 {
@@ -87,6 +48,7 @@ private slots:
     void heightChangedSlot(int height);
     void paddingChangedSlot(int height);
     void tooltipStringChangedSlot();
+    void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
 protected:
     virtual void keyPressEvent(QKeyEvent *ev);
 

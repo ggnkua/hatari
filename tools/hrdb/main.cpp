@@ -2,16 +2,44 @@
 
 #include <QApplication>
 #include <QSettings>
+#include "hrdbapplication.h"
+#include <QCommandLineParser>
 
 int main(int argc, char *argv[])
 {
     QCoreApplication::setOrganizationName("hrdb");
     QCoreApplication::setApplicationName("hrdb");
+    QCoreApplication::setApplicationVersion(VERSION_STRING);
     QSettings::setDefaultFormat(QSettings::Format::IniFormat);
 
-    QApplication a(argc, argv);
+    // This creates the app and the session (including loading session settings)
+    HrdbApplication app(argc, argv);
 
-    MainWindow w;
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Test helper");
+    parser.addHelpOption();
+    parser.addVersionOption();
+
+    // A boolean option (-q, --quicklaunch)
+    QCommandLineOption quickLaunchOption(QStringList() << "q" << "quicklaunch",
+                                         "Launch Hatari with previously-saved UI settings.");
+    parser.addOption(quickLaunchOption);
+
+    parser.process(app);
+
+    // Build the UI
+    MainWindow w(app.m_session);
     w.show();
-    return a.exec();
+
+    // Kick off hatari if requested
+    if (parser.isSet(quickLaunchOption))
+    {
+       if (!LaunchHatari(app.m_session.GetLaunchSettings(), &app.m_session))
+       {
+            QTextStream(stderr) << QString("ERROR: quicklaunch: Unable to run hatari\n");
+            return 1;
+       }
+    }
+
+    return app.exec();
 }

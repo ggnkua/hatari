@@ -75,5 +75,5 @@ void ExceptionDialog::okClicked()
     // Send to target
     // NOTE: sending this returns a response with the set exmask,
     // so update in the target model is automatic.
-    m_pDispatcher->SendCommandPacket(QString::asprintf("exmask %u", mask.m_mask).toStdString().c_str());
+    m_pDispatcher->SetExceptionMask(mask.m_mask);
 }

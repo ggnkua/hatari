@@ -163,6 +163,8 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel,
     // Down the side
     m_pTableView->verticalHeader()->hide();
     m_pTableView->verticalHeader()->setDefaultSectionSize(fm.height());
+    m_pTableView->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
+    m_pTableView->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;

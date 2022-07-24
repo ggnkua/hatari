@@ -10,18 +10,11 @@
 #include "symboltable.h"
 #include "registers.h"
 #include "exceptionmask.h"
+#include "../hardware/hardware_st.h"
 
 class QTimer;
-
-enum MACHINETYPE
-{
-    MACHINE_ST = 0,
-    MACHINE_MEGA_ST = 1,
-    MACHINE_STE = 2,
-    MACHINE_MEGA_STE = 3,
-    MACHINE_TT = 4,
-    MACHINE_FALCON = 5
-};
+class ProfileData;
+struct ProfileDelta;
 
 class TargetChangedFlags
 {
@@ -43,6 +36,18 @@ public:
 
     bool    m_changed[kChangedStateCount];
     bool    m_memChanged[kMemorySlotCount];
+};
+
+/*
+    Simple container for YM register state
+*/
+class YmState
+{
+public:
+    YmState();
+    static const int kNumRegs = 16;
+    void Clear();
+    uint8_t m_regs[kNumRegs];
 };
 
 /*
@@ -68,19 +73,30 @@ public:
     // Set Hatari's subtable of symbols
     void SetSymbolTable(const SymbolSubTable& syms, uint64_t commandId);
     void SetExceptionMask(const ExceptionMask& mask);
+    void SetYm(const YmState& state);
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
+
+    // Update profiling data
+    void AddProfileDelta(const ProfileDelta& delta);
+    void ProfileDeltaComplete(int enabled);
+
+    // (Called from UI)
+    void ProfileReset();
 
     // User-added console command. Anything can happen!
     void ConsoleCommand();
 
-    void Flush();
+    // User-inserted dummy command to signal e.g. end of a series of updates
+    void Flush(uint64_t commmandId);
 
 	// NOTE: all these return copies to avoid data contention
     MACHINETYPE	GetMachineType() const { return m_machineType; }
 
     int IsConnected() const { return m_bConnected; }
     int IsRunning() const { return m_bRunning; }
-	uint32_t GetPC() const { return m_pc; }
+    int IsProfileEnabled() const { return m_bProfileEnabled; }
+
+    uint32_t GetPC() const { return m_pc; }
 	Registers GetRegs() const { return m_regs; }
     const Memory* GetMemory(MemorySlot slot) const
     {
@@ -89,6 +105,11 @@ public:
     const Breakpoints& GetBreakpoints() const { return m_breakpoints; }
     const SymbolTable& GetSymbolTable() const { return m_symbolTable; }
     const ExceptionMask& GetExceptionMask() const { return m_exceptionMask; }
+    YmState GetYm() const { return m_ymState; }
+
+    // Profiling access
+    void GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycles) const;
+    const ProfileData& GetRawProfileData() const;
 
 public slots:
 
@@ -101,7 +122,8 @@ signals:
 
     void startStopChangedSignalDelayed(int running);
 
-    void changedFlush(const TargetChangedFlags& flags);
+    // When a user-inserted flush is the next command
+    void flushSignal(const TargetChangedFlags& flags, uint64_t uid);
 
 	// When new CPU registers are changed
     void registersChangedSignal(uint64_t commandId);
@@ -113,14 +135,13 @@ signals:
     void breakpointsChangedSignal(uint64_t commandId);
     void symbolTableChangedSignal(uint64_t commandId);
     void exceptionMaskChanged();
-
-    // UI BODGE
-    // Qt seems to have no central message dispatch
-    void addressRequested(int windowId, bool isMemory, uint32_t address);
+    void ymChangedSignal();
 
     // Something edited memory
-    void otherMemoryChanged(uint32_t address, uint32_t size);
+    void otherMemoryChangedSignal(uint32_t address, uint32_t size);
 
+    // Profile data changed
+    void profileChangedSignal();
 private slots:
 
     // Called shortly after stop notification received
@@ -134,12 +155,15 @@ private:
 
     int             m_bConnected;   // 0 == disconnected, 1 == connected
     int             m_bRunning;		// 0 == stopped, 1 == running
+    int             m_bProfileEnabled; // 0 == off, 1 == collecting
     uint32_t        m_pc;			// PC register (for next instruction)
 
     Registers       m_regs;			// Current register values
     Breakpoints     m_breakpoints;  // Current breakpoint list
     SymbolTable     m_symbolTable;
     ExceptionMask   m_exceptionMask;
+    YmState         m_ymState;
+    ProfileData*    m_pProfileData;
 
     // Actual current memory contents
     const Memory*   m_pMemory[MemorySlot::kMemorySlotCount];
@@ -151,5 +175,6 @@ private:
 
 // Helper functions to check broad machine types
 extern bool IsMachineST(MACHINETYPE type);
+extern bool IsMachineSTE(MACHINETYPE type);
 
 #endif // TARGET_MODEL_H

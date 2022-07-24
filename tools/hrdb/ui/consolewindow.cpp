@@ -6,22 +6,32 @@
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QSettings>
+#include <QTemporaryFile>
+#include <QTextStream>
+#include <QTextEdit>
+#include <QDebug>
+#include <QFileSystemWatcher>
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
+#include "../models/session.h"
 #include "quicklayout.h"
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-ConsoleWindow::ConsoleWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher) :
+ConsoleWindow::ConsoleWindow(QWidget *parent, Session* pSession) :
     QDockWidget(parent),
-    m_pTargetModel(pTargetModel),
-    m_pDispatcher(pDispatcher)
+    m_pSession(pSession),
+    m_pTargetModel(pSession->m_pTargetModel),
+    m_pDispatcher(pSession->m_pDispatcher),
+    m_pWatcher(nullptr)
 {
     this->setWindowTitle("Console");
     setObjectName("Console");
 
     m_pLineEdit = new QLineEdit(this);
+    m_pTextArea = new QTextEdit(this);
+    m_pTextArea->setReadOnly(true);
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;
@@ -33,6 +43,7 @@ ConsoleWindow::ConsoleWindow(QWidget *parent, TargetModel* pTargetModel, Dispatc
     pTopLayout->addWidget(m_pLineEdit);
     SetMargins(pMainLayout);
     pMainLayout->addWidget(pTopRegion);
+    pMainLayout->addWidget(m_pTextArea);
 
     pTopRegion->setLayout(pTopLayout);
     pMainRegion->setLayout(pMainLayout);
@@ -41,11 +52,20 @@ ConsoleWindow::ConsoleWindow(QWidget *parent, TargetModel* pTargetModel, Dispatc
     loadSettings();
 
     connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &ConsoleWindow::connectChangedSlot);
+    connect(m_pSession,      &Session::settingsChanged,          this, &ConsoleWindow::settingsChangedSlot);
     // Connect text entry
     connect(m_pLineEdit,     &QLineEdit::returnPressed,          this, &ConsoleWindow::textEditChangedSlot);
 
     // Refresh enable state
     connectChangedSlot();
+
+    // Refresh font
+    settingsChangedSlot();
+}
+
+ConsoleWindow::~ConsoleWindow()
+{
+    deleteWatcher();
 }
 
 void ConsoleWindow::keyFocus()
@@ -76,15 +96,73 @@ void ConsoleWindow::connectChangedSlot()
 {
     bool enable = m_pTargetModel->IsConnected();
     m_pLineEdit->setEnabled(enable);
+
+    if (m_pTargetModel->IsConnected())
+    {
+        // Experimental: force Hatari output to a file
+        if (m_pTargetModel->IsConnected())
+        {
+            deleteWatcher();
+
+            // Open the temp file
+            m_pSession->m_pLoggingFile->open();
+            QString filename = m_pSession->m_pLoggingFile->fileName();
+
+            // Need to open a file watcher here
+            m_pWatcher = new QFileSystemWatcher(this);
+            m_pWatcher->addPath(m_pSession->m_pLoggingFile->fileName());
+            connect(m_pWatcher, &QFileSystemWatcher::fileChanged,   this, &ConsoleWindow::fileChangedSlot);
+
+            // Create a reader
+            m_tempFile.setFileName(filename);
+            m_tempFile.open(QIODevice::ReadOnly| QIODevice::Unbuffered);
+            m_tempFileTextStream.setDevice(&m_tempFile);
+
+            m_pDispatcher->SetLoggingFile(filename.toStdString());
+        }
+    }
+    else
+    {
+        deleteWatcher();
+    }
+}
+
+void ConsoleWindow::settingsChangedSlot()
+{
+    m_pTextArea->setFont(m_pSession->GetSettings().m_font);
 }
 
 void ConsoleWindow::textEditChangedSlot()
 {
     if (m_pTargetModel->IsConnected() && !m_pTargetModel->IsRunning())
     {
-        QString string = "console ";
-        string += m_pLineEdit->text();
-        m_pDispatcher->SendCommandPacket(string.toStdString().c_str());
+        m_pDispatcher->SendConsoleCommand(m_pLineEdit->text().toStdString());
+        m_pTextArea->append(QString(">>") + m_pLineEdit->text());
     }
     m_pLineEdit->clear();
+}
+
+void ConsoleWindow::fileChangedSlot(const QString& filename)
+{
+    Q_ASSERT(filename == m_tempFile.fileName());
+
+    // Read whatever possible from file
+    QString data;
+    data = m_tempFileTextStream.readLine();
+    while (!data.isNull())
+    {
+        m_pTextArea->append(data);
+        data = m_tempFileTextStream.readLine();
+    }
+}
+
+void ConsoleWindow::deleteWatcher()
+{
+    if (m_pWatcher)
+    {
+        m_tempFile.close();
+        disconnect(m_pWatcher, &QFileSystemWatcher::fileChanged,   this, &ConsoleWindow::fileChangedSlot);
+        delete m_pWatcher;
+        m_pWatcher = nullptr;
+    }
 }

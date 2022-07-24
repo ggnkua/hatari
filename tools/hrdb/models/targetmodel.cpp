@@ -1,7 +1,19 @@
 #include "targetmodel.h"
-
 #include <iostream>
 #include <QTimer>
+
+#include "profiledata.h"
+
+YmState::YmState()
+{
+    Clear();
+}
+
+void YmState::Clear()
+{
+    for (int i = 0; i < kNumRegs; ++i)
+        m_regs[i] = 0;
+}
 
 void TargetChangedFlags::Clear()
 {
@@ -15,12 +27,14 @@ void TargetChangedFlags::Clear()
 TargetModel::TargetModel() :
 	QObject(),
     m_bConnected(false),
-    m_bRunning(true)
+    m_bRunning(true),
+    m_bProfileEnabled(0)
 {
     for (int i = 0; i < MemorySlot::kMemorySlotCount; ++i)
         m_pMemory[i] = nullptr;
 
     m_changedFlags.Clear();
+    m_pProfileData = new ProfileData();
 
     m_pDelayedUpdateTimer = new QTimer(this);
     connect(m_pDelayedUpdateTimer, &QTimer::timeout, this, &TargetModel::delayedTimer);
@@ -31,6 +45,7 @@ TargetModel::~TargetModel()
     for (int i = 0; i < MemorySlot::kMemorySlotCount; ++i)
         delete m_pMemory[i];
 
+    delete m_pProfileData;
     delete m_pDelayedUpdateTimer;
 }
 
@@ -110,27 +125,59 @@ void TargetModel::SetExceptionMask(const ExceptionMask &mask)
     emit exceptionMaskChanged();
 }
 
+void TargetModel::SetYm(const YmState& state)
+{
+    m_ymState = state;
+    emit ymChangedSignal();
+}
+
 void TargetModel::NotifyMemoryChanged(uint32_t address, uint32_t size)
 {
     m_changedFlags.SetChanged(TargetChangedFlags::kOtherMemory);
-    emit otherMemoryChanged(address, size);
+    emit otherMemoryChangedSignal(address, size);
 }
 
+void TargetModel::AddProfileDelta(const ProfileDelta& delta)
+{
+    m_pProfileData->Add(delta);
+}
+
+void TargetModel::ProfileDeltaComplete(int enabled)
+{
+    m_bProfileEnabled = enabled;
+    emit profileChangedSignal();
+}
+
+void TargetModel::ProfileReset()
+{
+    m_pProfileData->Reset();
+    emit profileChangedSignal();
+}
 
 // User-added console command. Anything can happen, so tell everything
 // to update
 void TargetModel::ConsoleCommand()
 {
-    emit otherMemoryChanged(0, 0xffffff);
+    emit otherMemoryChangedSignal(0, 0xffffff);
     emit breakpointsChangedSignal(0);
     emit symbolTableChangedSignal(0);
     emit exceptionMaskChanged();
 }
 
-void TargetModel::Flush()
+void TargetModel::Flush(uint64_t commmandId)
 {
-    emit changedFlush(m_changedFlags);
+    emit flushSignal(m_changedFlags, commmandId);
     m_changedFlags.Clear();
+}
+
+void TargetModel::GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycles) const
+{
+    m_pProfileData->Get(addr, count, cycles);
+}
+
+const ProfileData& TargetModel::GetRawProfileData() const
+{
+    return *m_pProfileData;
 }
 
 void TargetModel::delayedTimer()
@@ -144,3 +191,7 @@ bool IsMachineST(MACHINETYPE type)
     return (type == MACHINE_ST || type == MACHINE_MEGA_ST);
 }
 
+bool IsMachineSTE(MACHINETYPE type)
+{
+    return (type == MACHINE_STE || type == MACHINE_MEGA_STE);
+}

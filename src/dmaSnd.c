@@ -99,6 +99,7 @@ const char DmaSnd_fileid[] = "Hatari dmaSnd.c";
 #include "audio.h"
 #include "configuration.h"
 #include "dmaSnd.h"
+#include "cycles.h"
 #include "cycInt.h"
 #include "ioMem.h"
 #include "log.h"
@@ -110,6 +111,7 @@ const char DmaSnd_fileid[] = "Hatari dmaSnd.c";
 #include "screen.h"
 #include "video.h"
 #include "m68000.h"
+#include "clocks_timings.h"
 
 #define TONE_STEPS 13
 
@@ -300,6 +302,18 @@ static void DmaSnd_Update_XSINT_Line ( Uint8 Bit )
 	dma.XSINT_Signal = Bit;
 	MFP_GPIP_Set_Line_Input ( pMFP_Main , MFP_GPIP_LINE7 , Bit );
 	MFP_TimerA_Set_Line_Input ( pMFP_Main , Bit );			/* Update events count / interrupt for timer A if needed */
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Return the value of the XSINT line
+ *  0=dma sound is idle
+ *  1=dma sound is playing
+ */
+Uint8	DmaSnd_Get_XSINT_Line ( void )
+{
+	return dma.XSINT_Signal;
 }
 
 
@@ -1470,4 +1484,13 @@ void DmaSnd_Info(FILE *fp, Uint32 dummy)
 	fprintf(fp, "\n");
 	fprintf(fp, "$FF8922.b : Microwire Data     : %02x\n", IoMem_ReadByte(0xff8922));
 	fprintf(fp, "$FF8922.b : Microwire Mask     : %02x\n", IoMem_ReadByte(0xff8924));
+}
+
+void DmaSnd_RemoteDebugSync(void)
+{
+	/* Esnure regs are updated in iomem */
+	DmaSnd_FrameCountHigh_ReadByte();
+	DmaSnd_FrameCountMed_ReadByte();
+	DmaSnd_FrameCountLow_ReadByte();
+	IoMem_WriteByte(0xff8921, dma.soundMode);
 }

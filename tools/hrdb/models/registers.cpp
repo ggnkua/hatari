@@ -1,6 +1,7 @@
 #include "registers.h"
 
 //-----------------------------------------------------------------------------
+// Careful! These names are used to send to Hatari too.
 const char* Registers::s_names[] =
 {
     "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",

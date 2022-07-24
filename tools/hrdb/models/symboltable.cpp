@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <algorithm>
 
+#include "../hardware/regs_st.h"
 #define ADD_SYM(symname, addr, size)\
     table.AddSymbol(#symname, addr, size, "H");
 
@@ -57,30 +58,30 @@ static void AddHardware(SymbolSubTable& table)
     ADD_SYM(YM_GISELECT     , 0xff8800, 1)	// (W) sound chip register select
     ADD_SYM(YM_GIREAD		, 0xff8800, 1)	// (R) sound chip read-data
     ADD_SYM(YM_GIWRITE		, 0xff8802, 1)	// (W) sound chip write-data
-    ADD_SYM(MFP_GPIP        , 0xfffa00+1	, 1)		// general purpose I/O
-    ADD_SYM(MFP_AER         , 0xfffa00+3	, 1)		// active edge reg
-    ADD_SYM(MFP_DDR         , 0xfffa00+5	, 1)		// data direction reg
-    ADD_SYM(MFP_IERA        , 0xfffa00+7	, 1)		// interrupt enable A & B
-    ADD_SYM(MFP_IERB        , 0xfffa00+9    , 1)
-    ADD_SYM(MFP_IPRA        , 0xfffa00+0xb	, 1)	// interrupt pending A & B
-    ADD_SYM(MFP_IPRB        , 0xfffa00+0xd  , 1)
-    ADD_SYM(MFP_ISRA        , 0xfffa00+0xf	, 1)	// interrupt inService A & B
-    ADD_SYM(MFP_ISRB        , 0xfffa00+0x11 , 1)
-    ADD_SYM(MFP_IMRA        , 0xfffa00+0x13	, 1)	// interrupt mask A & B
-    ADD_SYM(MFP_IMRB        , 0xfffa00+0x15 , 1)
-    ADD_SYM(MFP_VR          , 0xfffa00+0x17	, 1)	// interrupt vector base
-    ADD_SYM(MFP_TACR        , 0xfffa00+0x19	, 1)	// timer A control
-    ADD_SYM(MFP_TBCR        , 0xfffa00+0x1b	, 1)	// timer B control
-    ADD_SYM(MFP_TCDCR       , 0xfffa00+0x1d	, 1)	// timer C & D control
-    ADD_SYM(MFP_TADR        , 0xfffa00+0x1f	, 1)	// timer A data
-    ADD_SYM(MFP_TBDR        , 0xfffa00+0x21	, 1)	// timer B data
-    ADD_SYM(MFP_TCDR        , 0xfffa00+0x23	, 1)	// timer C data
-    ADD_SYM(MFP_TDDR        , 0xfffa00+0x25	, 1)	// timer D data
-    ADD_SYM(MFP_SCR         , 0xfffa00+0x27	, 1)	// sync char
-    ADD_SYM(MFP_UCR         , 0xfffa00+0x29	, 1)	// USART control reg
-    ADD_SYM(MFP_RSR         , 0xfffa00+0x2b	, 1)	// receiver status
-    ADD_SYM(MFP_TSR         , 0xfffa00+0x2d	, 1)	// transmit status
-    ADD_SYM(MFP_UDR         , 0xfffa00+0x2f	, 1)	// USART data
+    ADD_SYM(MFP_GPIP        , Regs::MFP_GPIP , 1)		// general purpose I/O
+    ADD_SYM(MFP_AER         , Regs::MFP_AER  , 1)		// active edge reg
+    ADD_SYM(MFP_DDR         , Regs::MFP_DDR  , 1)		// data direction reg
+    ADD_SYM(MFP_IERA        , Regs::MFP_IERA , 1)		// interrupt enable A & B
+    ADD_SYM(MFP_IERB        , Regs::MFP_IERB , 1)
+    ADD_SYM(MFP_IPRA        , Regs::MFP_IPRA , 1)	// interrupt pending A & B
+    ADD_SYM(MFP_IPRB        , Regs::MFP_IPRB , 1)
+    ADD_SYM(MFP_ISRA        , Regs::MFP_ISRA , 1)	// interrupt inService A & B
+    ADD_SYM(MFP_ISRB        , Regs::MFP_ISRB , 1)
+    ADD_SYM(MFP_IMRA        , Regs::MFP_IMRA , 1)	// interrupt mask A & B
+    ADD_SYM(MFP_IMRB        , Regs::MFP_IMRB , 1)
+    ADD_SYM(MFP_VR          , Regs::MFP_VR   , 1)	// interrupt vector base
+    ADD_SYM(MFP_TACR        , Regs::MFP_TACR , 1)	// timer A control
+    ADD_SYM(MFP_TBCR        , Regs::MFP_TBCR , 1)	// timer B control
+    ADD_SYM(MFP_TCDCR       , Regs::MFP_TCDCR, 1)	// timer C & D control
+    ADD_SYM(MFP_TADR        , Regs::MFP_TADR , 1)	// timer A data
+    ADD_SYM(MFP_TBDR        , Regs::MFP_TBDR , 1)	// timer B data
+    ADD_SYM(MFP_TCDR        , Regs::MFP_TCDR , 1)	// timer C data
+    ADD_SYM(MFP_TDDR        , Regs::MFP_TDDR , 1)	// timer D data
+    ADD_SYM(MFP_SCR         , Regs::MFP_SCR  , 1)	// sync char
+    ADD_SYM(MFP_UCR         , Regs::MFP_UCR  , 1)	// USART control reg
+    ADD_SYM(MFP_RSR         , Regs::MFP_RSR  , 1)	// receiver status
+    ADD_SYM(MFP_TSR         , Regs::MFP_TSR  , 1)	// transmit status
+    ADD_SYM(MFP_UDR         , Regs::MFP_UDR  , 1)	// USART data
     ADD_SYM(ACIA_KEYCTL     , 0xfffc00, 1)		// keyboard ACIA control
     ADD_SYM(ACIA_KEYBD      , 0xfffc02, 1)		// keyboard data
     ADD_SYM(ACIA_MIDICTL	, 0xfffc04, 1)		// MIDI ACIA control
@@ -273,9 +274,14 @@ void SymbolSubTable::CreateCache()
     // Recalc the keys table
     m_addrKeys.clear();
     Map::iterator it(m_addrLookup.begin());
+    size_t index = 0;
     while (it != m_addrLookup.end())
     {
         m_addrKeys.push_back(*it);
+
+        size_t symIndex = it->second;
+        m_symbols[symIndex].index = index;
+        ++index;
         ++it;
     }
 }

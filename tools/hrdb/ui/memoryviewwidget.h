@@ -3,9 +3,10 @@
 
 #include <QDockWidget>
 #include <QTableView>
+#include "showaddressactions.h"
 #include "../models/memory.h"
+#include "../models/session.h"
 
-class Session;
 class TargetModel;
 class Dispatcher;
 class QComboBox;
@@ -35,8 +36,9 @@ public:
     uint32_t GetRowCount() const { return m_rowCount; }
     Mode GetMode() const { return m_mode; }
 
+    // Set the text expression used as the address.
     // returns false if expression is invalid
-    bool SetAddress(std::string expression);
+    bool SetExpression(std::string expression);
     void SetLock(bool locked);
     void SetMode(Mode mode);
 
@@ -44,33 +46,46 @@ public slots:
     void memoryChangedSlot(int memorySlot, uint64_t commandId);
     void startStopChangedSlot();
     void connectChangedSlot();
+    void registersChangedSlot();
     void otherMemoryChangedSlot(uint32_t address, uint32_t size);
+    void symbolTableChangedSlot();
     void settingsChangedSlot();
 
 protected:
-    virtual void paintEvent(QPaintEvent*);
-    virtual void keyPressEvent(QKeyEvent*);
-    virtual void mousePressEvent(QMouseEvent *event);
+    virtual void paintEvent(QPaintEvent*) override;
+    virtual void keyPressEvent(QKeyEvent*) override;
+    virtual void mousePressEvent(QMouseEvent *event) override;
+    virtual void wheelEvent(QWheelEvent* event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *event) override;
+    virtual void resizeEvent(QResizeEvent *event) override;
+    virtual bool event(QEvent *event) override;
+
 private:
     void MoveUp();
     void MoveDown();
     void MoveLeft();
     void MoveRight();
-    void PageUp();
-    void PageDown();
-    void EditKey(uint8_t val);
+    void PageUp(bool isKeyboard);
+    void PageDown(bool isKeyboard);
+    // Returns true if key was used (so we know not to block it)
+    bool EditKey(char key);
+    char IsEditKey(const QKeyEvent *event);
 
     void SetAddress(uint32_t address);
     void RequestMemory();
+
+    // Is we are locked to an expression recalc m_address
+    void RecalcLockedExpression();
     void RecalcText();
-    void resizeEvent(QResizeEvent *event);
     void RecalcRowCount();
+
+    QString CalcMouseoverText(int mouseX, int mouseY);
 
     void UpdateFont();
     int GetAddrX() const;
-    // Get the x-coord of the hex-character at cursor column
-    int GetHexCharX(int column) const;
-    int GetAsciiCharX(int column) const;
+
+    // Get the x-coord of the character at cursor column
+    int GetPixelFromCol(int column) const;
 
     // Convert from row ID to a pixel Y (top pixel in the drawn row)
     int GetPixelFromRow(int row) const;
@@ -78,7 +93,10 @@ private:
     // Convert from pixel Y to a row ID
     int GetRowFromPixel(int y) const;
 
-    void GetCursorInfo(uint32_t& address, bool& bottomNybble);
+    // Find a valid entry under the pixel
+    bool FindInfo(int x, int y, int& row, int& col);
+
+
     void SetRowCount(int rowCount);
 
     Session*        m_pSession;
@@ -92,13 +110,24 @@ private:
 
         QVector<uint8_t> m_rawBytes;
         QVector<bool> m_byteChanged;
-        QString m_hexText;
-        QString m_asciiText;
+        QVector<int> m_symbolId;
+        QString m_text;
     };
 
     QVector<Row> m_rows;
-    // Positions of each column (need to multiply by m_charWidth for pixel position)
-    QVector<int32_t> m_columnPositions;
+    struct ColInfo
+    {
+        enum Type
+        {
+            kSpace,
+            kTopNybble,
+            kBottomNybble,
+            kASCII
+        } type;
+        uint32_t byteOffset;     // offset into memory
+    };
+
+    QVector<ColInfo> m_columnMap;
 
     std::string m_addressExpression;
     bool        m_isLocked;
@@ -122,6 +151,13 @@ private:
     int         m_charWidth;            // font width in pixels
     int         m_lineHeight;           // font height in pixels
     QFont       m_monoFont;
+
+    // Menu actions
+    QMenu*              m_pShowAddressMenu;
+    ShowAddressActions  m_showAddressActions;
+
+    // Mouse wheel
+    float                m_wheelAngleDelta;
 };
 
 class MemoryWindow : public QDockWidget
@@ -137,7 +173,7 @@ public:
     void saveSettings();
 
 public slots:
-    void requestAddress(int windowIndex, bool isMemory, uint32_t address);
+    void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
 
     void textEditChangedSlot();
     void lockChangedSlot();

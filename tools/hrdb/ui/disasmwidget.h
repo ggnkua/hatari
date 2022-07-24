@@ -4,11 +4,12 @@
 #include <QDockWidget>
 #include <QTableView>
 #include <QMenu>
-#include "../models/disassembler.h"
 #include "../models/breakpoint.h"
+#include "../models/disassembler.h"
 #include "../models/memory.h"
+#include "../models/session.h"
+#include "showaddressactions.h"
 
-class Session;
 class TargetModel;
 class Dispatcher;
 class QCheckBox;
@@ -35,10 +36,16 @@ public:
     bool SetAddress(std::string addr);
     void MoveUp();
     void MoveDown();
+
     void PageUp();
     void PageDown();
+
+    void MouseScrollUp();
+    void MouseScrollDown();
+
     void RunToRow(int row);
     void ToggleBreakpoint(int row);
+    void SetPC(int row);
     void NopRow(int row);
     void SetRowCount(int count);
     void SetShowHex(bool show);
@@ -54,6 +61,7 @@ private slots:
     void breakpointsChangedSlot(uint64_t commandId);
     void symbolTableChangedSlot(uint64_t commandId);
     void otherMemoryChangedSlot(uint32_t address, uint32_t size);
+    void profileChangedSlot();
 
     void runToCursor();
     void toggleBreakpoint();
@@ -63,6 +71,7 @@ private:
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void mouseMoveEvent(QMouseEvent* event) override;
     virtual void mousePressEvent(QMouseEvent* event) override;
+    virtual void wheelEvent(QWheelEvent* event) override;
     virtual void resizeEvent(QResizeEvent *event) override;
     virtual bool event(QEvent *ev) override;
 
@@ -92,10 +101,24 @@ private:
         bool        isBreakpoint;
 
         QString     hex;
+        QString     cycles;
         QString     disasm;
         QString     comments;
+
+        int         branchTargetLine;       // -1 for no branch, or the ID of the target line
     };
     QVector<RowText>    m_rowTexts;
+
+    struct Branch
+    {
+        int top() const { return std::min(start, stop);}
+        int bottom() const { return std::max(start, stop);}
+        int start;
+        int stop;
+        int depth;
+        int type; // 0=normal, 1=top, 2=bottom
+    };
+    QVector<Branch>     m_branches;
 
     Breakpoints m_breakpoints;
     int         m_rowCount;
@@ -119,6 +142,7 @@ private:
 
     void runToCursorRightClick();
     void toggleBreakpointRightClick();
+    void setPCRightClick();
     void nopRightClick();
 
     // Callbacks when the matching entry of m_pShowMemMenus is chosen
@@ -126,9 +150,6 @@ private:
     void showMemMenu1Shown();
     void showMemMenu2Shown();
 
-    // Callbacks when "show in Memory X" etc is selected
-    void disasmViewTrigger(int windowIndex);
-    void memoryViewTrigger(int windowIndex);
     void settingsChangedSlot();
 
     // Layout functions
@@ -149,8 +170,10 @@ private:
     // Actions - top level rightclick
     QAction*              m_pRunUntilAction;
     QAction*              m_pBreakpointAction;
+    QAction*              m_pSetPcAction;
     QMenu*                m_pEditMenu;        // "edit this instruction" menu
     QAction*              m_pNopAction;
+    ShowAddressActions    m_showAddressActions;
 
     // "Show memory for $x" top-level menus:
     // Show Instruction
@@ -158,18 +181,6 @@ private:
     // Show EA 1
     QMenu *               m_pShowMemMenus[3];
     uint32_t              m_showMenuAddresses[3];
-    uint32_t              m_rightClickActiveAddress;    // One of m_showMenuAddresses[] selected by triggering the menu
-
-    // Each top-level action has 4 sub-actions
-    // 0 show in Disasm 1
-    // 1 show in Disasm 2
-    // 2 show in Memory 1
-    // 3 show in Memory 2
-    // These actions are shared by *all* menus in m_pShowMemMenus.
-    // The "active" address, m_rightClickActiveAddress, is set when the relevant
-    // m_pShowMemMenus menu is about to be shown.
-    QAction*              m_pShowDisasmWindowActions[kNumDisasmViews];
-    QAction*              m_pShowMemoryWindowActions[kNumMemoryViews];
 
     // Column layout
     bool                  m_bShowHex;
@@ -181,6 +192,7 @@ private:
         kPC,
         kBreakpoint,
         kHex,
+        kCycles,
         kDisasm,
         kComments,
         kNumColumns
@@ -198,6 +210,9 @@ private:
     int                   m_charWidth;            // font width in pixels
     int                   m_lineHeight;           // font height in pixels
     QFont                 m_monoFont;
+
+    // Mouse wheel
+    float                 m_wheelAngleDelta;
 };
 
 
@@ -214,8 +229,7 @@ public:
     void saveSettings();
 
 public slots:
-    void requestAddress(int windowIndex, bool isMemory, uint32_t address);
-
+    void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
 
 protected:
 
@@ -234,7 +248,7 @@ private:
 
     void UpdateTextBox();
 
-    QLineEdit*      m_pLineEdit;
+    QLineEdit*      m_pAddressEdit;
     QCheckBox*      m_pShowHex;
     QCheckBox*      m_pFollowPC;
     Session*        m_pSession;

@@ -350,7 +350,9 @@ static void Blitter_AddCycles(int cycles)
 
 static void Blitter_FlushCycles(void)
 {
+#ifndef CYCINT_NEW
 	int op_cycles = INT_CONVERT_TO_INTERNAL(BlitterVars.op_cycles, INT_CPU_CYCLE);
+#endif
 
 //fprintf ( stderr , "blitter flush_cyc cyc=%d pass=%d %d cur_cyc=%lu\n" , BlitterVars.op_cycles , BlitterVars.pass_cycles , nCyclesMainCounter , currcycle/cpucycleunit );
 
@@ -360,9 +362,12 @@ static void Blitter_FlushCycles(void)
  		currcycle = 0;
 	}
 
+#ifndef CYCINT_NEW
 	PendingInterruptCount -= op_cycles;
-	while (PendingInterruptCount <= 0 && PendingInterruptFunction)
-		CALL_VAR(PendingInterruptFunction);
+#endif
+// 	while (PendingInterruptCount <= 0 && PendingInterruptFunction)
+// 		CALL_VAR(PendingInterruptFunction);
+	CycInt_Process();
 
 	/* Run DSP while blitter owns the bus */
 	if (bDspEnabled) {
@@ -1584,4 +1589,39 @@ int	Blitter_Check_Simultaneous_CPU ( void )
 
 }
 
-
+void Blitter_RemoteDebugSync(void)
+{
+	/* Sync here should be a case of emulating reading the registers.
+	No cycle penalties seem to be involved? */
+	Blitter_Halftone00_ReadWord();
+	Blitter_Halftone01_ReadWord();
+	Blitter_Halftone02_ReadWord();
+	Blitter_Halftone03_ReadWord();
+	Blitter_Halftone04_ReadWord();
+	Blitter_Halftone05_ReadWord();
+	Blitter_Halftone06_ReadWord();
+	Blitter_Halftone07_ReadWord();
+	Blitter_Halftone08_ReadWord();
+	Blitter_Halftone09_ReadWord();
+	Blitter_Halftone10_ReadWord();
+	Blitter_Halftone11_ReadWord();
+	Blitter_Halftone12_ReadWord();
+	Blitter_Halftone13_ReadWord();
+	Blitter_Halftone14_ReadWord();
+	Blitter_Halftone15_ReadWord();
+	Blitter_SourceXInc_ReadWord();
+	Blitter_SourceYInc_ReadWord();
+	Blitter_SourceAddr_ReadLong();
+	Blitter_Endmask1_ReadWord();
+	Blitter_Endmask2_ReadWord();
+	Blitter_Endmask3_ReadWord();
+	Blitter_DestXInc_ReadWord();
+	Blitter_DestYInc_ReadWord();
+	Blitter_DestAddr_ReadLong();
+	Blitter_WordsPerLine_ReadWord();
+	Blitter_LinesPerBitblock_ReadWord();
+	Blitter_HalftoneOp_ReadByte();
+	Blitter_LogOp_ReadByte();
+	Blitter_Control_ReadByte();
+	Blitter_Skew_ReadByte();	
+}

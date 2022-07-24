@@ -1426,3 +1426,41 @@ void Profile_CpuGetCallinfo(callinfo_t **callinfo, const char* (**get_caller)(Ui
 	*get_caller = Symbols_GetBeforeCpuAddress;
 	*get_symbol = Symbols_GetByCpuAddress;
 }
+
+bool Profile_CpuQuery(Uint32 index, ProfileLine* result)
+{
+	cpu_profile_item_t *data;
+	data = cpu_profile.data;
+	if (!data) {
+		return false;
+	}
+
+	if (index >= cpu_profile.size)
+		return false;
+
+	result->count = data[index].count;
+	result->cycles = data[index].cycles;
+	if (result->count)
+		result->addr = index2address(index);
+	return true;
+}
+
+bool Profile_CpuIsEnabled(void)
+{
+	Uint32 *disasm_addr;
+	bool *enabled;
+	Profile_CpuGetPointers(&enabled, &disasm_addr);
+	return *enabled;
+}
+
+/**
+ * Enable/Disable CPU profiling
+ */
+void Profile_CpuEnable(int enable)
+{
+	Uint32 *disasm_addr;
+	bool *enabled;
+	Profile_CpuGetPointers(&enabled, &disasm_addr);
+
+	*enabled = enable;
+}

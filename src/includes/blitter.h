@@ -91,5 +91,7 @@ extern void Blitter_HOG_CPU_mem_access_after ( int bus_count );
 extern int  Blitter_Check_Simultaneous_CPU ( void );
 extern void Blitter_HOG_CPU_do_cycles_after ( int cycles );
 
+/* Sync memory/state that might need to be inspected by the Remote Debug system */
+extern void Blitter_RemoteDebugSync(void);
 
 #endif /* BLITTER_H */

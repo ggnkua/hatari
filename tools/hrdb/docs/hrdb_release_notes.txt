@@ -1,0 +1,115 @@
+hrdb Release Notes
+==================
+
+v0.006 (February 2022)
+
+- Hardware Window
+  - Rewrite view to support Macs better
+  - Show exception, interrupt, MFP vectors
+  - Show some DMA sound registers
+  - All addresses support right-click menus to e.g. open disassembly views at interrupt addresses
+  - Add "copy to clipboard" button (for easier offline state comparison)
+  - Add tooltips for most row types
+
+- Memory Window
+  - smarter handling of "S" (step) key when editing memory
+
+- Main Window
+  - Add "Shift+S" to skip over the current instruction without executing it
+    (request from Troed/SYNC)
+
+- Diassembly Window
+  - Add "Set PC to here" right-click menu action
+    (request from Troed/SYNC)
+
+- Run Dialog
+  - Support capitalized file extensions for executable (e.g. ".PRG" files as well as ".prg")
+
+- Hatari (target runtime)
+  - Fix display of many fields in Hardware view by making Hatari sync hardware register address data after stopping
+    (e.g. Blitter register, video display counter)
+
+
+v0.005 (December 2021)
+
+- Disassembly view
+  - Fix color settings with Mac Dark Theme. (reported by RATI/OVR)
+  - New design for row highlighting. Suggested by RATI/OVR.
+    - PC row is main highlight colours (usually white-on-blue for light themes)
+    - Active Cursor row uses dashed lines
+    - Mouseover row is a different background colour (palette "midlight" value)
+  - Window limits movement of the address when Follow PC is active.
+    - Code tries to keep the window static until PC moves out of visible range,
+      this allows you to see the code around the PC in a more stable fashion.
+
+- Memory Window
+  - Fixed bug when Lock button is changed. If Lock was applied, window wouldn't re-fetch memory data because of a typo.
+    (reported by RATI/OVR)
+  - Fixed another bug with locked expressions.
+      View was requesting memory for the window before register values arrived,
+      so was always behind by a step.
+
+- Graphics Inspector
+  - Add "Save Image" right-click context menu item for easier sprite/gfx ripping.
+    Image is saved as a palettised BMP or PNG using Qt's image libraries.
+    (requested by Shazz/TRSI)
+
+- General
+  - New feature: support e.g. "D0.W" for sign-extended data registers when evaluating expressions.
+
+- Hatari (Target runtime)
+  - Fix crash bug in RemoteDebug.c's DebugOutput redirection handling.
+
+
+v0.004 (November 2021)
+
+- Hardware Window
+  - Shows states of MMU, MFP, YM and Blitter in a readable form.
+  - Still contains some bugs and missing register data.
+
+- Disassembly view
+  - Fix potential crash caused by branching arrows display
+
+
+v0.003 (September 2021)
+
+- Disassembly Window
+  - Added lines between branch instruction and targets
+  - Added mousewheel pageup/pagedown.
+
+- Memory Window
+  - Added mousewheel pageup/pagedown.
+
+- General
+  - Fixed: Focus for Step/Next/Until works when window is undocked.
+
+
+v0.002 (September 2021)
+
+- Memory View
+  - Edit ASCII in Memory View.
+  - Added tooltips for values, similar to Register view.
+  - Added context menus to open the longword address under the mouse.
+  - Symbol regions are now coloured for easier separation.
+  - Fixed: crash from typing on the view when not connected.
+  - Fixed: clicking on top row of characters didn't choose the row
+
+- Disassembly Window
+  - Ctrl+B works when 2 Disassembly windows are visible.
+
+- Registers View
+  - Fixed: listed ISP and USP are stale when CPU stops.
+
+- Console View
+  - Added output area to Console View so you can see the results of commands.
+
+- General
+  - Fixed: (N)ext would still step into instructions when holding down key-repeat (reported by
+    Thomas van Noorden)
+  - Alt+L now brings up the (L)aunch Hatari dialog, which was previously "Run Hatari"
+  - Context menu "Show Address" options now include opening the Graphics Inspector
+
+
+v0.001 (August 2021)
+
+- Initial test release

@@ -111,7 +111,8 @@ static bool IsSymbolStart(char c)
 
 static bool IsSymbolMain(char c)
 {
-    return IsAlpha(c) || IsDecimalDigit(c) || c == '_';
+    // Support "." for e.g. "D0.W"
+    return IsAlpha(c) || IsDecimalDigit(c) || c == '_' || c == '.';
 }
 
 static bool IsRegisterName(const char* name, int& regId)
@@ -126,6 +127,27 @@ static bool IsRegisterName(const char* name, int& regId)
             continue;
 #endif
         regId = i;
+        return true;
+    }
+    regId = Registers::REG_COUNT;
+    return false;
+}
+
+static bool IsRegisterNameDotW(const char* name, int& regId)
+{
+    static const char* names[] = { "D0.W", "D1.W" ,"D2.W", "D3.W",
+                                   "D4.W", "D5.W" ,"D6.W", "D7.W" };
+
+    for (int i = 0; i < 8; ++i)
+    {
+#ifdef WIN32
+        if (_stricmp(name, names[i]) != 0)
+            continue;
+#else
+        if (strcasecmp(name, names[i]) != 0)
+            continue;
+#endif
+        regId = i + Registers::D0;
         return true;
     }
     regId = Registers::REG_COUNT;
@@ -361,6 +383,20 @@ bool StringParsers::ParseExpression(const char *pText, uint32_t &result, const S
                 Token t;
                 t.type = Token::CONSTANT;
                 t.val = regs.m_value[regId];
+                tokens.push_back(t);
+                continue;
+            }
+
+            if (IsRegisterNameDotW(name.c_str(), regId))
+            {
+                // Sign-extended Data registers.
+                Token t;
+                t.type = Token::CONSTANT;
+                t.val = regs.m_value[regId] & 0xffff;
+                if (t.val & 0x8000)
+                    t.val |= 0xffff0000;     // extend to full EA
+
+                // Sign extend
                 tokens.push_back(t);
                 continue;
             }

@@ -249,9 +249,9 @@ static uae_u32 (*x2_get_byte)(uaecptr);
 static void (*x2_put_long)(uaecptr,uae_u32);
 static void (*x2_put_word)(uaecptr,uae_u32);
 static void (*x2_put_byte)(uaecptr,uae_u32);
-static void (*x2_do_cycles)(unsigned long);
-static void (*x2_do_cycles_pre)(unsigned long);
-static void (*x2_do_cycles_post)(unsigned long, uae_u32);
+static void (*x2_do_cycles)(uae_u32);
+static void (*x2_do_cycles_pre)(uae_u32);
+static void (*x2_do_cycles_post)(uae_u32, uae_u32);
 
 uae_u32 (*x_prefetch)(int);
 uae_u32 (*x_next_iword)(void);
@@ -276,9 +276,9 @@ void (*x_cp_put_word)(uaecptr,uae_u32);
 void (*x_cp_put_byte)(uaecptr,uae_u32);
 uae_u32 (REGPARAM3 *x_cp_get_disp_ea_020)(uae_u32 base, int idx) REGPARAM;
 
-void (*x_do_cycles)(unsigned long);
-void (*x_do_cycles_pre)(unsigned long);
-void (*x_do_cycles_post)(unsigned long, uae_u32);
+void (*x_do_cycles)(uae_u32);
+void (*x_do_cycles_pre)(uae_u32);
+void (*x_do_cycles_post)(uae_u32, uae_u32);
 
 uae_u32(*x_phys_get_iword)(uaecptr);
 uae_u32(*x_phys_get_ilong)(uaecptr);
@@ -423,7 +423,7 @@ static bool check_trace (void)
 		return true;
 	if (!cputrace.readcounter && !cputrace.writecounter && !cputrace.cyclecounter) {
 		if (cpu_tracer != -2) {
-			write_log (_T("CPU trace: dma_cycle() enabled. %08x %08x NOW=%08lx\n"),
+			write_log (_T("CPU trace: dma_cycle() enabled. %08x %08x NOW=%08x\n"),
 				cputrace.cyclecounter_pre, cputrace.cyclecounter_post, get_cycles ());
 			cpu_tracer = -2; // dma_cycle() allowed to work now
 		}
@@ -447,7 +447,7 @@ static bool check_trace (void)
 	x_do_cycles_pre = x2_do_cycles_pre;
 	x_do_cycles_post = x2_do_cycles_post;
 	set_x_cp_funcs();
-	write_log (_T("CPU tracer playback complete. STARTCYCLES=%08x NOWCYCLES=%08lx\n"), cputrace.startcycles, get_cycles ());
+	write_log(_T("CPU tracer playback complete. STARTCYCLES=%08x NOWCYCLES=%08x\n"), cputrace.startcycles, get_cycles());
 	cputrace.needendcycles = 1;
 	cpu_tracer = 0;
 	return true;
@@ -460,7 +460,7 @@ static bool get_trace (uaecptr addr, int accessmode, int size, uae_u32 *data)
 		struct cputracememory *ctm = &cputrace.ctm[i];
 		if (ctm->addr == addr && ctm->mode == mode) {
 			ctm->mode = 0;
-			write_log (_T("CPU trace: GET %d: PC=%08x %08x=%08x %d %d %08x/%08x/%08x %d/%d (%08lx)\n"),
+			write_log (_T("CPU trace: GET %d: PC=%08x %08x=%08x %d %d %08x/%08x/%08x %d/%d (%08x)\n"),
 				i, cputrace.pc, addr, ctm->data, accessmode, size,
 				cputrace.cyclecounter, cputrace.cyclecounter_pre, cputrace.cyclecounter_post,
 				cputrace.readcounter, cputrace.writecounter, get_cycles ());
@@ -701,7 +701,7 @@ static void cputracefunc2_x_put_byte (uaecptr o, uae_u32 val)
 		write_log (_T("cputracefunc2_x_put_byte %d <> %d\n"), v, val);
 }
 
-static void cputracefunc_x_do_cycles (unsigned long cycles)
+static void cputracefunc_x_do_cycles (uae_u32 cycles)
 {
 	while (cycles >= CYCLE_UNIT) {
 		cputrace.cyclecounter += CYCLE_UNIT;
@@ -714,7 +714,7 @@ static void cputracefunc_x_do_cycles (unsigned long cycles)
 	}
 }
 
-static void cputracefunc2_x_do_cycles (unsigned long cycles)
+static void cputracefunc2_x_do_cycles (uae_u32 cycles)
 {
 	if (cputrace.cyclecounter > (long)cycles) {
 		cputrace.cyclecounter -= cycles;
@@ -728,7 +728,7 @@ static void cputracefunc2_x_do_cycles (unsigned long cycles)
 		x_do_cycles (cycles);
 }
 
-static void cputracefunc_x_do_cycles_pre (unsigned long cycles)
+static void cputracefunc_x_do_cycles_pre (uae_u32 cycles)
 {
 	cputrace.cyclecounter_post = 0;
 	cputrace.cyclecounter_pre = 0;
@@ -745,7 +745,7 @@ static void cputracefunc_x_do_cycles_pre (unsigned long cycles)
 }
 // cyclecounter_pre = how many cycles we need to SWALLOW
 // -1 = rerun whole access
-static void cputracefunc2_x_do_cycles_pre (unsigned long cycles)
+static void cputracefunc2_x_do_cycles_pre (uae_u32 cycles)
 {
 	if (cputrace.cyclecounter_pre == -1) {
 		cputrace.cyclecounter_pre = 0;
@@ -765,7 +765,7 @@ static void cputracefunc2_x_do_cycles_pre (unsigned long cycles)
 		x_do_cycles (cycles);
 }
 
-static void cputracefunc_x_do_cycles_post (unsigned long cycles, uae_u32 v)
+static void cputracefunc_x_do_cycles_post (uae_u32 cycles, uae_u32 v)
 {
 	if (cputrace.memoryoffset < 1) {
 #if CPUTRACE_DEBUG
@@ -789,7 +789,7 @@ static void cputracefunc_x_do_cycles_post (unsigned long cycles, uae_u32 v)
 	cputrace.cyclecounter_post = 0;
 }
 // cyclecounter_post = how many cycles we need to WAIT
-static void cputracefunc2_x_do_cycles_post (unsigned long cycles, uae_u32 v)
+static void cputracefunc2_x_do_cycles_post (uae_u32 cycles, uae_u32 v)
 {
 	uae_u32 c;
 	if (cputrace.cyclecounter_post) {
@@ -803,21 +803,17 @@ static void cputracefunc2_x_do_cycles_post (unsigned long cycles, uae_u32 v)
 		x_do_cycles (c);
 }
 
-static void do_cycles_post (unsigned long cycles, uae_u32 v)
+static void do_cycles_post (uae_u32 cycles, uae_u32 v)
 {
 	do_cycles (cycles);
 }
-static void do_cycles_ce_post (unsigned long cycles, uae_u32 v)
+static void do_cycles_ce_post (uae_u32 cycles, uae_u32 v)
 {
 	do_cycles_ce (cycles);
 }
-static void do_cycles_ce020_post (unsigned long cycles, uae_u32 v)
+static void do_cycles_ce020_post (uae_u32 cycles, uae_u32 v)
 {
-#ifndef WINUAE_FOR_HATARI
 	do_cycles_ce020 (cycles);
-#else
-	do_cycles_ce020_long (cycles);
-#endif
 }
 
 static uae_u8 dcache_check_nommu(uaecptr addr, bool write, uae_u32 size)
@@ -913,11 +909,11 @@ static void set_x_ifetches(void)
 
 #ifdef WINUAE_FOR_HATARI
 
-void (*x_do_cycles_hatari_blitter_save)(unsigned long);
-void (*x_do_cycles_pre_hatari_blitter_save)(unsigned long);
-void (*x_do_cycles_post_hatari_blitter_save)(unsigned long, uae_u32);
+void (*x_do_cycles_hatari_blitter_save)(uae_u32);
+void (*x_do_cycles_pre_hatari_blitter_save)(uae_u32);
+void (*x_do_cycles_post_hatari_blitter_save)(uae_u32, uae_u32);
 
-static void do_cycles_ce_post_hatari_blitter (unsigned long cycles, uae_u32 v)
+static void do_cycles_ce_post_hatari_blitter (uae_u32 cycles, uae_u32 v)
 {
 	do_cycles_ce_hatari_blitter (cycles);
 }
@@ -1058,15 +1054,9 @@ static void set_x_funcs (void)
 			}
 		}
 		if (currprefs.cpu_cycle_exact) {
-#ifndef WINUAE_FOR_HATARI
 			x_do_cycles = do_cycles_ce020;
 			x_do_cycles_pre = do_cycles_ce020;
 			x_do_cycles_post = do_cycles_ce020_post;
-#else
-			x_do_cycles = do_cycles_ce020_long;
-			x_do_cycles_pre = do_cycles_ce020_long;
-			x_do_cycles_post = do_cycles_ce020_post;
-#endif
 		} else {
 			x_do_cycles = do_cycles;
 			x_do_cycles_pre = do_cycles;
@@ -1326,15 +1316,9 @@ static void set_x_funcs (void)
 		x_get_long = get_long_ce020;
 		x_get_word = get_word_ce020;
 		x_get_byte = get_byte_ce020;
-#ifndef WINUAE_FOR_HATARI
 		x_do_cycles = do_cycles_ce020;
 		x_do_cycles_pre = do_cycles_ce020;
 		x_do_cycles_post = do_cycles_ce020_post;
-#else
-		x_do_cycles = do_cycles_ce020_long;
-		x_do_cycles_pre = do_cycles_ce020_long;
-		x_do_cycles_post = do_cycles_ce020_post;
-#endif
 	} else if (currprefs.cpu_model == 68030) {
 		x_prefetch = get_word_ce030_prefetch;
 		x_get_ilong = get_long_ce030_prefetch;
@@ -1357,15 +1341,9 @@ static void set_x_funcs (void)
 			x_get_word = get_word_ce030;
 			x_get_byte = get_byte_ce030;
 		}
-#ifndef WINUAE_FOR_HATARI
 		x_do_cycles = do_cycles_ce020;
 		x_do_cycles_pre = do_cycles_ce020;
 		x_do_cycles_post = do_cycles_ce020_post;
-#else
-		x_do_cycles = do_cycles_ce020_long;
-		x_do_cycles_pre = do_cycles_ce020_long;
-		x_do_cycles_post = do_cycles_ce020_post;
-#endif
 	} else if (currprefs.cpu_model >= 68040) {
 		x_prefetch = NULL;
 		x_get_ilong = get_ilong_cache_040;
@@ -1388,15 +1366,9 @@ static void set_x_funcs (void)
 			x_put_word = mem_access_delay_word_write_c040;
 			x_put_long = mem_access_delay_long_write_c040;
 		}
-#ifndef WINUAE_FOR_HATARI
 		x_do_cycles = do_cycles_ce020;
 		x_do_cycles_pre = do_cycles_ce020;
 		x_do_cycles_post = do_cycles_ce020_post;
-#else
-		x_do_cycles = do_cycles_ce020_long;
-		x_do_cycles_pre = do_cycles_ce020_long;
-		x_do_cycles_post = do_cycles_ce020_post;
-#endif
 	}
 	x2_prefetch = x_prefetch;
 	x2_get_ilong = x_get_ilong;
@@ -1882,7 +1854,7 @@ void set_cpu_caches (bool flush)
 	flush_cpu_caches(flush);
 }
 
-STATIC_INLINE void count_instr (unsigned int opcode)
+STATIC_INLINE void count_instr (uae_u32 opcode)
 {
 }
 
@@ -1947,7 +1919,7 @@ const struct cputbl *getjitcputbl(int cpulvl, int direct)
 static void build_cpufunctbl (void)
 {
 	int i, opcnt;
-	unsigned long opcode;
+	uae_u32 opcode;
 	const struct cputbl *tbl = NULL;
 	int lvl, mode, jit;
 
@@ -2153,7 +2125,7 @@ static void build_cpufunctbl (void)
 }
 
 #define CYCLES_DIV 8192
-static unsigned long cycles_mult;
+static uae_u32 cycles_mult;
 
 static void update_68k_cycles (void)
 {
@@ -2179,9 +2151,9 @@ static void update_68k_cycles (void)
 	} else {
 		if (currprefs.m68k_speed >= 0 && !currprefs.cpu_cycle_exact && !currprefs.cpu_compatible) {
 			if (currprefs.m68k_speed_throttle < 0) {
-				cycles_mult = (unsigned long)(CYCLES_DIV * 1000 / (1000 + currprefs.m68k_speed_throttle));
+				cycles_mult = (uae_u32)(CYCLES_DIV * 1000 / (1000 + currprefs.m68k_speed_throttle));
 			} else if (currprefs.m68k_speed_throttle > 0) {
-				cycles_mult = (unsigned long)(CYCLES_DIV * 1000 / (1000 + currprefs.m68k_speed_throttle));
+				cycles_mult = (uae_u32)(CYCLES_DIV * 1000 / (1000 + currprefs.m68k_speed_throttle));
 			}
 		}
 	}
@@ -2788,7 +2760,7 @@ static int iack_cycle(int nr)
 	if (1) {
 		// non-autovectored
 		vector = x_get_byte(0x00fffff1 | ((nr - 24) << 1));
-		if (currprefs.cpu_cycle_exact)
+		if (currprefs.cpu_compatible)
 			x_do_cycles(4 * cpucycleunit);
 	} else {
 		// autovectored
@@ -2830,8 +2802,9 @@ static int iack_cycle(int nr)
 				M68000_AddCycles ( iack_start + CPU_IACK_CYCLES_MFP );
 
 			CPU_IACK = true;
-			while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
-				CALL_VAR(PendingInterruptFunction);
+// 			while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
+// 				CALL_VAR(PendingInterruptFunction);
+			CycInt_Process();
 			vector = MFP_ProcessIACK ( nr );
 			CPU_IACK = false;
 		}
@@ -2872,8 +2845,9 @@ static int iack_cycle(int nr)
 			M68000_AddCycles ( e_cycles + CPU_IACK_CYCLES_VIDEO_CE );
 
 		CPU_IACK = true;
-		while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
-			CALL_VAR(PendingInterruptFunction);
+// 		while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
+// 			CALL_VAR(PendingInterruptFunction);
+		CycInt_Process();
 		if ( MFP_UpdateNeeded == true )
 			MFP_UpdateIRQ_All ( 0 );				/* update MFP's state if some internal timers related to MFP expired */
 		pendingInterrupts &= ~( 1 << ( nr - 24 ) );			/* clear HBL or VBL pending bit (even if an MFP timer occurred during IACK) */
@@ -3091,8 +3065,9 @@ kludge_me_do:
 	M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
 	currcycle = 0;
 	/* Update IPL / interrupts state, in case a new interrupt happened during this exception */
-	while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
-		CALL_VAR(PendingInterruptFunction);
+// 	while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
+// 		CALL_VAR(PendingInterruptFunction);
+	CycInt_Process();
 #endif
 	regs.ipl_pin = intlev();
 	ipl_fetch();
@@ -3646,8 +3621,9 @@ kludge_me_do:
 	cache_default_data &= ~CACHE_DISABLE_ALLOCATE;
 #ifdef WINUAE_FOR_HATARI
 	/* Update IPL / interrupts state, in case a new interrupt happened during this exception */
-	while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
-		CALL_VAR(PendingInterruptFunction);
+// 	while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
+// 		CALL_VAR(PendingInterruptFunction);
+	CycInt_Process();
 #endif
 #ifdef JIT
 	set_special (SPCFLAG_END_COMPILE);
@@ -4780,7 +4756,8 @@ void doint(void)
 #endif
 //fprintf ( stderr , "doint1 %d ipl=%x ipl_pin=%x intmask=%x spcflags=%x\n" , m68k_interrupt_delay,regs.ipl, regs.ipl_pin , regs.intmask, regs.spcflags );
 	if (m68k_interrupt_delay) {
-		regs.ipl_pin = intlev ();
+		int il = intlev();
+		regs.ipl_pin = il;
 //fprintf ( stderr , "doint2 %d ipl=%x ipl_pin=%x intmask=%x spcflags=%x\n" , m68k_interrupt_delay,regs.ipl, regs.ipl_pin , regs.intmask, regs.spcflags );
 		if (regs.ipl_pin > regs.intmask || regs.ipl_pin == 7)
 			set_special(SPCFLAG_INT);
@@ -4994,45 +4971,6 @@ static int do_specialties (int cycles)
 			cputrace.cyclecounter = cputrace.cyclecounter_pre = cputrace.cyclecounter_post = 0;
 			cputrace.readcounter = cputrace.writecounter = 0;
 		}
-		if (!first)
-			x_do_cycles (currprefs.cpu_cycle_exact ? 2 * CYCLE_UNIT : 4 * CYCLE_UNIT);
-
-#ifdef WINUAE_FOR_HATARI
-		if (!first)
-		{
-			if (currprefs.cpu_cycle_exact && !currprefs.mmu_model)
-			{
-				/* Flush all CE cycles so far to update PendingInterruptCount */
-				M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
-				currcycle = 0;
-			}
-			else
-				M68000_AddCycles(4);
-		}
-
-		/* It is possible one or more ints happen at the same time */
-		/* We must process them during the same cpu cycle then choose the highest priority one */
-		while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
-			CALL_VAR(PendingInterruptFunction);
-		if ( MFP_UpdateNeeded == true )
-			MFP_UpdateIRQ_All ( 0 );
-
-		/* Keep on running DSP if necessary, even if CPU is stopped */
-		/* During STOP state, the CPU runs for 2 or 4 cycles on each loop depending on settings */
-		if (bDspEnabled)
-			DSP_Run ( 2 * ( currprefs.cpu_cycle_exact ? 2 : 4 ) );
-
-		/* Check if there's an interrupt to process (could be a delayed MFP interrupt) */
-		if (regs.spcflags & SPCFLAG_MFP) {
-			MFP_DelayIRQ ();			/* Handle IRQ propagation */
-			M68000_Update_intlev ();		/* Refresh the list of pending interrupts */
-		}
-#endif
-		first = false;
-#ifndef WINUAE_FOR_HATARI
-		if (regs.spcflags & SPCFLAG_COPPER)
-			do_copper ();
-#endif
 
 		if (m68k_interrupt_delay) {
 			unset_special(SPCFLAG_INT);
@@ -5059,6 +4997,45 @@ static int do_specialties (int cycles)
 			}
 		}
 
+		if (!first)
+			x_do_cycles(currprefs.cpu_cycle_exact ? 2 * CYCLE_UNIT : 4 * CYCLE_UNIT);
+#ifdef WINUAE_FOR_HATARI
+		if (!first)
+		{
+			if (currprefs.cpu_cycle_exact && !currprefs.mmu_model)
+			{
+				/* Flush all CE cycles so far to update PendingInterruptCount */
+				M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
+				currcycle = 0;
+			}
+			else
+				M68000_AddCycles(4);
+		}
+
+		/* It is possible one or more ints happen at the same time */
+		/* We must process them during the same cpu cycle then choose the highest priority one */
+// 		while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
+// 			CALL_VAR(PendingInterruptFunction);
+		CycInt_Process();
+		if ( MFP_UpdateNeeded == true )
+			MFP_UpdateIRQ_All ( 0 );
+
+		/* Keep on running DSP if necessary, even if CPU is stopped */
+		/* During STOP state, the CPU runs for 2 or 4 cycles on each loop depending on settings */
+		if (bDspEnabled)
+			DSP_Run ( 2 * ( currprefs.cpu_cycle_exact ? 2 : 4 ) );
+
+		/* Check if there's an interrupt to process (could be a delayed MFP interrupt) */
+		if (regs.spcflags & SPCFLAG_MFP) {
+			MFP_DelayIRQ ();			/* Handle IRQ propagation */
+			M68000_Update_intlev ();		/* Refresh the list of pending interrupts */
+		}
+#endif
+		first = false;
+#ifndef WINUAE_FOR_HATARI
+		if (regs.spcflags & SPCFLAG_COPPER)
+			do_copper ();
+#endif
 		if (regs.spcflags & SPCFLAG_MODE_CHANGE) {
 			m68k_resumestopped();
 			return 1;
@@ -5308,8 +5285,9 @@ static void m68k_run_1 (void)
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -5468,8 +5446,9 @@ static void m68k_run_1_ce (void)
 				M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
 				currcycle = 0;
 
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -5481,7 +5460,7 @@ static void m68k_run_1_ce (void)
 cont:
 				if (cputrace.needendcycles) {
 					cputrace.needendcycles = 0;
-					write_log (_T("STARTCYCLES=%08x ENDCYCLES=%08lx\n"), cputrace.startcycles, get_cycles ());
+					write_log (_T("STARTCYCLES=%08x ENDCYCLES=%08x\n"), cputrace.startcycles, get_cycles ());
 #ifndef WINUAE_FOR_HATARI
 					log_dma_record ();
 #endif
@@ -6172,8 +6151,9 @@ static void m68k_run_mmu060 (void)
 					WaitStateCycles = 0;
 				}
 
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -6265,8 +6245,9 @@ static void m68k_run_mmu040 (void)
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -6427,8 +6408,9 @@ insretry:
 					/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 					/* and prevent exiting the STOP state when calling do_specialties() after. */
 					/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-					while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-						CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 					while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 						CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+					CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 					if ( MFP_UpdateNeeded == true )
 						MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -6457,8 +6439,9 @@ insretry:
 					/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 					/* and prevent exiting the STOP state when calling do_specialties() after. */
 					/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-					while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-						CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 					while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 						CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+					CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 					if ( MFP_UpdateNeeded == true )
 						MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -6569,8 +6552,9 @@ static void m68k_run_3ce (void)
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -6670,8 +6654,9 @@ static void m68k_run_3p(void)
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -6863,8 +6848,9 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -7058,8 +7044,9 @@ cont:
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -7186,8 +7173,9 @@ static void m68k_run_2_000(void)
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -7274,8 +7262,9 @@ static void m68k_run_2_020(void)
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+// 				while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
+// 					CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
+				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
 #endif
@@ -8723,7 +8712,7 @@ void exception2_fetch(uae_u32 opcode, int offset, int pcoffset)
 	Exception(2);
 }
 
-void cpureset (void)
+bool cpureset (void)
 {
     /* RESET hasn't increased PC yet, 1 word offset */
 	uaecptr pc;
@@ -8732,15 +8721,21 @@ void cpureset (void)
 	uae_u16 ins;
 #endif
 	addrbank *ab;
+	bool extreset = false;
 
 	maybe_disable_fpu();
 	m68k_reset_delay = currprefs.reset_delay;
 	set_special(SPCFLAG_CHECK);
 #ifndef WINUAE_FOR_HATARI
 	send_internalevent(INTERNALEVENT_CPURESET);
+	if (cpuboard_forced_hardreset()) {
+		custom_reset_cpu(false, false);
+		m68k_reset();
+		return true;
+	}
 	if ((currprefs.cpu_compatible || currprefs.cpu_memory_cycle_exact) && currprefs.cpu_model <= 68020) {
 		custom_reset_cpu(false, false);
-		return;
+		return false;
 	}
 #endif
 	pc = m68k_getpc () + 2;
@@ -8752,7 +8747,7 @@ void cpureset (void)
 		custom_reset_cpu(false, false);
 		// did memory disappear under us?
 		if (ab == &get_mem_bank (pc))
-			return;
+			return false;
 		// it did
 		if ((ins & ~7) == 0x4ed0) {
 			int reg = ins & 7;
@@ -8761,11 +8756,11 @@ void cpureset (void)
 				addr += 0xf80000;
 			write_log (_T("reset/jmp (ax) combination at %08x emulated -> %x\n"), pc, addr);
 			m68k_setpc_normal (addr - 2);
-			return;
+			return false;
 		}
 #else
 		customreset ();		/* From hatari-glue.c */
-		return;
+		return false;
 #endif
 	}
 	// the best we can do, jump directly to ROM entrypoint
@@ -8778,6 +8773,7 @@ void cpureset (void)
 	write_log (_T("CPU Reset PC=%x (%s), invalid memory\n"), pc, ab->name);
 	customreset ();			/* From hatari-glue.c */
 #endif
+	return false;
 }
 
 
@@ -9424,7 +9420,7 @@ void mem_access_delay_long_write_ce020 (uaecptr addr, uae_u32 v)
 		wait_cpu_cycle_write_ce020 (addr + 2, 1, (v >>  0) & 0xffff);
 		break;
 	case CE_MEMBANK_CHIP32:
-		if ((addr & 3) == 3) {
+		if ((addr & 3) != 0) {
 			wait_cpu_cycle_write_ce020 (addr + 0, 1, (v >> 16) & 0xffff);
 			wait_cpu_cycle_write_ce020 (addr + 2, 1, (v >>  0) & 0xffff);
 		} else {
@@ -9586,11 +9582,7 @@ static void fill_icache030(uae_u32 addr)
 			if (currprefs.mmu_model) {
 				TRY (prb) {
 					if (currprefs.cpu_cycle_exact)
-#ifndef WINUAE_FOR_HATARI
 						do_cycles_ce020(3 * (CPU020_MEM_CYCLE - 1));
-#else
-						do_cycles_ce020_long(3 * (CPU020_MEM_CYCLE - 1));
-#endif
 					for (int j = 0; j < 3; j++) {
 						i++;
 						i &= 3;
@@ -9763,11 +9755,7 @@ static void dcache030_maybe_burst(uaecptr addr, struct cache030 *c, int lws)
 		if (currprefs.mmu_model) {
 			TRY (prb) {
 				if (currprefs.cpu_cycle_exact)
-#ifndef WINUAE_FOR_HATARI
 					do_cycles_ce020(3 * (CPU020_MEM_CYCLE - 1));
-#else
-					do_cycles_ce020_long(3 * (CPU020_MEM_CYCLE - 1));
-#endif
 				for (int j = 0; j < 3; j++) {
 					i++;
 					i &= 3;

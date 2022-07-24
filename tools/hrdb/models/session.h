@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QFont>
+#include "launcher.h"
 
 class QTcpSocket;
 class QTimer;
@@ -10,12 +11,21 @@ class QTemporaryFile;
 class Dispatcher;
 class TargetModel;
 
+#define VERSION_STRING      "0.006 (Feb 2022)"
+
 // Shared runtime data about the debugging session used by multiple UI components
 // This data isn't persisted over runs (that is saved in Settings)
 class Session : public QObject
 {
     Q_OBJECT
 public:
+    // What kind of window we want to pop up via requestAddress
+    enum WindowType
+    {
+        kDisasmWindow,
+        kMemoryWindow,
+        kGraphicsInspector
+    };
 
     // Settings shared across the app and stored centrally.
     class Settings
@@ -33,7 +43,7 @@ public:
 
     // Standard functions
     Session();
-    virtual ~Session();
+    virtual ~Session() override;
     void Connect();
     void Disconnect();
 
@@ -46,15 +56,22 @@ public:
     TargetModel*    m_pTargetModel;
 
     const Settings& GetSettings() const;
+    const LaunchSettings& GetLaunchSettings() const;
+
     // Apply settings in prefs dialog.
     // Also emits settingsChanged()
     void SetSettings(const Settings& newSettings);
+    void SetLaunchSettings(const LaunchSettings& newSettings);
 
     void loadSettings();
     void saveSettings();
 
 signals:
     void settingsChanged();
+
+    // Shared signal to request a new address in another window.
+    // Qt seems to have no central message dispatch, so use signals/slots
+    void addressRequested(WindowType windowType, int windowId, uint32_t address);
 
 private slots:
 
@@ -65,7 +82,8 @@ private:
     bool             m_autoConnect;
 
     // Actual stored settings object
-    Settings        m_settings;
+    Settings         m_settings;
+    LaunchSettings   m_launchSettings;
 };
 
 #endif // SESSION_H

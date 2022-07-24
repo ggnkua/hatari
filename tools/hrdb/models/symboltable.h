@@ -9,6 +9,7 @@
 struct Symbol
 {
     std::string name;
+    size_t index;
     uint32_t address;
     uint32_t size;
     std::string type;

@@ -56,9 +56,20 @@ const Session::Settings &Session::GetSettings() const
     return m_settings;
 }
 
+const LaunchSettings &Session::GetLaunchSettings() const
+{
+    return m_launchSettings;
+}
+
 void Session::SetSettings(const Session::Settings& newSettings)
 {
     m_settings = newSettings;
+    emit settingsChanged();
+}
+
+void Session::SetLaunchSettings(const LaunchSettings& newSettings)
+{
+    m_launchSettings = newSettings;
     emit settingsChanged();
 }
 
@@ -73,6 +84,8 @@ void Session::loadSettings()
     }
     m_settings.m_bSquarePixels = settings.value("squarePixels", QVariant(false)).toBool();
     settings.endGroup();
+
+    m_launchSettings.loadSettings(settings);
 }
 
 void Session::saveSettings()
@@ -82,6 +95,8 @@ void Session::saveSettings()
     settings.setValue("font", m_settings.m_font.toString());
     settings.setValue("squarePixels", m_settings.m_bSquarePixels);
     settings.endGroup();
+
+    m_launchSettings.saveSettings(settings);
 }
 
 void Session::connectTimerCallback()

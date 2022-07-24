@@ -531,22 +531,6 @@ ObjectList( "hrdb_predefs" )         ; Alias
 }
 
 ; Header files parsed by moc and produce .cpp files. Qt is weird...
-.MOC_SRC=
-{
-    "$SRC_DIR$/tools/hrdb/ui/mainwindow.h"
-    "$SRC_DIR$/tools/hrdb/models/targetmodel.h"
-    "$SRC_DIR$/tools/hrdb/ui/consolewindow.h"
-    "$SRC_DIR$/tools/hrdb/ui/disasmwidget.h"
-    "$SRC_DIR$/tools/hrdb/ui/memoryviewwidget.h"
-    "$SRC_DIR$/tools/hrdb/ui/graphicsinspector.h"
-    "$SRC_DIR$/tools/hrdb/ui/breakpointswidget.h"
-    "$SRC_DIR$/tools/hrdb/ui/rundialog.h"
-    "$SRC_DIR$/tools/hrdb/models/session.h"
-    "$SRC_DIR$/tools/hrdb/models/registers.h"
-    "$SRC_DIR$/tools/hrdb/ui/addbreakpointdialog.h"
-    "$SRC_DIR$/tools/hrdb/ui/exceptiondialog.h"                                                                
-    "$SRC_DIR$/tools/hrdb/ui/prefsdialog.h"
-}
 Compiler( 'moc' )              ; Alias
 {
   .Executable                   =.MOC     ; Primary compiler executable
@@ -557,7 +541,8 @@ ObjectList( "hrdb_moc" )         ; Alias
   .Compiler                 ="moc"                                   ; Compiler to use
   .CompilerOptions          ="$MOC_DEFINES$ $MOC_INCLUDES$ %1 -o %2" ; Options for compiler
   .CompilerOutputPath       ="hrdb"                                  ; Path to store intermediate objects
-  .CompilerInputFiles       =.MOC_SRC                                ; (optional) Explicit array of files to build
+  .CompilerInputPath        ={"$SRC_DIR$/tools/hrdb/ui","$SRC_DIR$/tools/hrdb/models"}
+  .CompilerInputPattern     ="*.h"
   .CompilerOutputExtension  =".cpp"                                  ; (optional) Specify the file extension for generated objects (default .obj or .o)
   .CompilerOutputPrefix     ="moc_"                                  ; (optional) Specify a prefix for generated objects (default none)
   .PreBuildDependencies    ="hrdb_predefs"
@@ -580,39 +565,13 @@ ObjectList( "hrdb_qrc" )         ; Alias
 }
 
 ; Finally, compile the actual and generated code
-.HRDB_SRC=
-{
-    "$SRC_DIR$/tools/hrdb/transport/dispatcher.cpp"
-    "$SRC_DIR$/tools/hrdb/hopper/decode.cpp"
-    "$SRC_DIR$/tools/hrdb/main.cpp"
-    "$SRC_DIR$/tools/hrdb/models/disassembler.cpp"
-    "$SRC_DIR$/tools/hrdb/models/stringparsers.cpp"
-    "$SRC_DIR$/tools/hrdb/models/targetmodel.cpp"
-    "$SRC_DIR$/tools/hrdb/models/memory.cpp"
-    "$SRC_DIR$/tools/hrdb/models/breakpoint.cpp"
-    "$SRC_DIR$/tools/hrdb/models/session.cpp"
-    "$SRC_DIR$/tools/hrdb/models/registers.cpp"
-    "$SRC_DIR$/tools/hrdb/models/stringsplitter.cpp"
-    "$SRC_DIR$/tools/hrdb/models/symboltable.cpp"
-    "$SRC_DIR$/tools/hrdb/models/symboltablemodel.cpp"
-    "$SRC_DIR$/tools/hrdb/models/exceptionmask.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/addbreakpointdialog.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/breakpointswidget.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/consolewindow.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/disasmwidget.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/mainwindow.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/memoryviewwidget.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/exceptiondialog.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/graphicsinspector.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/rundialog.cpp"
-    "$SRC_DIR$/tools/hrdb/ui/prefsdialog.cpp"
-}
 ObjectList( "hrdb_obj" )         ; Alias
 {
   .Compiler                 ="gpp"                                    ; Compiler to use
   .CompilerOptions          ="$HRDB_CFLAGS$ $HRDB_PATHS$ -c %1 -o %2" ; Options for compiler
+  .CompilerInputPath        ={"$SRC_DIR$/tools/hrdb"}
+  .CompilerInputPattern     ="*.cpp"
   .CompilerOutputPath       ="hrdb"                                   ; Path to store intermediate objects
-  .CompilerInputFiles       =.HRDB_SRC                                ; (optional) Explicit array of files to build
   .CompilerInputObjectLists ={"hrdb_moc","hrdb_qrc"}                  ; (optional) ObjectList(s) whos output should be used as an input
 }
 

@@ -86,10 +86,7 @@ jobs:
           # Remove unneeded dlls
           rm -f libicuucd*.dll
           rm -f libicudtd*.dll
-
-      - name: "Build hatari"
-        shell: cmd
-        run: |
+          cd ..
           mkdir -p fastbuild/cpu
           mkdir -p fastbuild/debug
           mkdir -p fastbuild/falcon
@@ -101,8 +98,12 @@ jobs:
           chmod 777 fastbuild
           chmod 777 -R fastbuild_x64
           chmod 777 fastbuild_x64
+
+      - name: "Build hatari"
+        shell: cmd
+        run: |
           cd fastbuild
-          fbuild -showcmds
+          fbuild -showcmds -j1
           move hrdb.exe ..\hrdb
           cd ..\fastbuild_x64
           fbuild -showcmds

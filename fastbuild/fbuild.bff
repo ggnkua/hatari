@@ -1,7 +1,7 @@
 ; You need to define these 3 things depending on your install.
 ; They cannot be derived easily sadly
 .GCC_BIN_DIR="C:\msys64\mingw32\bin"
-.SRC_DIR="c:\msys64\home\ggn\hatari"
+.SRC_DIR="D:\a\hatari\hatari"
 .MINGW_ROOT="C:\msys64\mingw32"
 .PLATFORM_NAME="i686-w64-mingw32"
 

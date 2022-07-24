@@ -90,10 +90,17 @@ jobs:
       - name: "Build hatari"
         shell: cmd
         run: |
+          mkdir -p fastbuild/cpu
+          mkdir -p fastbuild/debug
+          mkdir -p fastbuild/falcon
+          mkdir -p fastbuild/floppy
+          mkdir -p fastbuild/guisdl
+          mkdir -p fastbuild/hatari
+          mkdir -p fastbuild/uaecpu
           chmod 777 -R fastbuild
           chmod 777 fastbuild
-          chmod 777 -R fastbuild-x64
-          chmod 777 fastbuild-x64
+          chmod 777 -R fastbuild_x64
+          chmod 777 fastbuild_x64
           cd fastbuild
           fbuild -showcmds
           move hrdb.exe ..\hrdb

@@ -91,10 +91,10 @@ jobs:
         shell: cmd
         run: |
           cd fastbuild
-          fbuild
+          fbuild -showcmds
           move hrdb.exe ..\hrdb
           cd ..\fastbuild_x64
-          fbuild
+          fbuild -showcmds
           move hrdb.exe ..\hrdb64
 
       - name: "Post qt build steps"

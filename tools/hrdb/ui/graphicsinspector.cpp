@@ -23,6 +23,14 @@
 #include "../hardware/regs_st.h"
 #include "quicklayout.h"
 
+/* A note on memory requests:
+ * When doing update, the entry point is StartMemoryRequests()
+ * This requests the video regs (whether needed or not)
+ * When that memory is returned, a further memory request is made
+ * by RequestBitmapMemory.
+ * Once that memory is returned the UI's bitmap is created/updated.
+ */
+
 static void CreateBitplanePalette(QVector<uint32_t>& palette,
                                   uint32_t col0,
                                   uint32_t col1,
@@ -166,7 +174,8 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pTargetModel,  &TargetModel::startStopChangedSignal,        this, &GraphicsInspectorWidget::startStopChangedSlot);
     connect(m_pTargetModel,  &TargetModel::startStopChangedSignalDelayed, this, &GraphicsInspectorWidget::startStopDelayedChangedSlot);
     connect(m_pTargetModel,  &TargetModel::memoryChangedSignal,           this, &GraphicsInspectorWidget::memoryChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::otherMemoryChangedSignal,            this, &GraphicsInspectorWidget::otherMemoryChangedSlot);
+    connect(m_pTargetModel,  &TargetModel::otherMemoryChangedSignal,      this, &GraphicsInspectorWidget::otherMemoryChangedSlot);
+    connect(m_pTargetModel,  &TargetModel::runningRefreshTimerSignal,     this, &GraphicsInspectorWidget::runningRefreshTimerSlot);
 
     connect(m_pAddressLineEdit,             &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::textEditChangedSlot);
     connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChangedSlot);
@@ -276,7 +285,7 @@ void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)
             m_address = 0;
         }
         m_pLockAddressToVideoCheckBox->setChecked(false);
-        RequestMemory();
+        RequestBitmapMemory();
         DisplayAddress();
 
         return;
@@ -295,15 +304,7 @@ void GraphicsInspectorWidget::connectChangedSlot()
 
 void GraphicsInspectorWidget::startStopChangedSlot()
 {
-    // Request new memory for the view
-    if (!m_pTargetModel->IsRunning())
-    {
-        // Trigger a full refresh of registers
-        m_requestIdVideoRegs = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorVideoRegs, Regs::VID_REG_BASE, 0x70);
-    }
-    else
-    {
-    }
+    // Nothing happens here except an initial redraw
     update();
 }
 
@@ -312,11 +313,7 @@ void GraphicsInspectorWidget::startStopDelayedChangedSlot()
     // Request new memory for the view
     if (!m_pTargetModel->IsRunning())
     {
-        // We should have registers now, so use them
-        if (m_pLockAddressToVideoCheckBox->isChecked())
-            SetAddressFromVideo();
-
-        RequestMemory();
+        StartMemoryRequests();
         // Don't clear the Running flag for the widget, do that when the memory arrives
     }
     else {
@@ -327,8 +324,24 @@ void GraphicsInspectorWidget::startStopDelayedChangedSlot()
 
 void GraphicsInspectorWidget::memoryChangedSlot(int /*memorySlot*/, uint64_t commandId)
 {
-    // Only update for the last request we added
-    if (commandId == m_requestIdBitmap)
+    if (commandId == m_requestIdVideoRegs)
+    {
+        // This is the first stage of the request process for a bitmap
+        const Memory* pMemOrig = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
+        if (!pMemOrig)
+            return;
+
+        UpdateFormatFromSettings();
+        UpdateUIElements();
+        m_requestIdVideoRegs = 0;
+
+        // We should have registers now, so use them
+        if (m_pLockAddressToVideoCheckBox->isChecked())
+            SetAddressFromVideo();
+
+        RequestBitmapMemory();
+    }
+    else if (commandId == m_requestIdBitmap)
     {
         const Memory* pMemOrig = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspector);
         if (!pMemOrig)
@@ -442,16 +455,6 @@ void GraphicsInspectorWidget::memoryChangedSlot(int /*memorySlot*/, uint64_t com
         m_requestIdBitmap = 0;
         return;
     }
-    else if (commandId == m_requestIdVideoRegs)
-    {
-        const Memory* pMemOrig = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
-        if (!pMemOrig)
-            return;
-
-        UpdateFormatFromSettings();
-        UpdateUIElements();
-        m_requestIdVideoRegs = 0;
-    }
 }
 
 void GraphicsInspectorWidget::textEditChangedSlot()
@@ -467,7 +470,7 @@ void GraphicsInspectorWidget::textEditChangedSlot()
     m_address = addr;
     m_pLockAddressToVideoCheckBox->setChecked(false);
     UpdateUIElements();
-    RequestMemory();
+    RequestBitmapMemory();
 }
 
 void GraphicsInspectorWidget::lockAddressToVideoChangedSlot()
@@ -476,7 +479,7 @@ void GraphicsInspectorWidget::lockAddressToVideoChangedSlot()
     if (m_bLockToVideo)
     {
         SetAddressFromVideo();
-        RequestMemory();
+        RequestBitmapMemory();
     }
     UpdateUIElements();
 }
@@ -487,7 +490,7 @@ void GraphicsInspectorWidget::lockFormatToVideoChangedSlot()
     if (m_bLockToVideo)
     {
         UpdateFormatFromSettings();
-        RequestMemory();
+        RequestBitmapMemory();
     }
     UpdateUIElements();
 }
@@ -505,7 +508,7 @@ void GraphicsInspectorWidget::lockPaletteToVideoChangedSlot()
 void GraphicsInspectorWidget::modeChangedSlot(int index)
 {
     m_mode = static_cast<Mode>(index);
-    RequestMemory();
+    RequestBitmapMemory();
 }
 
 void GraphicsInspectorWidget::paletteChangedSlot(int index)
@@ -522,25 +525,31 @@ void GraphicsInspectorWidget::otherMemoryChangedSlot(uint32_t address, uint32_t 
     // Do a re-request if our memory is touched
     uint32_t ourSize = GetEffectiveHeight() * GetEffectiveWidth() * BytesPerMode(m_mode);
     if (Overlaps(m_address, ourSize, address, size))
-        RequestMemory();
+        RequestBitmapMemory();
+}
+
+void GraphicsInspectorWidget::runningRefreshTimerSlot()
+{
+    if (m_pTargetModel->IsConnected() && m_pSession->GetSettings().m_liveRefresh)
+        StartMemoryRequests();
 }
 
 void GraphicsInspectorWidget::widthChangedSlot(int value)
 {
     m_width = value;
-    RequestMemory();
+    RequestBitmapMemory();
 }
 
 void GraphicsInspectorWidget::heightChangedSlot(int value)
 {
     m_height = value;
-    RequestMemory();
+    RequestBitmapMemory();
 }
 
 void GraphicsInspectorWidget::paddingChangedSlot(int value)
 {
     m_padding = value;
-    RequestMemory();
+    RequestBitmapMemory();
 }
 
 void GraphicsInspectorWidget::tooltipStringChangedSlot()
@@ -559,12 +568,26 @@ void GraphicsInspectorWidget::requestAddress(Session::WindowType type, int windo
     m_address = address;
     m_pLockAddressToVideoCheckBox->setChecked(false);
     UpdateUIElements();
-    RequestMemory();
+    RequestBitmapMemory();
 }
 
-// Request enough memory based on m_rowCount and m_logicalAddr
-void GraphicsInspectorWidget::RequestMemory()
+void GraphicsInspectorWidget::StartMemoryRequests()
 {
+    m_requestIdVideoRegs = 0;
+
+    // This is the main entry point for grabbing the data.
+    // Trigger a full refresh of registers
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    m_requestIdVideoRegs = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorVideoRegs, Regs::VID_REG_BASE, 0x70);
+}
+
+
+// Request enough memory based on m_rowCount and m_logicalAddr
+void GraphicsInspectorWidget::RequestBitmapMemory()
+{
+    m_requestIdBitmap = 0;
     if (!m_pTargetModel->IsConnected())
         return;
 
@@ -573,12 +596,13 @@ void GraphicsInspectorWidget::RequestMemory()
     EffectiveData data;
     GetEffectiveData(data);
     m_requestIdBitmap = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspector, m_address, data.requiredSize);
+    DisplayAddress();
 }
 
 bool GraphicsInspectorWidget::SetAddressFromVideo()
 {
     // Update to current video regs
-    const Memory* pVideoRegs = m_pTargetModel->GetMemory(MemorySlot::kVideo);
+    const Memory* pVideoRegs = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
     if (!pVideoRegs)
         return false;
 
@@ -695,8 +719,7 @@ void GraphicsInspectorWidget::UpdateUIElements()
     m_pModeComboBox->setEnabled(!m_pLockFormatToVideoCheckBox->isChecked());
 
     m_pPaletteComboBox->setEnabled(!m_pLockPaletteToVideoCheckBox->isChecked());
-
-    m_pAddressLineEdit->setText(QString::asprintf("$%x", m_address));
+    DisplayAddress();
 }
 
 GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const

@@ -29,6 +29,7 @@ protected:
 private slots:
     void okClicked();
     void squarePixelsClicked();
+    void liveRefreshClicked();
     void fontSelectClicked();
 
 private:
@@ -37,6 +38,7 @@ private:
 
     // UI elements
     QCheckBox*      m_pGraphicsSquarePixels;
+    QCheckBox*      m_pLiveRefresh;
 
     // Shared session data pointer (storage for launched process, temp file etc)
     Session*        m_pSession;

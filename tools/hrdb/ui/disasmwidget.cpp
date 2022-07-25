@@ -319,7 +319,7 @@ void DisasmWidget::startStopChangedSlot()
         if (m_bFollowPC)
         {
             // Decide if the new PC is covered by the existing view range. If so, don't move
-            uint32_t pc = m_pTargetModel->GetPC();
+            uint32_t pc = m_pTargetModel->GetStartStopPC();
 
             if (m_disasm.lines.size() == 0)
             {
@@ -696,7 +696,7 @@ void DisasmWidget::CalcDisasm()
         uint32_t addr = line.address;
         t.address = QString::asprintf("%08x", addr);
         t.branchTargetLine = -1;
-        t.isPc = line.address == m_pTargetModel->GetPC();
+        t.isPc = line.address == m_pTargetModel->GetStartStopPC();
         t.isBreakpoint = false;
 
         // Symbol
@@ -957,7 +957,7 @@ void DisasmWidget::printEA(const operand& op, const Registers& regs, uint32_t ad
     uint32_t ea;
 
     // Only do a full analysis if this is the PC and therefore the registers are valid...
-    if (Disassembler::calc_fixed_ea(op, address == m_pTargetModel->GetPC(), regs, address, ea))
+    if (Disassembler::calc_fixed_ea(op, address == m_pTargetModel->GetStartStopPC(), regs, address, ea))
     {
         ea &= 0xffffff; // mask for ST hardware range
         ref << "$" << QString::asprintf("%x", ea);

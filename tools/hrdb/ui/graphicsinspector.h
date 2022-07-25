@@ -36,6 +36,8 @@ private:
     void startStopDelayedChangedSlot();
     void memoryChangedSlot(int memorySlot, uint64_t commandId);
     void otherMemoryChangedSlot(uint32_t address, uint32_t size);
+    void runningRefreshTimerSlot();
+
     void textEditChangedSlot();
     void lockAddressToVideoChangedSlot();
     void lockFormatToVideoChangedSlot();
@@ -71,7 +73,11 @@ private:
     };
 
     void UpdateUIElements();
-    void RequestMemory();
+
+    // This requests the video regs, which ultimately triggers RequestBitmapMemory
+    void StartMemoryRequests();
+    // This requests the bitmap area, so assumes that the address/size etc is correctly set
+    void RequestBitmapMemory();
 
     bool SetAddressFromVideo();
     void DisplayAddress();

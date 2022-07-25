@@ -48,6 +48,7 @@ SOURCES += \
     ui/nonantialiasimage.cpp \
     ui/prefsdialog.cpp \
     ui/profilewindow.cpp \
+    ui/registerwidget.cpp \
     ui/rundialog.cpp \
     ui/showaddressactions.cpp \
     ui/symboltext.cpp \
@@ -87,6 +88,7 @@ HEADERS += \
     ui/prefsdialog.h \
     ui/profilewindow.h \
     ui/quicklayout.h \
+    ui/registerwidget.h \
     ui/rundialog.h \
     ui/showaddressactions.h \
     ui/symboltext.h

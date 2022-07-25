@@ -39,6 +39,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
 
     // Add the options
     m_pGraphicsSquarePixels = new QCheckBox(tr("Square Pixels"), this);
+    m_pLiveRefresh = new QCheckBox(tr("Live Refresh"), this);
 
     QLabel* pFont = new QLabel("Font:", this);
     QPushButton* pFontButton = new QPushButton("Select...", this);
@@ -47,6 +48,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     gridLayout->addWidget(m_pGraphicsSquarePixels, 0, 0);
     gridLayout->addWidget(pFont, 1, 0);
     gridLayout->addWidget(pFontButton, 1, 1);
+    gridLayout->addWidget(m_pLiveRefresh, 2, 0);
 
     // Overall layout (options at top, buttons at bottom)
     QVBoxLayout* pLayout = new QVBoxLayout(this);
@@ -58,6 +60,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     connect(pCancelButton, &QPushButton::clicked, this, &PrefsDialog::reject);
 
     connect(m_pGraphicsSquarePixels, &QPushButton::clicked, this, &PrefsDialog::squarePixelsClicked);
+    connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
     connect(pFontButton, &QPushButton::clicked, this, &PrefsDialog::fontSelectClicked);
     loadSettings();
     this->setLayout(pLayout);
@@ -115,6 +118,11 @@ void PrefsDialog::squarePixelsClicked()
     m_settingsCopy.m_bSquarePixels = m_pGraphicsSquarePixels->isChecked();
 }
 
+void PrefsDialog::liveRefreshClicked()
+{
+    m_settingsCopy.m_liveRefresh = m_pLiveRefresh->isChecked();
+}
+
 void PrefsDialog::fontSelectClicked()
 {
     bool ok;
@@ -133,4 +141,5 @@ void PrefsDialog::fontSelectClicked()
 void PrefsDialog::UpdateUIElements()
 {
     m_pGraphicsSquarePixels->setChecked(m_settingsCopy.m_bSquarePixels);
+    m_pLiveRefresh->setChecked(m_settingsCopy.m_liveRefresh);
 }

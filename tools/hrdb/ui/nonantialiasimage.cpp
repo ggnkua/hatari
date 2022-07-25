@@ -83,7 +83,9 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
                 style()->drawItemPixmap(&painter, r, Qt::AlignCenter, m_pixmap.scaled(r.size()));
             }
         }
-        if (m_bRunningMask)
+
+        // Darken the area if we don't have live refresh
+        if (m_bRunningMask && !m_pSession->GetSettings().m_liveRefresh)
         {
             painter.setBrush(QBrush(QColor(0, 0, 0, 128)));
             painter.drawRect(r);

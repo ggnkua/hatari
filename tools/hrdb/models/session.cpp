@@ -26,6 +26,7 @@ Session::Session() :
 
     // Default settings
     m_settings.m_bSquarePixels = false;
+    m_settings.m_liveRefresh = false;
     m_settings.m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     loadSettings();
 }
@@ -83,6 +84,7 @@ void Session::loadSettings()
         m_settings.m_font.fromString(fontString);
     }
     m_settings.m_bSquarePixels = settings.value("squarePixels", QVariant(false)).toBool();
+    m_settings.m_liveRefresh = settings.value("liveRefresh", QVariant(false)).toBool();
     settings.endGroup();
 
     m_launchSettings.loadSettings(settings);
@@ -94,6 +96,7 @@ void Session::saveSettings()
     settings.beginGroup("Session");
     settings.setValue("font", m_settings.m_font.toString());
     settings.setValue("squarePixels", m_settings.m_bSquarePixels);
+    settings.setValue("liveRefresh", m_settings.m_liveRefresh);
     settings.endGroup();
 
     m_launchSettings.saveSettings(settings);

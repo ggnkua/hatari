@@ -5,6 +5,15 @@
 .MINGW_ROOT="C:\msys64\mingw32"
 .PLATFORM_NAME="i686-w64-mingw32"
 
+#import PATH
+#import TEMP
+Settings
+{
+    .Environment    = { "PATH=$GCC_BIN_DIR$;$PATH$",
+                        "TEMP=$TEMP$"
+                      }
+}
+
 ; Derived variables
 .GCC                  = "$GCC_BIN_DIR$\gcc.exe"
 .GPP                  = "$GCC_BIN_DIR$\g++.exe"

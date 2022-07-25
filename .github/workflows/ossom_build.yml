@@ -103,7 +103,7 @@ jobs:
         shell: cmd
         run: |
           cd fastbuild
-          fbuild -showcmds -j1
+          fbuild -showcmds
           move hrdb.exe ..\hrdb
           cd ..\fastbuild_x64
           fbuild -showcmds
@@ -113,11 +113,12 @@ jobs:
         shell: msys2 {0}
         run: |
           cd hrdb
-          windeployqt .
+          # -no-translations is a workaround for some versions of windeployqt barfing due to a regression. See https://forum.qt.io/topic/124947/error-running-windeployqt/9 and hope that tat doesn't add translations soon?
+          windeployqt . -no-translations
           mv ../fastbuild/hatari.exe .
           cd ../hrdb64
           export PATH=/mingw64/bin:$PATH
-          /C/msys64/mingw64/bin/windeployqt.exe .
+          /C/msys64/mingw64/bin/windeployqt.exe . -no-translations
           mv ../fastbuild_x64/hatari.exe .
           
       - name: "Upload artifacts"

@@ -252,7 +252,7 @@ int decode_ea(buffer_reader& buffer, operand& operand, ea_group group, uint8_t m
 				return 1;
 			// 16-bit displacement
 			disp16 = (int16_t) val16;
-            operand.pc_disp.inst_disp = read_address - inst_address + disp16;
+			operand.pc_disp.inst_disp = read_address - inst_address + disp16;
 			return 0;
 
 		case OpType::PC_DISP_INDEX:
@@ -452,7 +452,9 @@ int Inst_moveq(buffer_reader& /*buffer*/, instruction& inst, uint32_t header)
 {
 	inst.suffix = Suffix::LONG;
 
-	set_imm_byte(inst.op0, header & 0xff);
+	// moveq is effectively a signed 8-bit value set as long
+	int8_t valByte(header & 0xff);
+	set_imm_long(inst.op0, (int32_t)valByte);
 	uint8_t reg = (header >> 9) & 7;
 	set_dreg(inst.op1, reg);
 	return 0;

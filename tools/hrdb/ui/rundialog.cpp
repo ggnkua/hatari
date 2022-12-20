@@ -7,6 +7,7 @@
 #include <QCloseEvent>
 #include <QFileDialog>
 #include <QPushButton>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QMessageBox>
 
@@ -64,11 +65,18 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     QPushButton* pExeButton = new QPushButton(tr("Browse..."), this);
     QPushButton* pPrgButton = new QPushButton(tr("Browse..."), this);
     QPushButton* pWDButton = new QPushButton(tr("Browse..."), this);
+    QPushButton* pWatcherButton = new QPushButton(tr("Browse..."), this);
+    m_pWatcherCheckBox = new QCheckBox(tr("Watch changes"), this);
+    m_pWatcherCheckBox->setLayoutDirection(Qt::LayoutDirection::RightToLeft);
+    m_pWatcherCheckBox->setToolTip(tr("Watch this files/folders for changes and reset hatari if changed"));
 
     m_pExecutableTextEdit = new QLineEdit("hatari", this);
     m_pArgsTextEdit = new QLineEdit("", this);
     m_pPrgTextEdit = new QLineEdit("", this);
     m_pWorkingDirectoryTextEdit = new QLineEdit("", this);
+    m_pWatcherFilesTextEdit = new QLineEdit(this);
+    m_pWatcherFilesTextEdit->setPlaceholderText("<watch run programm/image>");
+
     m_pBreakModeCombo = new QComboBox(this);
     m_pBreakModeCombo->addItem(tr("None"), LaunchSettings::BreakMode::kNone);
     m_pBreakModeCombo->addItem(tr("Boot"), LaunchSettings::BreakMode::kBoot);
@@ -90,6 +98,12 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     gridLayout->addWidget(new QLabel(tr("Run Program/Image:"), this), row, 0);
     gridLayout->addWidget(m_pPrgTextEdit, row, 2);
     gridLayout->addWidget(pPrgButton, row, 4);
+    ++row;
+
+    //gridLayout->addWidget(new QLabel(tr("Watch:"), this), row, 0);
+    gridLayout->addWidget(m_pWatcherCheckBox, row, 0);
+    gridLayout->addWidget(m_pWatcherFilesTextEdit, row, 2);
+    gridLayout->addWidget(pWatcherButton, row, 4);
     ++row;
 
     gridLayout->addWidget(new QLabel("Additional options:", this), row, 0);
@@ -117,6 +131,9 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     connect(pExeButton, &QPushButton::clicked, this, &RunDialog::exeClicked);
     connect(pPrgButton, &QPushButton::clicked, this, &RunDialog::prgClicked);
     connect(pWDButton, &QPushButton::clicked, this, &RunDialog::workingDirectoryClicked);
+    connect(pWatcherButton, &QPushButton::clicked, this, &RunDialog::watcherFilesClicked);
+    connect(m_pWatcherFilesTextEdit, &QLineEdit::textChanged, this, &RunDialog::watcherTextChanged);
+    connect(m_pWatcherCheckBox, &QCheckBox::stateChanged, this, &RunDialog::watcherActiveChanged);
     connect(pOkButton, &QPushButton::clicked, this, &RunDialog::okClicked);
     connect(pCancelButton, &QPushButton::clicked, this, &RunDialog::reject);
     loadSettings();
@@ -143,6 +160,9 @@ void RunDialog::loadSettings()
     m_pPrgTextEdit->setText(m_launchSettings.m_prgFilename);
     m_pArgsTextEdit->setText(m_launchSettings.m_argsTxt);
     m_pWorkingDirectoryTextEdit->setText(m_launchSettings.m_workingDirectory);
+    m_pWatcherFilesTextEdit->setText(m_launchSettings.m_watcherFiles);
+    m_pWatcherFilesTextEdit->setEnabled(m_launchSettings.m_watcherActive);
+    m_pWatcherCheckBox->setCheckState(m_launchSettings.m_watcherActive?Qt::CheckState::Checked:Qt::CheckState::Unchecked);
     m_pBreakModeCombo->setCurrentIndex(m_launchSettings.m_breakMode);
 }
 
@@ -239,6 +259,8 @@ void RunDialog::prgClicked()
           filter);
     if (filename.size() != 0)
         m_pPrgTextEdit->setText(QDir::toNativeSeparators(filename));
+
+    m_pWorkingDirectoryTextEdit->setPlaceholderText(m_pPrgTextEdit->text());        
     updateInternalSettingsFromUI();
 }
 
@@ -257,6 +279,33 @@ void RunDialog::workingDirectoryClicked()
     }
 }
 
+void RunDialog::watcherFilesClicked()
+{
+    QFileDialog dialog(this);
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+
+    QStringList fileNames;
+    if (dialog.exec())
+    {
+        fileNames = dialog.selectedFiles();
+        if (fileNames.length() > 0)
+            m_pWatcherFilesTextEdit->setText(QDir::toNativeSeparators(fileNames.join(",")));
+        updateInternalSettingsFromUI();
+    }
+}
+
+void RunDialog::watcherTextChanged()
+{
+}
+
+void RunDialog::watcherActiveChanged()
+{
+    if(m_pWatcherCheckBox->checkState()==Qt::CheckState::Checked)
+        m_pWatcherFilesTextEdit->setDisabled(false);
+    else
+        m_pWatcherFilesTextEdit->setDisabled(true);
+}
+
 void RunDialog::updateInternalSettingsFromUI()
 {
     // Create the launcher settings as temporaries
@@ -265,5 +314,7 @@ void RunDialog::updateInternalSettingsFromUI()
     m_launchSettings.m_argsTxt = m_pArgsTextEdit->text().trimmed();
     m_launchSettings.m_breakMode = static_cast<LaunchSettings::BreakMode>(m_pBreakModeCombo->currentIndex());
     m_launchSettings.m_workingDirectory = m_pWorkingDirectoryTextEdit->text();
+    m_launchSettings.m_watcherFiles = m_pWatcherFilesTextEdit->text();
+    m_launchSettings.m_watcherActive = m_pWatcherCheckBox->checkState()==Qt::CheckState::Checked?true:false;
     m_launchSettings.m_hatariFilename = m_pExecutableTextEdit->text();
 }

@@ -65,8 +65,15 @@ private:
     void MoveDown();
     void MoveLeft();
     void MoveRight();
-    void PageUp(bool isKeyboard);
-    void PageDown(bool isKeyboard);
+    void PageUp();
+    void PageDown();
+    void MouseWheelUp();
+    void MouseWheelDown();
+
+    // Change top address by the relative number of "bytes" stated.
+    // Called by all the movement functions
+    void MoveRelative(int32_t bytes);
+
     // Returns true if key was used (so we know not to block it)
     bool EditKey(char key);
     char IsEditKey(const QKeyEvent *event);

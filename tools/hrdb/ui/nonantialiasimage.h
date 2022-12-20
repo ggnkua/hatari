@@ -40,6 +40,7 @@ private:
     Session*        m_pSession;
     QPixmap         m_pixmap;
     QPointF         m_mousePos;
+    QRect           m_renderRect;       // rectangle image was last drawn into
 
     // Underlying bitmap data
     QImage          m_img;

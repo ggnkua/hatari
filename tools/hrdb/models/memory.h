@@ -18,6 +18,7 @@ enum MemorySlot : int
 
     kGraphicsInspector = kMemoryView0 + kNumMemoryViews,    // gfx bitmap
     kGraphicsInspectorVideoRegs,                            // same as kVideo but synced with graphics inspector requests
+    kGraphicsInspectorPalette,
 
     kHardwareWindowMmu,
     kHardwareWindowVideo,

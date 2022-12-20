@@ -7,6 +7,7 @@
 
 int main(int argc, char *argv[])
 {
+    // These are used in settings
     QCoreApplication::setOrganizationName("hrdb");
     QCoreApplication::setApplicationName("hrdb");
     QCoreApplication::setApplicationVersion(VERSION_STRING);
@@ -16,7 +17,7 @@ int main(int argc, char *argv[])
     HrdbApplication app(argc, argv);
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("Test helper");
+    parser.setApplicationDescription("hrdb -- a Hatari Remote DeBugger UI");
     parser.addHelpOption();
     parser.addVersionOption();
 
@@ -24,7 +25,6 @@ int main(int argc, char *argv[])
     QCommandLineOption quickLaunchOption(QStringList() << "q" << "quicklaunch",
                                          "Launch Hatari with previously-saved UI settings.");
     parser.addOption(quickLaunchOption);
-
     parser.process(app);
 
     // Build the UI

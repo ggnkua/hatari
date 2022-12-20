@@ -6,6 +6,7 @@
 #include "../models/launcher.h"
 
 class QLineEdit;
+class QCheckBox;
 class QComboBox;
 class TargetModel;
 class Dispatcher;
@@ -28,6 +29,9 @@ private slots:
     void exeClicked();
     void prgClicked();
     void workingDirectoryClicked();
+    void watcherFilesClicked();
+    void watcherTextChanged();
+    void watcherActiveChanged();
 
 private:
     // Settings
@@ -42,6 +46,8 @@ private:
     QLineEdit*      m_pPrgTextEdit;
     QLineEdit*      m_pArgsTextEdit;
     QLineEdit*      m_pWorkingDirectoryTextEdit;
+    QLineEdit*      m_pWatcherFilesTextEdit;
+    QCheckBox*      m_pWatcherCheckBox; 
     QComboBox*      m_pBreakModeCombo;
 
     // Current temporary settings to launch with

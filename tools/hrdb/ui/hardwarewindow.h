@@ -31,7 +31,7 @@ class HardwareTreeModel : public QAbstractItemModel
     Q_OBJECT
 
 public:
-    explicit HardwareTreeModel(QObject *parent = nullptr);
+    HardwareTreeModel(QObject *parent, TargetModel* pTargetModel);
     virtual ~HardwareTreeModel() override;
     void dataChanged2(HardwareBase* pField);
     void UpdateSettings(const Session::Settings &settings);
@@ -47,6 +47,7 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
+    TargetModel* m_pTargetModel;
     HardwareBase *rootItem;
     QFont m_font;
     QFont m_fontBold;

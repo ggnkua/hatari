@@ -48,9 +48,19 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pRunningSquare->setFixedSize(10, 25);
     m_pRunningSquare->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
     m_pStartStopButton = new QPushButton("Break", this);
-    m_pStepIntoButton = new QPushButton("Step", this);
-    m_pStepOverButton = new QPushButton("Next", this);
-    m_pRunToButton = new QPushButton("Run Until:", this);
+    m_pStepIntoButton = new QPushButton("(S)tep", this);
+    m_pStepOverButton = new QPushButton("(N)ext", this);
+
+    m_pStartStopButton->setToolTip("Ctrl+R: Run/Stop, Esc: Stop");
+    m_pStepIntoButton->setToolTip("S: Execute one instruction.\n"
+            "Jumps into subroutines.\n"
+            "Shift+S: skip instruction.");
+    m_pStepOverButton->setToolTip("N: Stop at next instruction in memory.\n"
+            "Jumps over subroutines and through backwards loops.");
+
+    m_pRunToButton = new QPushButton("Run (U)ntil:", this);
+    m_pRunToButton->setToolTip("U: Run until specified condition");
+
     m_pRunToCombo = new QComboBox(this);
     m_pRunToCombo->insertItem(0, "RTS");
     m_pRunToCombo->insertItem(1, "RTE");
@@ -77,7 +87,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
 
     m_pGraphicsInspector = new GraphicsInspectorWidget(this, &m_session);
     m_pGraphicsInspector->setWindowTitle("Graphics Inspector (Alt+G)");
-    m_pBreakpointsWidget = new BreakpointsWindow(this, m_pTargetModel, m_pDispatcher);
+    m_pBreakpointsWidget = new BreakpointsWindow(this, &m_session);
     m_pBreakpointsWidget->setWindowTitle("Breakpoints (Alt+B)");
     m_pConsoleWindow = new ConsoleWindow(this, &m_session);
 
@@ -150,7 +160,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     // Wire up menu appearance
     connect(m_pWindowMenu, &QMenu::aboutToShow, this, &MainWindow::updateWindowMenu);
 
-	// Keyboard shortcuts
+    // Keyboard shortcuts
     new QShortcut(QKeySequence("Ctrl+R"),         this, SLOT(startStopClicked()));
     new QShortcut(QKeySequence("Esc"),            this, SLOT(breakPressed()));
     new QShortcut(QKeySequence("S"),              this, SLOT(singleStepClicked()));
@@ -170,7 +180,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-	delete m_pDispatcher;
+    delete m_pDispatcher;
     delete m_pTargetModel;
 }
 
@@ -191,7 +201,7 @@ void MainWindow::startStopChangedSlot()
     if (!isRunning)
     {
         // STOPPED
-		// TODO this is where all windows should put in requests for data
+        // TODO this is where all windows should put in requests for data
         // The Main Window does this and other windows feed from it.
         // NOTE: we assume here that PC is already updated (normally this
         // is done with a notification at the stop)
@@ -233,7 +243,7 @@ void MainWindow::runningRefreshTimerSlot()
     }
 }
 
-void MainWindow::flushSlot(const TargetChangedFlags& flags, uint64_t commandId)
+void MainWindow::flushSlot(const TargetChangedFlags& /*flags*/, uint64_t commandId)
 {
     if (commandId == m_liveRegisterReadRequest)
     {
@@ -257,7 +267,7 @@ void MainWindow::startStopClicked()
 
     if (m_pTargetModel->IsRunning())
         m_pDispatcher->Break();
-	else
+    else
         m_pDispatcher->Run();
 }
 
@@ -391,13 +401,14 @@ void MainWindow::DisconnectTriggered()
 
 void MainWindow::WarmResetTriggered()
 {
-    m_pDispatcher->ResetWarm();
-    // TODO: ideally we should clear out the symbol tables here
+    // Use the shared session call for this, which handles
+    // things like symbol loading
+    m_session.resetWarm();
+}
 
-    // Restart if in break mode
-    if (!m_pTargetModel->IsRunning())
-        m_pDispatcher->Run();
-
+void MainWindow::FastForwardTriggered()
+{
+    m_pDispatcher->SetFastForward(m_pFastForwardAct->isChecked());
 }
 
 void MainWindow::ExceptionsDialogTriggered()
@@ -454,7 +465,6 @@ void MainWindow::updateButtonEnable()
     // Buttons...
     m_pStartStopButton->setEnabled(isConnected);
     m_pStartStopButton->setText(isRunning ? "Break" : "Run");
-
     m_pStepIntoButton->setEnabled(isConnected && !isRunning);
     m_pStepOverButton->setEnabled(isConnected && !isRunning);
     m_pRunToButton->setEnabled(isConnected && !isRunning);
@@ -464,8 +474,9 @@ void MainWindow::updateButtonEnable()
     m_pDisconnectAct->setEnabled(isConnected);
     m_pWarmResetAct->setEnabled(isConnected);
     m_pExceptionsAct->setEnabled(isConnected);
+    m_pFastForwardAct->setEnabled(isConnected);
+    m_pFastForwardAct->setChecked(m_pTargetModel->IsFastForward());
 }
-
 
 void MainWindow::loadSettings()
 {
@@ -629,6 +640,11 @@ void MainWindow::createActions()
     m_pWarmResetAct->setStatusTip(tr("Warm-Reset the machine"));
     connect(m_pWarmResetAct, &QAction::triggered, this, &MainWindow::WarmResetTriggered);
 
+    m_pFastForwardAct = new QAction(tr("Fast-Forward"), this);
+    m_pFastForwardAct->setStatusTip(tr("Control Fast-Forward mode"));
+    m_pFastForwardAct->setCheckable(true);
+    connect(m_pFastForwardAct, &QAction::toggled, this, &MainWindow::FastForwardTriggered);
+
     m_pExitAct = new QAction(tr("E&xit"), this);
     m_pExitAct->setShortcuts(QKeySequence::Quit);
     m_pExitAct->setStatusTip(tr("Exit the application"));
@@ -713,10 +729,12 @@ void MainWindow::createActions()
 void MainWindow::createToolBar()
 {
     QToolBar* pToolbar = new QToolBar(this);
+    pToolbar->setObjectName("MainToolbar");
     pToolbar->addAction(m_pQuickLaunchAct);
     pToolbar->addAction(m_pLaunchAct);
     pToolbar->addSeparator();
     pToolbar->addAction(m_pWarmResetAct);
+    pToolbar->addAction(m_pFastForwardAct);
 
     this->addToolBar(Qt::ToolBarArea::TopToolBarArea, pToolbar);
 }
@@ -730,6 +748,7 @@ void MainWindow::createMenus()
     m_pFileMenu->addAction(m_pConnectAct);
     m_pFileMenu->addAction(m_pDisconnectAct);
     m_pFileMenu->addAction(m_pWarmResetAct);
+    m_pFileMenu->addAction(m_pFastForwardAct);
     m_pFileMenu->addSeparator();
     m_pFileMenu->addAction(m_pExitAct);
 

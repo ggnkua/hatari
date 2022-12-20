@@ -1,14 +1,15 @@
 #include "profilewindow.h"
 
 #include <iostream>
-#include <QLineEdit>
-#include <QVBoxLayout>
+#include <QComboBox>
+#include <QDebug>
 #include <QHeaderView>
 #include <QKeyEvent>
-#include <QSettings>
-#include <QDebug>
-#include <QPushButton>
+#include <QLineEdit>
 #include <QMenu>
+#include <QPushButton>
+#include <QSettings>
+#include <QVBoxLayout>
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
@@ -26,6 +27,15 @@ bool CompCyclesAsc(ProfileTableModel::Entry& m1, ProfileTableModel::Entry& m2)
 bool CompCyclesDesc(ProfileTableModel::Entry& m1, ProfileTableModel::Entry& m2)
 {
     return m1.cycleCount > m2.cycleCount;
+}
+
+bool CompCyclePercentAsc(ProfileTableModel::Entry& m1, ProfileTableModel::Entry& m2)
+{
+    return m1.cyclePercent < m2.cyclePercent;
+}
+bool CompCyclePercentDesc(ProfileTableModel::Entry& m1, ProfileTableModel::Entry& m2)
+{
+    return m1.cyclePercent > m2.cyclePercent;
 }
 
 bool CompCountAsc(ProfileTableModel::Entry& m1, ProfileTableModel::Entry& m2)
@@ -55,8 +65,11 @@ ProfileTableModel::ProfileTableModel(QObject *parent, TargetModel *pTargetModel,
     m_sortOrder(Qt::DescendingOrder),
     m_grouping(kGroupingSymbol)
 {
-    connect(m_pTargetModel, &TargetModel::profileChangedSignal,     this, &ProfileTableModel::profileChangedSlot);
-    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &ProfileTableModel::symbolChangedSlot);
+}
+
+void ProfileTableModel::recalc()
+{
+    rebuildEntries();
 }
 
 //-----------------------------------------------------------------------------
@@ -90,6 +103,8 @@ QVariant ProfileTableModel::data(const QModelIndex &index, int role) const
             return ent.instructionCount;
         else if (index.column() == kColCycles)
             return QVariant(static_cast<qlonglong>(ent.cycleCount));
+        else if (index.column() == kColCyclePercent)
+            return QVariant(ent.cyclePercent);
     }
     if (role == Qt::TextAlignmentRole)
     {
@@ -113,6 +128,7 @@ QVariant ProfileTableModel::headerData(int section, Qt::Orientation orientation,
             case kColAddress:           return QString(tr("Name"));
             case kColInstructionCount:  return QString(tr("Instructions"));
             case kColCycles:            return QString(tr("Cycles"));
+            case kColCyclePercent:      return QString(tr("Cycle %"));
             }
         }
         if (role == Qt::TextAlignmentRole)
@@ -132,31 +148,20 @@ void ProfileTableModel::sort(int column, Qt::SortOrder order)
     {
     case kColCycles:
         std::sort(entries.begin(), entries.end(), order == Qt::SortOrder::AscendingOrder ? CompCyclesAsc : CompCyclesDesc);
-        populateFromEntries();
         break;
     case kColInstructionCount:
         std::sort(entries.begin(), entries.end(), order == Qt::SortOrder::AscendingOrder ? CompCyclesAsc : CompCyclesDesc);
-        populateFromEntries();
         break;
     case kColAddress:
         std::sort(entries.begin(), entries.end(), order == Qt::SortOrder::AscendingOrder ? CompAddressAsc : CompAddressDesc);
-        populateFromEntries();
+        break;
+    case kColCyclePercent:
+        std::sort(entries.begin(), entries.end(), order == Qt::SortOrder::AscendingOrder ? CompCyclePercentAsc : CompCyclePercentDesc);
         break;
     }
     m_sortColumn = column;
     m_sortOrder = order;
-}
-
-//-----------------------------------------------------------------------------
-void ProfileTableModel::profileChangedSlot()
-{
-    rebuildEntries();
-}
-
-//-----------------------------------------------------------------------------
-void ProfileTableModel::symbolChangedSlot()
-{
-    rebuildEntries();
+    populateFromEntries();
 }
 
 //-----------------------------------------------------------------------------
@@ -168,7 +173,25 @@ void ProfileTableModel::rebuildEntries()
     const SymbolTable& symbols = m_pTargetModel->GetSymbolTable();
     Symbol result;
 
-    uint32_t bits = 8;
+    // Generate total cycles
+    uint64_t cycleTotal = 0;
+    for (const ProfileData::Pair ent : data.m_entries)
+        cycleTotal += ent.second.cycles;
+
+    // Protect against zero-divide
+    if (cycleTotal == 0)
+        cycleTotal = 1;
+
+    uint32_t bits;
+    switch (m_grouping)
+    {
+    case Grouping::kGroupingAddress64: bits = 6; break;
+    case Grouping::kGroupingAddress256: bits = 8; break;
+    case Grouping::kGroupingAddress1024: bits = 10; break;
+    case Grouping::kGroupingAddress4096: bits = 12; break;
+    default: bits = 0; break;
+    }
+
     uint32_t mask = 0xffffffff << bits;
     uint32_t rest = 0xffffffff ^ mask;
 
@@ -186,20 +209,27 @@ void ProfileTableModel::rebuildEntries()
             addr = result.address;
             label = QString::fromStdString(result.name);
         }
-        else if (m_grouping == kGroupingAddress256)
+        else
         {
+            // Group by bytes, rounding down the bits
             addr = ent.first & mask;
-            label = QString::asprintf("$%08x-$%08x", addr, addr + rest);
         }
 
         QMap<uint32_t, Entry>::iterator it = map.find(addr);
         if (it == map.end())
         {
+            // New entry, so create a label here
+            if (m_grouping == kGroupingSymbol)
+                label = QString::fromStdString(result.name);
+            else
+                label = QString::asprintf("$%08x-$%08x", addr, addr + rest);
+
             Entry entry;
             entry.address = addr;
             entry.text = label;
             entry.instructionCount = ent.second.count;
             entry.cycleCount = ent.second.cycles;
+            entry.cyclePercent = 0; // calculated at end
             map.insert(addr, entry);
         }
         else {
@@ -210,11 +240,13 @@ void ProfileTableModel::rebuildEntries()
     entries.clear();
     for (auto it : map)
     {
+        uint64_t scaledPercent = it.cycleCount * 1000 / cycleTotal;
+        it.cyclePercent = static_cast<float>(scaledPercent) / 10.f;
         entries.push_back(it);
     }
 
     sort(m_sortColumn, m_sortOrder);
-    populateFromEntries();
+    // Don't need to "populate", that's called in sort()
 }
 
 //-----------------------------------------------------------------------------
@@ -299,6 +331,8 @@ ProfileWindow::ProfileWindow(QWidget *parent, Session* pSession) :
 
     m_pStartStopButton = new QPushButton("Start", this);
     m_pClearButton = new QPushButton("Clear", this);
+    m_pGroupingComboBox = new QComboBox(this);
+
     m_pTableModel = new ProfileTableModel(this, m_pTargetModel, m_pDispatcher);
     m_pTableView = new ProfileTableView(this, m_pTableModel, m_pSession);
     m_pTableView->setModel(m_pTableModel);
@@ -313,8 +347,19 @@ ProfileWindow::ProfileWindow(QWidget *parent, Session* pSession) :
 
     m_pTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
     m_pTableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
+
+    m_pGroupingComboBox->addItem(tr("Symbols"), ProfileTableModel::Grouping::kGroupingSymbol);
+    m_pGroupingComboBox->addItem(tr("64 Bytes"), ProfileTableModel::Grouping::kGroupingAddress64);
+    m_pGroupingComboBox->addItem(tr("256 Bytes"), ProfileTableModel::Grouping::kGroupingAddress256);
+    m_pGroupingComboBox->addItem(tr("1024 Bytes"), ProfileTableModel::Grouping::kGroupingAddress1024);
+    m_pGroupingComboBox->addItem(tr("4096 Bytes"), ProfileTableModel::Grouping::kGroupingAddress4096);
+
     pTopLayout->addWidget(m_pStartStopButton);
     pTopLayout->addWidget(m_pClearButton);
+    pTopLayout->addWidget(new QLabel(tr("Grouping:"), this));
+    pTopLayout->addWidget(m_pGroupingComboBox);
+    pTopLayout->addStretch();
+
     pMainLayout->addWidget(pTopRegion);
     pMainLayout->addWidget(m_pTableView);
 
@@ -329,11 +374,13 @@ ProfileWindow::ProfileWindow(QWidget *parent, Session* pSession) :
 
     connect(m_pTargetModel,     &TargetModel::connectChangedSignal,     this, &ProfileWindow::connectChangedSlot);
     connect(m_pTargetModel,     &TargetModel::startStopChangedSignal,   this, &ProfileWindow::startStopChangedSlot);
+    connect(m_pTargetModel,     &TargetModel::startStopChangedSignalDelayed,   this, &ProfileWindow::startStopDelayeSlot);
     connect(m_pTargetModel,     &TargetModel::profileChangedSignal,     this, &ProfileWindow::profileChangedSlot);
     connect(m_pSession,         &Session::settingsChanged,              this, &ProfileWindow::settingsChangedSlot);
 
     connect(m_pStartStopButton, &QAbstractButton::clicked,              this, &ProfileWindow::startStopClicked);
     connect(m_pClearButton,     &QAbstractButton::clicked,              this, &ProfileWindow::resetClicked);
+    connect(m_pGroupingComboBox,SIGNAL(currentIndexChanged(int)),       SLOT(groupingChangedSlot(int)));
 
     // Refresh enable state
     connectChangedSlot();
@@ -357,6 +404,10 @@ void ProfileWindow::loadSettings()
     settings.beginGroup("Profile");
 
     restoreGeometry(settings.value("geometry").toByteArray());
+
+    ProfileTableModel::Grouping g = static_cast<ProfileTableModel::Grouping>(settings.value("grouping", QVariant((int)ProfileTableModel::Grouping::kGroupingAddress256)).toInt());
+    m_pGroupingComboBox->setCurrentIndex(g);
+    m_pTableModel->SetGrouping(g);
     settings.endGroup();
 }
 
@@ -366,6 +417,7 @@ void ProfileWindow::saveSettings()
     settings.beginGroup("Profile");
 
     settings.setValue("geometry", saveGeometry());
+    settings.setValue("grouping", static_cast<int>(m_pTableModel->GetGrouping()));
     settings.endGroup();
 }
 
@@ -373,14 +425,18 @@ void ProfileWindow::connectChangedSlot()
 {
     bool enable = m_pTargetModel->IsConnected() && !m_pTargetModel->IsRunning();
     m_pStartStopButton->setEnabled(enable);
-    m_pClearButton->setEnabled(enable);
 }
 
 void ProfileWindow::startStopChangedSlot()
 {
     bool enable = m_pTargetModel->IsConnected() && !m_pTargetModel->IsRunning();
     m_pStartStopButton->setEnabled(enable);
-    m_pClearButton->setEnabled(enable);
+}
+
+void ProfileWindow::startStopDelayeSlot(int running)
+{
+    if (m_pTargetModel->IsConnected() && !running)
+        m_pTableModel->recalc();
 }
 
 void ProfileWindow::profileChangedSlot()
@@ -408,10 +464,17 @@ void ProfileWindow::startStopClicked()
     if (!m_pTargetModel->IsConnected())
         return;
 
-    m_pDispatcher->SetProfileEnable(m_pTargetModel->IsProfileEnabled());
+    m_pDispatcher->SetProfileEnable(!m_pTargetModel->IsProfileEnabled());
 }
 
 void ProfileWindow::resetClicked()
 {
     m_pTargetModel->ProfileReset();
+    m_pTableModel->recalc();
+}
+
+void ProfileWindow::groupingChangedSlot(int index)
+{
+    int modeInt = m_pGroupingComboBox->itemData(index).toInt();
+    m_pTableModel->SetGrouping(static_cast<ProfileTableModel::Grouping>(modeInt));
 }

@@ -169,9 +169,17 @@ uint64_t Dispatcher::SetLoggingFile(const std::string& filename)
 uint64_t Dispatcher::SetProfileEnable(bool enable)
 {
     if (enable)
-        return SendCommandPacket("profile 0");
-    else
         return SendCommandPacket("profile 1");
+    else
+        return SendCommandPacket("profile 0");
+}
+
+uint64_t Dispatcher::SetFastForward(bool enable)
+{
+    if (enable)
+        return SendCommandPacket("ffwd 1");
+    else
+        return SendCommandPacket("ffwd 0");
 }
 
 uint64_t Dispatcher::SendConsoleCommand(const std::string& cmd)
@@ -565,15 +573,19 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
     {
         std::string runningStr = s.Split(SEP_CHAR);
         std::string pcStr = s.Split(SEP_CHAR);
+        std::string ffwdStr = s.Split(SEP_CHAR);
         uint32_t running;
         uint32_t pc;
+        uint32_t ffwd;
         if (!StringParsers::ParseHexString(runningStr.c_str(), running))
             return;
         if (!StringParsers::ParseHexString(pcStr.c_str(), pc))
             return;
+        if (!StringParsers::ParseHexString(ffwdStr.c_str(), ffwd))
+            return;
 
         // This call goes off and lots of views insert requests here, so add a flush into the queue
-        m_pTargetModel->SetStatus(running != 0, pc);
+        m_pTargetModel->SetStatus(running != 0, pc, ffwd);
         this->InsertFlush();
     }
     if (type == "!config")

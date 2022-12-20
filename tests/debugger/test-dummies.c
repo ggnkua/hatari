@@ -159,8 +159,10 @@ void Console_Check(void) { }
 const char Profile_Description[] = "";
 int Profile_Command(int nArgc, char *psArgs[], bool bForDsp) { return DEBUGGER_CMDDONE; }
 char *Profile_Match(const char *text, int state) { return NULL; }
+void Profile_CpuInit(void) { }
 bool Profile_CpuStart(void) { return false; }
 void Profile_CpuUpdate(void) { }
+void Profile_CpuUpdateInactive(void) { }
 void Profile_CpuStop(void) { }
 
 /* fake Hatari video variables */

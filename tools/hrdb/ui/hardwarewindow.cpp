@@ -127,6 +127,8 @@ public:
 
     virtual ~HardwareBase();
     virtual bool isHeader() const { return false; }
+    virtual bool GetBrush(QBrush& /*res*/) { return false; }
+
     HardwareBase* AddChild(HardwareBase* pField)
     {
         pField->m_pParent = this;
@@ -352,6 +354,23 @@ public:
     }
 
     bool Update(const TargetModel* pTarget);
+};
+
+//-----------------------------------------------------------------------------
+// Show 16-bit register as binary value
+class HardwareFieldColourST : public HardwareField
+{
+public:
+    HardwareFieldColourST(uint32_t addr) :
+        m_qtColour(0xffffffff)
+    {
+        m_memAddress = addr;
+    }
+
+    virtual bool Update(const TargetModel* pTarget) override;
+    virtual bool GetBrush(QBrush& res) override;
+private:
+    uint32_t        m_qtColour;
 };
 
 //-----------------------------------------------------------------------------
@@ -667,11 +686,36 @@ bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
     return true;
 }
 
+
+//-----------------------------------------------------------------------------
+bool HardwareFieldColourST::Update(const TargetModel *pTarget)
+{
+    const Memory* memVid  = pTarget->GetMemory(MemorySlot::kHardwareWindowVideo);
+    if (!memVid)
+        return false;
+    uint32_t val = memVid->ReadAddressMulti(m_memAddress, 2);
+
+    QString str = QString::asprintf("$%04x", val);
+    m_changed = m_text != str;
+    m_text = str;
+    HardwareST::GetColour(val, pTarget->GetMachineType(), m_qtColour);
+    return true;
+}
+
+bool HardwareFieldColourST::GetBrush(QBrush &res)
+{
+    res.setStyle(Qt::BrushStyle::SolidPattern);
+    res.setColor(QColor(m_qtColour));
+    return true;
+}
+
+
 //-----------------------------------------------------------------------------
 // HardwareTreeModel
 //-----------------------------------------------------------------------------
-HardwareTreeModel::HardwareTreeModel(QObject *parent)
-    : QAbstractItemModel(parent)
+HardwareTreeModel::HardwareTreeModel(QObject *parent, TargetModel* pTargetModel)
+    : QAbstractItemModel(parent),
+      m_pTargetModel(pTargetModel)
 {
 }
 
@@ -716,6 +760,32 @@ QVariant HardwareTreeModel::data(const QModelIndex &index, int role) const
     if (role == Qt::ToolTipRole)
     {
         return item->m_tooltip;
+    }
+
+    // Handle colours
+    if (m_pTargetModel->IsConnected() && index.column() == 1)
+    {
+        if (role == Qt::BackgroundRole)
+        {
+            // Returns QBrush
+            QBrush br;
+            if (item->GetBrush(br))
+                return br;
+        }
+
+        if (role == Qt::ForegroundRole)
+        {
+            QBrush br;
+            if (item->GetBrush(br))
+            {
+                // Choose white or black with suitable contrast
+                if (br.color().red() > 160 || br.color().green() > 160)
+                    br.setColor(Qt::black);
+                else
+                    br.setColor(Qt::white);
+                return br;
+            }
+        }
     }
 
     return QVariant();
@@ -859,7 +929,7 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     setObjectName("Hardware");
 
     HardwareBase* m_pRoot = new HardwareBase();
-    m_pModel = new HardwareTreeModel(this);
+    m_pModel = new HardwareTreeModel(this, m_pTargetModel);
     m_pModel->rootItem = m_pRoot;
 
     HardwareHeader* pExpVec = new HardwareHeader("Vectors", "");
@@ -950,6 +1020,23 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
 
     addField(pExpVideo, "Horizontal Scroll (STE)", Regs::g_fieldDef_VID_HORIZ_SCROLL_STE_PIXELS);
     addField(pExpVideo, "Scanline offset (STE)",   Regs::g_fieldDef_VID_SCANLINE_OFFSET_STE_ALL);
+
+    addShared(pExpVideo, "Colour #0",              new HardwareFieldColourST(0xff8240));
+    addShared(pExpVideo, "Colour #1",              new HardwareFieldColourST(0xff8242));
+    addShared(pExpVideo, "Colour #2",              new HardwareFieldColourST(0xff8244));
+    addShared(pExpVideo, "Colour #3",              new HardwareFieldColourST(0xff8246));
+    addShared(pExpVideo, "Colour #4",              new HardwareFieldColourST(0xff8248));
+    addShared(pExpVideo, "Colour #5",              new HardwareFieldColourST(0xff824a));
+    addShared(pExpVideo, "Colour #6",              new HardwareFieldColourST(0xff824c));
+    addShared(pExpVideo, "Colour #7",              new HardwareFieldColourST(0xff824e));
+    addShared(pExpVideo, "Colour #8",              new HardwareFieldColourST(0xff8250));
+    addShared(pExpVideo, "Colour #9",              new HardwareFieldColourST(0xff8252));
+    addShared(pExpVideo, "Colour #10",             new HardwareFieldColourST(0xff8254));
+    addShared(pExpVideo, "Colour #11",             new HardwareFieldColourST(0xff8256));
+    addShared(pExpVideo, "Colour #12",             new HardwareFieldColourST(0xff8258));
+    addShared(pExpVideo, "Colour #13",             new HardwareFieldColourST(0xff825a));
+    addShared(pExpVideo, "Colour #14",             new HardwareFieldColourST(0xff825c));
+    addShared(pExpVideo, "Colour #15",             new HardwareFieldColourST(0xff825e));
 
     // ===== MFP ====
     addField(pExpMfp, "Parallel Port Data",           Regs::g_fieldDef_MFP_GPIP_ALL);

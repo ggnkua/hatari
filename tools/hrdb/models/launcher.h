@@ -25,7 +25,9 @@ public:
     QString m_hatariFilename;
     QString m_prgFilename;          // .prg or TOS file to launch
     QString m_workingDirectory;
+    QString m_watcherFiles;
     QString m_argsTxt;
+    bool m_watcherActive;
 };
 
 // Returns true on success (Qt doesn't offer more options?)

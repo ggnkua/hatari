@@ -15,6 +15,7 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
       m_bitmapSize(0),
       m_bRunningMask(false)
 {
+    m_renderRect = rect();
     setMouseTracking(true);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     m_pSaveImageAction = new QAction(tr("Save Image..."), this);
@@ -78,9 +79,11 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
                 QRect fixedR(0, 0, minRatio * m_pixmap.width(), minRatio * m_pixmap.height());
                 painter.setRenderHint(QPainter::Antialiasing, false);
                 style()->drawItemPixmap(&painter, fixedR, Qt::AlignCenter, m_pixmap.scaled(fixedR.size()));
+                m_renderRect = fixedR;
             }
             else {
                 style()->drawItemPixmap(&painter, r, Qt::AlignCenter, m_pixmap.scaled(r.size()));
+                m_renderRect = r;
             }
         }
 
@@ -99,7 +102,6 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
         painter.drawText(r, Qt::AlignCenter, "Not connected.");
     }
 
-
     painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
     painter.drawRect(r);
     QWidget::paintEvent(ev);
@@ -108,11 +110,8 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 void NonAntiAliasImage::mouseMoveEvent(QMouseEvent *event)
 {
     m_mousePos = event->localPos();
-    if (this->underMouse())
-    {
-        UpdateString();
-        emit StringChanged();
-    }
+    UpdateString();
+    emit StringChanged();
     QWidget::mouseMoveEvent(event);
 }
 
@@ -153,10 +152,10 @@ void NonAntiAliasImage::UpdateString()
     if (m_pixmap.width() == 0)
         return;
 
-    // We need to work out the dimensions here
-    if (this->underMouse())
+    QPoint mpos(static_cast<int>(m_mousePos.x()), static_cast<int>(m_mousePos.y()));
+    if (m_renderRect.contains(mpos))
     {
-        const QRect& r = rect();
+        const QRect& r = m_renderRect;
         double x_frac = (m_mousePos.x() - r.x()) / r.width();
         double y_frac = (m_mousePos.y() - r.y()) / r.height();
 

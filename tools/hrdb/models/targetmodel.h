@@ -62,7 +62,7 @@ public:
 
     // These are called by the Dispatcher when notifications/events arrive
     void SetConnected(int running);
-    void SetStatus(bool running, uint32_t pc);
+    void SetStatus(bool running, uint32_t pc, bool ffwd);
     void SetConfig(uint32_t machineType, uint32_t cpuLevel);
 
     // These are called by the Dispatcher when responses arrive
@@ -94,6 +94,7 @@ public:
 
     int IsConnected() const { return m_bConnected; }
     int IsRunning() const { return m_bRunning; }
+    int IsFastForward() const { return m_ffwd; }
     int IsProfileEnabled() const { return m_bProfileEnabled; }
 
     // This is the PC from start/stop notifications, so it's not valid when
@@ -162,7 +163,8 @@ private:
     int             m_bConnected;   // 0 == disconnected, 1 == connected
     int             m_bRunning;		// 0 == stopped, 1 == running
     int             m_bProfileEnabled; // 0 == off, 1 == collecting
-    uint32_t        m_startStopPc;			// PC register (for next instruction)
+    uint32_t        m_startStopPc;	// PC register (for next instruction)
+    int             m_ffwd;         // 0 == normal, 1 == fast forward mode
 
     Registers       m_regs;			// Current register values
     Breakpoints     m_breakpoints;  // Current breakpoint list

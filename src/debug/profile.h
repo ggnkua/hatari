@@ -27,8 +27,13 @@ extern char *Profile_Match(const char *text, int state);
 extern int Profile_Command(int nArgc, char *psArgs[], bool bForDsp);
 
 /* CPU profile control */
+
+/* hrdb: Clear the "previous instruction" state to a safe starting point */
+extern void Profile_CpuInit(void);
 extern bool Profile_CpuStart(void);
 extern void Profile_CpuUpdate(void);
+/* hrdb: Update the "previous instruction" state even when we are not accumulating counts */
+extern void Profile_CpuUpdateInactive(void);
 extern void Profile_CpuStop(void);
 
 /* CPU profile results */

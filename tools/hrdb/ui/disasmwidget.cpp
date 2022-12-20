@@ -729,7 +729,7 @@ void DisasmWidget::CalcDisasm()
 
         // Disassembly
         QTextStream ref(&t.disasm);
-        Disassembler::print(line.inst, line.address, ref);
+        Disassembler::print(line.inst, line.address, ref, m_pSession->GetSettings().m_bDisassHexNumerics);
 
         // Comments
         QTextStream refC(&t.comments);

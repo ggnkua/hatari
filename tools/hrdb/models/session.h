@@ -8,10 +8,12 @@
 class QTcpSocket;
 class QTimer;
 class QTemporaryFile;
+class QFileSystemWatcher;
 class Dispatcher;
 class TargetModel;
+class FileWatcher;
 
-#define VERSION_STRING      "0.006 (Feb 2022)"
+#define VERSION_STRING      "0.007 (August 2022)"
 
 // Shared runtime data about the debugging session used by multiple UI components
 // This data isn't persisted over runs (that is saved in Settings)
@@ -34,6 +36,8 @@ public:
         QFont       m_font;
         // GRAPHICS INSPECTOR
         bool        m_bSquarePixels;
+        // DISASSEMBLY
+        bool        m_bDisassHexNumerics;
 
         // LIVE UPDATE
         bool        m_liveRefresh;
@@ -53,6 +57,7 @@ public:
     QTcpSocket*     m_pTcpSocket;
     QTemporaryFile* m_pStartupFile;
     QTemporaryFile* m_pLoggingFile;
+    FileWatcher*    m_pFileWatcher;
 
     // Connection data
     Dispatcher*     m_pDispatcher;
@@ -68,6 +73,10 @@ public:
 
     void loadSettings();
     void saveSettings();
+
+    void resetWarm();
+
+    FileWatcher* createFileWatcherInstance();
 
 signals:
     void settingsChanged();

@@ -203,14 +203,7 @@ void MemoryWidget::MoveUp()
         update();
         return;
     }
-
-    if (m_requestId != 0)
-        return; // not up to date
-
-    if (m_address >= m_bytesPerRow)
-        SetAddress(m_address - m_bytesPerRow);
-    else
-        SetAddress(0);
+    MoveRelative(-m_bytesPerRow);
 }
 
 void MemoryWidget::MoveDown()
@@ -221,11 +214,7 @@ void MemoryWidget::MoveDown()
         update();
         return;
     }
-
-    if (m_requestId != 0)
-        return; // not up to date
-
-    SetAddress(m_address + m_bytesPerRow);
+    MoveRelative(+m_bytesPerRow);
 }
 
 void MemoryWidget::MoveLeft()
@@ -245,37 +234,59 @@ void MemoryWidget::MoveRight()
     update();
 }
 
-void MemoryWidget::PageUp(bool isKeyboard)
+void MemoryWidget::PageUp()
 {
-    if (isKeyboard && m_cursorRow > 0)
+    if (m_cursorRow > 0)
     {
         m_cursorRow = 0;
         update();
         return;
     }
-
-    if (m_requestId != 0)
-        return; // not up to date
-
-    if (m_address > m_bytesPerRow * m_rowCount)
-        SetAddress(m_address - m_bytesPerRow * m_rowCount);
-    else
-        SetAddress(0);
+    MoveRelative(-m_bytesPerRow * m_rowCount);
 }
 
-void MemoryWidget::PageDown(bool isKeyboard)
+void MemoryWidget::PageDown()
 {
-    if (isKeyboard && m_cursorRow < m_rowCount - 1)
+    if (m_cursorRow < m_rowCount - 1)
     {
         m_cursorRow = m_rowCount - 1;
         update();
         return;
     }
+    MoveRelative(+m_bytesPerRow * m_rowCount);
+}
 
+void MemoryWidget::MouseWheelUp()
+{
+    int numRows = std::max(m_rowCount / 4, 1);
+    MoveRelative(-numRows * m_bytesPerRow);
+}
+
+void MemoryWidget::MouseWheelDown()
+{
+    int numRows = std::max(m_rowCount / 4, 1);
+    MoveRelative(+numRows * m_bytesPerRow);
+}
+
+void MemoryWidget::MoveRelative(int32_t bytes)
+{
     if (m_requestId != 0)
         return; // not up to date
 
-    SetAddress(m_address + m_bytesPerRow * m_rowCount);
+    if (bytes >= 0)
+    {
+        uint32_t bytesAbs(static_cast<uint32_t>(bytes));
+        SetAddress(m_address + bytesAbs);
+    }
+    else
+    {
+        // "bytes" is negative, so convert to unsigned for calcs
+        uint32_t bytesAbs(static_cast<uint32_t>(-bytes));
+        if (m_address > bytesAbs)
+            SetAddress(m_address - bytesAbs);
+        else
+            SetAddress(0);
+    }
 }
 
 bool MemoryWidget::EditKey(char key)
@@ -637,8 +648,8 @@ void MemoryWidget::keyPressEvent(QKeyEvent* event)
         case Qt::Key_Right:      MoveRight();         return;
         case Qt::Key_Up:         MoveUp();            return;
         case Qt::Key_Down:       MoveDown();          return;
-        case Qt::Key_PageUp:     PageUp(true);        return;
-        case Qt::Key_PageDown:   PageDown(true);      return;
+        case Qt::Key_PageUp:     PageUp();            return;
+        case Qt::Key_PageDown:   PageDown();          return;
         default: break;
         }
 
@@ -686,12 +697,12 @@ void MemoryWidget::wheelEvent(QWheelEvent *event)
     m_wheelAngleDelta += event->angleDelta().y();
     if (m_wheelAngleDelta >= 15)
     {
-        PageUp(false);
+        MouseWheelUp();
         m_wheelAngleDelta = 0;
     }
     else if (m_wheelAngleDelta <= -15)
     {
-        PageDown(false);
+        MouseWheelDown();
         m_wheelAngleDelta = 0;
     }
     event->accept();

@@ -46,6 +46,7 @@ public:
     uint64_t SetExceptionMask(uint32_t mask);
     uint64_t SetLoggingFile(const std::string& filename);
     uint64_t SetProfileEnable(bool enable);
+    uint64_t SetFastForward(bool enable);
     uint64_t SendConsoleCommand(const std::string& cmd);
 
 private slots:

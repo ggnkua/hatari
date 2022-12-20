@@ -332,7 +332,7 @@ void RegisterWidget::PopulateRegisters()
         QTextStream ref(&disasmText);
 
         const instruction& inst = m_disasm.lines[0].inst;
-        Disassembler::print_terse(inst, m_disasm.lines[0].address, ref);
+        Disassembler::print_terse(inst, m_disasm.lines[0].address, ref,m_pSession->GetSettings().m_bDisassHexNumerics);
 
         bool branchTaken;
         if (DisAnalyse::isBranch(inst, m_currRegs, branchTaken))
@@ -419,19 +419,16 @@ void RegisterWidget::PopulateRegisters()
 
     row += 2;
     AddReg16(0, row, Registers::SR, m_prevRegs, m_currRegs);
-    AddSR(10, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T1");
-    AddSR(12, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
-    AddSR(15, row, m_prevRegs, m_currRegs, Registers::SRBits::kIPL2, "2");
-    AddSR(16, row, m_prevRegs, m_currRegs, Registers::SRBits::kIPL1, "1");
-    AddSR(17, row, m_prevRegs, m_currRegs, Registers::SRBits::kIPL0, "0");
+    AddSRBit(10, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
+    AddSRBit(14, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
 
-    AddSR(20, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
-    AddSR(21, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
-    AddSR(22, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
-    AddSR(23, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
-    AddSR(24, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
+    AddSRBit(19, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
+    AddSRBit(23, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
+    AddSRBit(27, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
+    AddSRBit(31, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
+    AddSRBit(35, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
     QString iplLevel = QString::asprintf("IPL=%u", (m_currRegs.m_value[Registers::SR] >> 8 & 0x7));
-    AddToken(26, row, iplLevel, TokenType::kNone);
+    AddToken(39, row, iplLevel, TokenType::kNone);
     row += 1;
 
     uint32_t ex = GET_REG(m_currRegs, EX);
@@ -510,13 +507,13 @@ int RegisterWidget::AddReg32(int x, int y, uint32_t regIndex, const Registers& p
     return AddToken(x + label.size() + 1, y, value, TokenType::kRegister, regIndex, highlight);
 }
 
-int RegisterWidget::AddSR(int x, int y, const Registers& /*prevRegs*/, const Registers& regs, uint32_t bit, const char* pName)
+int RegisterWidget::AddSRBit(int x, int y, const Registers& prevRegs, const Registers& regs, uint32_t bit, const char* pName)
 {
-    uint32_t mask = 1U << bit;
-    uint32_t valNew = regs.m_value[Registers::SR] & mask;
-    TokenColour highlight = valNew ? TokenColour::kNormal : TokenColour::kInactive;
-    char text = pName[0];
+    uint32_t valNew = (regs.m_value[Registers::SR] >> bit) & 1;
+    uint32_t valOld = (prevRegs.m_value[Registers::SR] >> bit) & 1;
 
+    TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
+    QString text = QString::asprintf("%s=%x", pName, valNew);
     return AddToken(x, y, QString(text), TokenType::kStatusRegisterBit, bit, highlight);
 }
 

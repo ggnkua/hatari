@@ -75,7 +75,8 @@ static bool bRemoteBreakIsActive = false;
 
 /* ID of a protocol for the transfers, so we can detect hatari<->mismatch in future */
 /* 0x1003 -- add reset commands */
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1003)
+/* 0x1004    add ffwd command, and ffwd status in NotifyStatus() */
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1004)
 
 /* Char ID to denote terminator of a token. This is under the ASCII "normal"
 	character value range so that 32-255 can be used */
@@ -203,7 +204,7 @@ static bool read_hex_char(char c, uint8_t* result)
 
 // -----------------------------------------------------------------------------
 // Send the out-of-band status to flag start/stop
-// Format: "!status <break active> <pc>"
+// Format: "!status <break active> <pc> <ffwd>"
 static int RemoteDebug_NotifyState(RemoteDebugState* state)
 {
 	send_str(state, "!status");
@@ -211,6 +212,8 @@ static int RemoteDebug_NotifyState(RemoteDebugState* state)
 	send_hex(state, bRemoteBreakIsActive ? 0 : 1);
 	send_sep(state);
 	send_hex(state, M68000_GetPC());
+	send_sep(state);
+	send_hex(state, ConfigureParams.System.bFastForward ? 1 : 0);
 	send_term(state);
 	return 0;
 }
@@ -827,6 +830,28 @@ static int RemoteDebug_resetcold(int nArgc, char *psArgs[], RemoteDebugState* st
 }
 
 // -----------------------------------------------------------------------------
+/* "ffwd" Control fast-forward on/off */
+/* returns "OK <val>" if successful */
+static int RemoteDebug_ffwd(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	int enable;
+	if (nArgc == 2)
+	{
+		enable = atoi(psArgs[1]);
+		ConfigureParams.System.bFastForward = ( enable ? true : false );
+
+		// Insert an out-of-band notification before the response
+		RemoteDebug_NotifyState(state);
+
+		send_str(state, "OK");
+		send_sep(state);
+		send_hex(state, enable);
+		return 0;
+	}
+	return 1;
+}
+
+// -----------------------------------------------------------------------------
 /* DebugUI command structure */
 typedef struct
 {
@@ -855,7 +880,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_profile,	"profile"	, true		},
 	{ RemoteDebug_resetwarm,"resetwarm"	, true		},
 	{ RemoteDebug_resetcold,"resetcold"	, true		},
-
+	{ RemoteDebug_ffwd,		"ffwd"		, true		},
 	/* Terminator */
 	{ NULL, NULL }
 };

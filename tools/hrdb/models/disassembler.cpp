@@ -211,6 +211,24 @@ QString to_abs_word(uint16_t val)
     return tmp;
 }
 
+// Format a value as signed decimal or hexadecimal.
+// Handles the nasty "-$5" case
+QString to_signed(int32_t val, bool isHex)
+{
+    QString tmp;
+    if (isHex)
+    {
+        if (val >= 0)
+            return QString::asprintf("$%x", val);
+        else
+            return QString::asprintf("-$%x", -val);
+    }
+    else
+    {
+        return QString::asprintf("%d", val);
+    }
+}
+
 void print_movem_mask(uint16_t reg_mask, QTextStream& ref)
 {
     int num_ranges = 0;
@@ -258,7 +276,7 @@ void print_movem_mask(uint16_t reg_mask, QTextStream& ref)
 }
 
 // ----------------------------------------------------------------------------
-void print(const operand& operand, uint32_t inst_address, QTextStream& ref)
+void print(const operand& operand, uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics = false)
 {
     switch (operand.type)
     {
@@ -278,10 +296,10 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref)
             ref << "-(a" << operand.indirect_predec.reg << ")";
             return;
         case OpType::INDIRECT_DISP:
-            ref << operand.indirect_disp.disp << "(a" << operand.indirect_disp.reg << ")";
+            ref << to_signed(operand.indirect_disp.disp, bDisassHexNumerics) << "(a" << operand.indirect_disp.reg << ")";
             return;
         case OpType::INDIRECT_INDEX:
-            ref << operand.indirect_index.disp << "(a" << operand.indirect_index.a_reg <<
+            ref << to_signed(operand.indirect_index.disp, bDisassHexNumerics) << "(a" << operand.indirect_index.a_reg <<
                    ",d" << operand.indirect_index.d_reg <<
                    (operand.indirect_index.is_long ? ".l" : ".w") <<
                    ")";
@@ -336,7 +354,7 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref)
 }
 
 // ----------------------------------------------------------------------------
-void Disassembler::print(const instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref)
+void Disassembler::print(const instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics = false )
 {
     if (inst.opcode == Opcode::NONE)
     {
@@ -362,18 +380,18 @@ void Disassembler::print(const instruction& inst, /*const symbols& symbols, */ u
 
     if (inst.op0.type != OpType::INVALID)
     {
-        ::print(inst.op0, /*symbols,*/ inst_address, ref);
+        ::print(inst.op0, /*symbols,*/ inst_address, ref, bDisassHexNumerics);
     }
 
     if (inst.op1.type != OpType::INVALID)
     {
         ref << ",";
-        ::print(inst.op1, /*symbols,*/ inst_address, ref);
+        ::print(inst.op1, /*symbols,*/ inst_address, ref, bDisassHexNumerics);
     }
 }
 
 // ----------------------------------------------------------------------------
-void Disassembler::print_terse(const instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref)
+void Disassembler::print_terse(const instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics = false)
 {
     if (inst.opcode == Opcode::NONE)
     {
@@ -399,13 +417,13 @@ void Disassembler::print_terse(const instruction& inst, /*const symbols& symbols
     if (inst.op0.type != OpType::INVALID)
     {
         ref << " ";
-        ::print(inst.op0, /*symbols,*/ inst_address, ref);
+        ::print(inst.op0, /*symbols,*/ inst_address, ref, bDisassHexNumerics);
     }
 
     if (inst.op1.type != OpType::INVALID)
     {
         ref << ",";
-        ::print(inst.op1, /*symbols,*/ inst_address, ref);
+        ::print(inst.op1, /*symbols,*/ inst_address, ref, bDisassHexNumerics);
     }
 }
 
@@ -463,10 +481,12 @@ bool Disassembler::calc_fixed_ea(const operand &operand, bool useRegs, const Reg
         return true;
     case OpType::PC_DISP_INDEX:
     {
-        if (!useRegs)
-            return false;
         // This generates the n(pc) part
         calc_relative_address(operand, inst_address, ea);
+        if (!useRegs)
+            return true;            // Just display the base address for EA
+
+        // Add the register value if we know it
         uint32_t d_reg = regs.GetDReg(operand.pc_disp_index.d_reg);
         if (operand.pc_disp_index.is_long)
             ea += d_reg;

@@ -39,6 +39,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
 
     // Add the options
     m_pGraphicsSquarePixels = new QCheckBox(tr("Square Pixels"), this);
+    m_pDisassHexNumerics = new QCheckBox(tr("Use hex address register offsets"), this);
     m_pLiveRefresh = new QCheckBox(tr("Live Refresh"), this);
 
     QLabel* pFont = new QLabel("Font:", this);
@@ -46,9 +47,10 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
 
     gridGroupBox->setLayout(gridLayout);
     gridLayout->addWidget(m_pGraphicsSquarePixels, 0, 0);
-    gridLayout->addWidget(pFont, 1, 0);
-    gridLayout->addWidget(pFontButton, 1, 1);
+    gridLayout->addWidget(m_pDisassHexNumerics, 1, 0);
     gridLayout->addWidget(m_pLiveRefresh, 2, 0);
+    gridLayout->addWidget(pFont, 3, 0);
+    gridLayout->addWidget(pFontButton, 3, 1);
 
     // Overall layout (options at top, buttons at bottom)
     QVBoxLayout* pLayout = new QVBoxLayout(this);
@@ -60,6 +62,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     connect(pCancelButton, &QPushButton::clicked, this, &PrefsDialog::reject);
 
     connect(m_pGraphicsSquarePixels, &QPushButton::clicked, this, &PrefsDialog::squarePixelsClicked);
+    connect(m_pDisassHexNumerics, &QPushButton::clicked, this, &PrefsDialog::disassHexNumbersClicked);
     connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
     connect(pFontButton, &QPushButton::clicked, this, &PrefsDialog::fontSelectClicked);
     loadSettings();
@@ -118,6 +121,11 @@ void PrefsDialog::squarePixelsClicked()
     m_settingsCopy.m_bSquarePixels = m_pGraphicsSquarePixels->isChecked();
 }
 
+void PrefsDialog::disassHexNumbersClicked()
+{
+    m_settingsCopy.m_bDisassHexNumerics = m_pDisassHexNumerics->isChecked();
+}
+
 void PrefsDialog::liveRefreshClicked()
 {
     m_settingsCopy.m_liveRefresh = m_pLiveRefresh->isChecked();
@@ -141,5 +149,6 @@ void PrefsDialog::fontSelectClicked()
 void PrefsDialog::UpdateUIElements()
 {
     m_pGraphicsSquarePixels->setChecked(m_settingsCopy.m_bSquarePixels);
+    m_pDisassHexNumerics->setChecked(m_settingsCopy.m_bDisassHexNumerics);
     m_pLiveRefresh->setChecked(m_settingsCopy.m_liveRefresh);
 }

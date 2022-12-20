@@ -28,6 +28,8 @@ namespace HardwareST
     bool GetDmaStart(const Memory& mem, MACHINETYPE machineType, uint32_t& address);
     bool GetDmaCurr(const Memory& mem, MACHINETYPE machineType, uint32_t& address);
     bool GetDmaEnd(const Memory& mem, MACHINETYPE machineType, uint32_t& address);
+
+    void GetColour(uint16_t regValue, MACHINETYPE machineType, uint32_t& result);
 }
 
 #endif // HARDWARE_ST_H

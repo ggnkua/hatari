@@ -11,6 +11,7 @@ class Session;
 class QLabel;
 class QPushButton;
 class QTextEdit;
+class QComboBox;
 
 //-----------------------------------------------------------------------------
 class ProfileTableModel : public QAbstractTableModel
@@ -24,13 +25,15 @@ public:
         uint32_t        address;
         QString         text;
         uint32_t        instructionCount;
-        unsigned long   cycleCount;
+        uint64_t        cycleCount;
+        float           cyclePercent;
     };
 
     enum Column
     {
         kColAddress,
         kColCycles,
+        kColCyclePercent,
         kColInstructionCount,
         kColCount
     };
@@ -38,10 +41,15 @@ public:
     enum Grouping
     {
         kGroupingSymbol,
-        kGroupingAddress256
+        kGroupingAddress64,
+        kGroupingAddress256,
+        kGroupingAddress1024,
+        kGroupingAddress4096,
     };
 
     ProfileTableModel(QObject * parent, TargetModel* pTargetModel, Dispatcher* pDispatcher);
+
+    void recalc();
 
     // "When subclassing QAbstractTableModel, you must implement rowCount(), columnCount(), and data()."
     virtual int rowCount(const QModelIndex &parent) const override;
@@ -55,10 +63,16 @@ public:
         return entries[row];
     }
 
+    void SetGrouping(Grouping g)
+    {
+        m_grouping = g;
+        rebuildEntries();
+    }
 
-public slots:
-    void profileChangedSlot();
-    void symbolChangedSlot();
+    Grouping GetGrouping() const
+    {
+        return m_grouping;
+    }
 
 private:
 
@@ -117,8 +131,10 @@ public:
 private slots:
     void connectChangedSlot();
     void startStopChangedSlot();
+    void startStopDelayeSlot(int running);
     void profileChangedSlot();
     void settingsChangedSlot();
+    void groupingChangedSlot(int index);
 
     void startStopClicked();
     void resetClicked();
@@ -132,6 +148,7 @@ private:
 
     QPushButton*        m_pStartStopButton;
     QPushButton*        m_pClearButton;
+    QComboBox*          m_pGroupingComboBox;
 
     ProfileTableView*   m_pTableView;
     ProfileTableModel*  m_pTableModel;

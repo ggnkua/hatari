@@ -16,6 +16,7 @@
 #include "../models/targetmodel.h"
 #include "../models/stringparsers.h"
 #include "../models/symboltablemodel.h"
+#include "../models/session.h"
 
 #include "addbreakpointdialog.h"
 #include "quicklayout.h"
@@ -138,16 +139,18 @@ BreakpointsTableView::BreakpointsTableView(QWidget* parent, BreakpointsTableMode
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-BreakpointsWindow::BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher) :
+BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
     QDockWidget(parent),
-    m_pTargetModel(pTargetModel),
-    m_pDispatcher(pDispatcher)
+    m_pSession(pSession)
 {
+    m_pTargetModel = pSession->m_pTargetModel;
+    m_pDispatcher = pSession->m_pDispatcher;
+
     this->setWindowTitle("Breakpoints");
     setObjectName("BreakpointsWidget");
 
     // Make the data first
-    pModel = new BreakpointsTableModel(this, pTargetModel, pDispatcher);
+    pModel = new BreakpointsTableModel(this, m_pTargetModel, m_pDispatcher);
 
     m_pTableView = new BreakpointsTableView(this, pModel);
     m_pTableView->setModel(pModel);
@@ -184,9 +187,11 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel,
     connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &BreakpointsWindow::connectChangedSlot);
     connect(m_pAddButton,    &QAbstractButton::clicked,          this, &BreakpointsWindow::addBreakpointClicked);
     connect(m_pDeleteButton, &QAbstractButton::clicked,          this, &BreakpointsWindow::deleteBreakpointClicked);
-
+    connect(m_pSession,      &Session::settingsChanged,          this, &BreakpointsWindow::settingsChangedSlot);
     // Refresh buttons
     connectChangedSlot();
+    // Refresh font
+    settingsChangedSlot();
 }
 
 void BreakpointsWindow::keyFocus()
@@ -217,4 +222,11 @@ void BreakpointsWindow::deleteBreakpointClicked()
     }
 }
 
+void BreakpointsWindow::settingsChangedSlot()
+{
+    QFontMetrics fm(m_pSession->GetSettings().m_font);
 
+    // Down the side
+    m_pTableView->setFont(m_pSession->GetSettings().m_font);
+    m_pTableView->verticalHeader()->setDefaultSectionSize(fm.height());
+}

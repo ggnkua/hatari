@@ -5,9 +5,11 @@
 
 #include "targetmodel.h"
 #include "../transport/dispatcher.h"
+#include "../models/filewatcher.h"
 
 Session::Session() :
     QObject(),
+    m_pFileWatcher(nullptr),
     m_autoConnect(true)
 {
     m_pStartupFile = new QTemporaryFile(this);
@@ -26,6 +28,7 @@ Session::Session() :
 
     // Default settings
     m_settings.m_bSquarePixels = false;
+    m_settings.m_bDisassHexNumerics = false;
     m_settings.m_liveRefresh = false;
     m_settings.m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     loadSettings();
@@ -37,6 +40,7 @@ Session::~Session()
     m_pLoggingFile->close();
     delete m_pTcpSocket;
     delete m_pTimer;
+    delete m_pFileWatcher;
 }
 
 void Session::Connect()
@@ -84,6 +88,7 @@ void Session::loadSettings()
         m_settings.m_font.fromString(fontString);
     }
     m_settings.m_bSquarePixels = settings.value("squarePixels", QVariant(false)).toBool();
+    m_settings.m_bDisassHexNumerics = settings.value("disassHexNumerics", QVariant(false)).toBool();
     m_settings.m_liveRefresh = settings.value("liveRefresh", QVariant(false)).toBool();
     settings.endGroup();
 
@@ -96,6 +101,7 @@ void Session::saveSettings()
     settings.beginGroup("Session");
     settings.setValue("font", m_settings.m_font.toString());
     settings.setValue("squarePixels", m_settings.m_bSquarePixels);
+    settings.setValue("disassHexNumerics", m_settings.m_bDisassHexNumerics);
     settings.setValue("liveRefresh", m_settings.m_liveRefresh);
     settings.endGroup();
 
@@ -111,3 +117,24 @@ void Session::connectTimerCallback()
     }
 }
 
+void Session::resetWarm()
+{
+    m_pDispatcher->ResetWarm();
+
+    // This will re-request from Hatari, which should return
+    // an empty symbol table.
+    m_pDispatcher->ReadSymbols();
+
+    // Restart if in break mode
+    if (!m_pTargetModel->IsRunning())
+        m_pDispatcher->Run();
+}
+
+FileWatcher* Session::createFileWatcherInstance()
+{
+        if (!m_pFileWatcher)
+        {
+            m_pFileWatcher=new FileWatcher(this);
+        }
+        return m_pFileWatcher;
+}

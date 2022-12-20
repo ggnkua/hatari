@@ -35,6 +35,7 @@ SOURCES += \
     models/symboltable.cpp \
     models/symboltablemodel.cpp \
     models/targetmodel.cpp \
+    models/filewatcher.cpp \
     transport/dispatcher.cpp \
     ui/addbreakpointdialog.cpp \
     ui/breakpointswidget.cpp \
@@ -73,6 +74,7 @@ HEADERS += \
     models/symboltable.h \
     models/symboltablemodel.h \
     models/targetmodel.h \
+    models/filewatcher.h \
     transport/dispatcher.h \
     transport/remotecommand.h \
     ui/addbreakpointdialog.h \

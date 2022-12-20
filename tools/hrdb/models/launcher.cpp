@@ -1,11 +1,13 @@
-#pragma once
 #include "launcher.h"
 #include <QTemporaryFile>
 #include <QTextStream>
 #include <QProcess>
 #include <QSettings>
+#include <QFileSystemWatcher>
+#include <QObject>
 
 #include "session.h"
+#include "filewatcher.h"
 
 void LaunchSettings::loadSettings(QSettings& settings)
 {
@@ -15,6 +17,8 @@ void LaunchSettings::loadSettings(QSettings& settings)
     m_argsTxt = settings.value("args", QVariant("")).toString();
     m_prgFilename = settings.value("prg", QVariant("")).toString();
     m_workingDirectory = settings.value("workingDirectory", QVariant("")).toString();
+    m_watcherFiles = settings.value("watcherFiles", QVariant("")).toString();
+    m_watcherActive = settings.value("watcherActive", QVariant("false")).toBool();
     m_breakMode = settings.value("breakMode", QVariant("0")).toInt();
     settings.endGroup();
 }
@@ -26,6 +30,8 @@ void LaunchSettings::saveSettings(QSettings &settings) const
     settings.setValue("args", m_argsTxt);
     settings.setValue("prg", m_prgFilename);
     settings.setValue("workingDirectory", m_workingDirectory);
+    settings.setValue("watcherFiles", m_watcherFiles);
+    settings.setValue("watcherActive", m_watcherActive);
     settings.setValue("breakMode", m_breakMode);
     settings.endGroup();
 }
@@ -38,6 +44,18 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
     otherArgsText = otherArgsText.trimmed();
     if (otherArgsText.size() != 0)
         args = otherArgsText.split(" ");
+
+    if (settings.m_watcherActive)
+    {
+        FileWatcher* pFileWatcher=((Session*)pSession)->createFileWatcherInstance();
+        if (pFileWatcher)
+            pFileWatcher->clear(); //remove all watched files
+
+        if(settings.m_watcherFiles.length()>0)
+            pFileWatcher->addPaths(settings.m_watcherFiles.split(","));
+        else
+            pFileWatcher->addPath(settings.m_prgFilename);
+    }
 
     // First make a temp file for breakpoints etc
     if (settings.m_breakMode != LaunchSettings::BreakMode::kNone)

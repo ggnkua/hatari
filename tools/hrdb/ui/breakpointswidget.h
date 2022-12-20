@@ -4,12 +4,13 @@
 #include <QDockWidget>
 #include <QTableView>
 
-class TargetModel;
-class Dispatcher;
 class QComboBox;
 class QCheckBox;
 class QPushButton;
 
+class TargetModel;
+class Dispatcher;
+class Session;
 struct Breakpoint;
 
 class BreakpointsTableModel : public QAbstractTableModel
@@ -72,7 +73,7 @@ class BreakpointsWindow : public QDockWidget
 {
     Q_OBJECT
 public:
-    BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher);   
+    BreakpointsWindow(QWidget *parent, Session* pSession);
     void keyFocus();
 public slots:
 
@@ -81,12 +82,15 @@ private slots:
     void connectChangedSlot();
     void addBreakpointClicked();
     void deleteBreakpointClicked();
+    void settingsChangedSlot();
+
 private:
     BreakpointsTableView*     m_pTableView;
     QPushButton*              m_pAddButton;
     QPushButton*              m_pDeleteButton;
 
     BreakpointsTableModel* pModel;
+    Session*            m_pSession;
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
     QAbstractItemModel* m_pSymbolTableModel;

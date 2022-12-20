@@ -898,6 +898,13 @@ void DebugCpu_Check(void)
 	{
 		Profile_CpuUpdate();
 	}
+	else
+	{
+		// hrdb: we always update profiling to cope with turning the profiling on/off
+		// at arbitrary points
+		Profile_CpuUpdateInactive();
+	}
+
 	if (LOG_TRACE_LEVEL((TRACE_CPU_DISASM|TRACE_CPU_SYMBOLS)))
 	{
 		DebugCpu_ShowAddressInfo(M68000_GetPC(), TraceFile);
@@ -1062,6 +1069,9 @@ static const dbgcommand_t cpucommands[] =
  */
 int DebugCpu_Init(const dbgcommand_t **table)
 {
+	/* Ensure all previous cpu state is reset */
+	Profile_CpuInit();
+
 	memdump_addr = 0;
 	disasm_addr = 0;
 	

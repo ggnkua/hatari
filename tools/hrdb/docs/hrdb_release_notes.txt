@@ -1,6 +1,49 @@
 hrdb Release Notes
 ==================
 
+v0.007 (August 2022)
+
+- Profile Window
+  - New view to display elapsed instructions and cycles. Can group by symbols or
+    blocks of 64/256/1024/4096 bytes.
+
+- Disassembly Window
+  - Added view of used instructions/cycles when profiling is enabled.
+  - Added "Set PC to here" right-click menu option.
+  - Fixed decoding of EXG operands.
+  - Fixed decodeing of xx(pc) effective addresses in MOVEM instructions.
+  - Added support for optional display of relative offsets as hexadecimal.
+    Thanks to tIn/Newline for providing this patch!
+  - Tweaked mousewheel scrolling after suggestions from Rati/OVR
+
+- Hardware Window
+  - Added display of palette colours.
+  - Fixed bug in display of Endmasks in the Blitter section.
+
+- Graphics Inspector
+  - Add "3 Bitplane" mode. Requested by WizTom/Aggression.
+  - Support using a user-defined memory address as the palette used for display.
+    Requested by WizTom/Aggression.
+  - Support live-update while CPU is running
+  - Fixed several bugs in the X/Y tooltip mouseover when using Square Pixels mode.
+    Reported by WizTom/Aggression.
+
+- Memory View
+  - Mouse wheel now moves a fixed proportion of the visible window, rather than the whole size.
+
+- Launch Dialog
+  - Added both upper and lower-cased filename extensions to selection dialog.
+
+- General
+  - Update Hatari codebase to version 2.4.1.
+  - Add Launch/Quicklaunch/Reset/Fast-Forward toolbar and features.
+  - Support (low frequency) Live update of Graphics Inspector and Register windows.
+    Requested by Keith Clark.
+  - Many more tooltips and keypress indicators on UI buttons.
+  - Added the "-q/--quicklaunch" command line option to auto-start Hatari with the
+    previously-saved Launch options.
+
+
 v0.006 (February 2022)
 
 - Hardware Window

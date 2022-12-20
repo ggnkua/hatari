@@ -1,7 +1,8 @@
 ; You need to define these 3 things depending on your install.
 ; They cannot be derived easily sadly
 .GCC_BIN_DIR="C:\msys64\mingw32\bin"
-.SRC_DIR="D:\a\hatari\hatari"
+;.SRC_DIR="D:\a\hatari\hatari"
+.SRC_DIR="C:\msys64\home\ggn\hatari"
 .MINGW_ROOT="C:\msys64\mingw32"
 .PLATFORM_NAME="i686-w64-mingw32"
 
@@ -55,6 +56,7 @@ Settings
                  +' -O3'
                  +' -DNDEBUG'
                  +' -DSTDC_HEADERS'
+                 +' -DHAVE_PORTMIDI'
 .CFLAGS_UAE_CPU1= .CFLAGS_COMMON+" -Wno-sign-compare -Wno-shadow -Wno-unused-variable -Wno-unused-but-set-variable"
 .CFLAGS_UAE_CPU2= .CFLAGS_COMMON+" -Wno-unused-variable -Wno-unused-function -Wno-unused-label -Wno-missing-braces -Wno-sign-compare -Wno-unused-but-set-variable -Wno-maybe-uninitialized"
 .CFLAGS_UAE_CPU3= .CFLAGS_COMMON
@@ -432,7 +434,7 @@ Exec( "run_windres" )  ; (optional) Alias
   .ExecWorkingDir         ="."                                                                               ; (optional) Working dir to set for executable
 }
 
-.LIBS_HATARI=" -lmingw32 $MINGW_ROOT$/bin/SDL2.dll -lpthread $MINGW_ROOT$/lib/libSDL2main.a -lws2_32 -lpthread -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lkernel32 -Xlinker -Map=output.map"
+.LIBS_HATARI=" -lmingw32 $MINGW_ROOT$/bin/SDL2.dll -lpthread $MINGW_ROOT$/lib/libSDL2main.a -lws2_32 -lpthread -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lkernel32 -Xlinker -Map=output.map $MINGW_ROOT$\lib\libportmidi.a -lwinmm"
 Executable( "hatari_exe" )        ; (optional) Alias
 {
   .Linker                  =.GCC         ; Linker executable to use

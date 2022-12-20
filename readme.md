@@ -15,7 +15,8 @@ Here, we also have this swanky badge for you: ![main](https://github.com/ggnkua/
 1. Install msys2/mingw32 from [this link](https://www.msys2.org). We had success downloading [this flavour](https://repo.msys2.org/distrib/msys2-i686-latest.exe)
    1. Open a ```mingw32``` command line (not ```mingw64``` nor ```msys2```) and
 in the prompt type ```pacman -S make mingw32/mingw-w64-i686-attica-qt5
-mingw-w64-i686-gcc mingw-w64-i686-SDL2```. You might want to install git while
+mingw-w64-i686-gcc mingw-w64-i686-SDL2 mingw64/mingw-w64-x86_64-portmidi```. (```mingw32/mingw-w64-i686-portmidi``` for x86 builds).
+You might want to install git while
 you're at it. I don't do that.
    1. You can now close the mingw32 command line
    1. ~~Check your /usr/include folder for ```memory.h```. If such a file is not present then create one that contains the following single line: ```#include <string.h>```.~~ Not needed anymore, thanks to tIn for the detective work

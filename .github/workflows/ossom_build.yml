@@ -103,6 +103,16 @@ jobs:
         shell: cmd
         run: |
           cd fastbuild
+          fbuild -showcmds
+          move hrdb.exe ..\hrdb
+          cd ..\fastbuild_x64
+          fbuild -showcmds
+          move hrdb.exe ..\hrdb64
+
+      - name: "Post qt build steps"
+        shell: msys2 {0}
+        run: |
+          cd hrdb
           for i in `ldd hrdb.exe |grep -v System32 |grep -v SYSTEM32|awk '{print $1}'`; do cp /mingw32/bin/$i .;done
           for i in `ldd hatari.exe |grep -v System32 |grep -v SYSTEM32|awk '{print $1}'`; do cp /mingw32/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
@@ -111,10 +121,10 @@ jobs:
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
-          fbuild -showcmds
-          move hrdb.exe ..\hrdb
-          cd ..\fastbuild_x64
-          fbuild -showcmds
+          # -no-translations is a workaround for some versions of windeployqt barfing due to a regression. See https://forum.qt.io/topic/124947/error-running-windeployqt/9 and hope that tat doesn't add translations soon?
+          windeployqt . -no-translations
+          mv ../fastbuild/hatari.exe .
+          cd ../hrdb64
           for i in `ldd hrdb.exe |grep -v System32 |grep -v SYSTEM32|awk '{print $1}'`; do cp /mingw64/bin/$i .;done
           for i in `ldd hatari.exe |grep -v System32 |grep -v SYSTEM32|awk '{print $1}'`; do cp /mingw64/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
@@ -123,16 +133,6 @@ jobs:
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
-          move hrdb.exe ..\hrdb64
-
-      - name: "Post qt build steps"
-        shell: msys2 {0}
-        run: |
-          cd hrdb
-          # -no-translations is a workaround for some versions of windeployqt barfing due to a regression. See https://forum.qt.io/topic/124947/error-running-windeployqt/9 and hope that tat doesn't add translations soon?
-          windeployqt . -no-translations
-          mv ../fastbuild/hatari.exe .
-          cd ../hrdb64
           export PATH=/mingw64/bin:$PATH
           /C/msys64/mingw64/bin/windeployqt.exe . -no-translations
           mv ../fastbuild_x64/hatari.exe .

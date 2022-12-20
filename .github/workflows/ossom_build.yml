@@ -35,57 +35,57 @@ jobs:
           mkdir hrdb
           mkdir hrdb64
           cd hrdb
-          cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
-          cp /C/msys64/mingw32/bin/libstdc++-6.dll .
-          cp /C/msys64/mingw32/bin/libbrotlicommon.dll .
-          cp /C/msys64/mingw32/bin/libbrotlidec.dll .
-          cp /C/msys64/mingw32/bin/libharfbuzz-0.dll .
-          cp /C/msys64/mingw32/bin/libglib-2.0-0.dll .
-          cp /C/msys64/mingw32/bin/libfreetype-6.dll .
-          cp /C/msys64/mingw32/bin/libiconv-2.dll .
-          cp /C/msys64/mingw32/bin/libintl-8.dll .
-          cp /C/msys64/mingw32/bin/libwinpthread-1.dll .
-          cp /C/msys64/mingw32/bin/libgraphite2.dll .
-          cp /C/msys64/mingw32/bin/libzstd.dll .
-          cp /C/msys64/mingw32/bin/libpcre2-16-0.dll .
-          cp /C/msys64/mingw32/bin/libicudt*.dll .
-          cp /C/msys64/mingw32/bin/libicuin*.dll .
-          cp /C/msys64/mingw32/bin/libicuuc*.dll .
-          cp /C/msys64/mingw32/bin/libpcre-1.dll .
-          cp /C/msys64/mingw32/bin/libbz2-1.dll .
-          cp /C/msys64/mingw32/bin/libdouble-conversion.dll .
-          cp /C/msys64/mingw32/bin/zlib1.dll .
-          cp /C/msys64/mingw32/bin/libpng16-16.dll .
-          cp /C/msys64/mingw32/bin/SDL2.dll .
+          #cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
+          #cp /C/msys64/mingw32/bin/libstdc++-6.dll .
+          #cp /C/msys64/mingw32/bin/libbrotlicommon.dll .
+          #cp /C/msys64/mingw32/bin/libbrotlidec.dll .
+          #cp /C/msys64/mingw32/bin/libharfbuzz-0.dll .
+          #cp /C/msys64/mingw32/bin/libglib-2.0-0.dll .
+          #cp /C/msys64/mingw32/bin/libfreetype-6.dll .
+          #cp /C/msys64/mingw32/bin/libiconv-2.dll .
+          #cp /C/msys64/mingw32/bin/libintl-8.dll .
+          #cp /C/msys64/mingw32/bin/libwinpthread-1.dll .
+          #cp /C/msys64/mingw32/bin/libgraphite2.dll .
+          #cp /C/msys64/mingw32/bin/libzstd.dll .
+          #cp /C/msys64/mingw32/bin/libpcre2-16-0.dll .
+          #cp /C/msys64/mingw32/bin/libicudt*.dll .
+          #cp /C/msys64/mingw32/bin/libicuin*.dll .
+          #cp /C/msys64/mingw32/bin/libicuuc*.dll .
+          #cp /C/msys64/mingw32/bin/libpcre-1.dll .
+          #cp /C/msys64/mingw32/bin/libbz2-1.dll .
+          #cp /C/msys64/mingw32/bin/libdouble-conversion.dll .
+          #cp /C/msys64/mingw32/bin/zlib1.dll .
+          #cp /C/msys64/mingw32/bin/libpng16-16.dll .
+          #cp /C/msys64/mingw32/bin/SDL2.dll .
           # Remove unneeded dlls
-          rm -f libicuucd*.dll
-          rm -f libicudtd*.dll
+          #rm -f libicuucd*.dll
+          #rm -f libicudtd*.dll
           cd ../hrdb64
-          cp /C/msys64/mingw64/bin/libgcc_s_seh-1.dll .
-          cp /C/msys64/mingw64/bin/libstdc++-6.dll .
-          cp /C/msys64/mingw64/bin/libbrotlicommon.dll .
-          cp /C/msys64/mingw64/bin/libbrotlidec.dll .
-          cp /C/msys64/mingw64/bin/libharfbuzz-0.dll .
-          cp /C/msys64/mingw64/bin/libglib-2.0-0.dll .
-          cp /C/msys64/mingw64/bin/libfreetype-6.dll .
-          cp /C/msys64/mingw64/bin/libiconv-2.dll .
-          cp /C/msys64/mingw64/bin/libintl-8.dll .
-          cp /C/msys64/mingw64/bin/libwinpthread-1.dll .
-          cp /C/msys64/mingw64/bin/libgraphite2.dll .
-          cp /C/msys64/mingw64/bin/libzstd.dll .
-          cp /C/msys64/mingw64/bin/libpcre2-16-0.dll .
-          cp /C/msys64/mingw64/bin/libicudt*.dll .
-          cp /C/msys64/mingw64/bin/libicuin*.dll .
-          cp /C/msys64/mingw64/bin/libicuuc*.dll .
-          cp /C/msys64/mingw64/bin/libpcre-1.dll .
-          cp /C/msys64/mingw64/bin/libbz2-1.dll .
-          cp /C/msys64/mingw64/bin/libdouble-conversion.dll .
-          cp /C/msys64/mingw64/bin/zlib1.dll .
-          cp /C/msys64/mingw64/bin/libpng16-16.dll .
-          cp /C/msys64/mingw64/bin/SDL2.dll .
+          #cp /C/msys64/mingw64/bin/libgcc_s_seh-1.dll .
+          #cp /C/msys64/mingw64/bin/libstdc++-6.dll .
+          #cp /C/msys64/mingw64/bin/libbrotlicommon.dll .
+          #cp /C/msys64/mingw64/bin/libbrotlidec.dll .
+          #cp /C/msys64/mingw64/bin/libharfbuzz-0.dll .
+          #cp /C/msys64/mingw64/bin/libglib-2.0-0.dll .
+          #cp /C/msys64/mingw64/bin/libfreetype-6.dll .
+          #cp /C/msys64/mingw64/bin/libiconv-2.dll .
+          #cp /C/msys64/mingw64/bin/libintl-8.dll .
+          #cp /C/msys64/mingw64/bin/libwinpthread-1.dll .
+          #cp /C/msys64/mingw64/bin/libgraphite2.dll .
+          #cp /C/msys64/mingw64/bin/libzstd.dll .
+          #cp /C/msys64/mingw64/bin/libpcre2-16-0.dll .
+          #cp /C/msys64/mingw64/bin/libicudt*.dll .
+          #cp /C/msys64/mingw64/bin/libicuin*.dll .
+          #cp /C/msys64/mingw64/bin/libicuuc*.dll .
+          #cp /C/msys64/mingw64/bin/libpcre-1.dll .
+          #cp /C/msys64/mingw64/bin/libbz2-1.dll .
+          #cp /C/msys64/mingw64/bin/libdouble-conversion.dll .
+          #cp /C/msys64/mingw64/bin/zlib1.dll .
+          #cp /C/msys64/mingw64/bin/libpng16-16.dll .
+          #cp /C/msys64/mingw64/bin/SDL2.dll .
           # Remove unneeded dlls
-          rm -f libicuucd*.dll
-          rm -f libicudtd*.dll
+          #rm -f libicuucd*.dll
+          #rm -f libicudtd*.dll
           cd ..
           mkdir -p fastbuild/cpu
           mkdir -p fastbuild/debug
@@ -103,10 +103,26 @@ jobs:
         shell: cmd
         run: |
           cd fastbuild
+          for i in `ldd hrdb.exe |grep -v System32 |grep -v SYSTEM32|awk '{print $1}'`; do cp /mingw32/bin/$i .;done
+          for i in `ldd hatari.exe |grep -v System32 |grep -v SYSTEM32|awk '{print $1}'`; do cp /mingw32/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
           fbuild -showcmds
           move hrdb.exe ..\hrdb
           cd ..\fastbuild_x64
           fbuild -showcmds
+          for i in `ldd hrdb.exe |grep -v System32 |grep -v SYSTEM32|awk '{print $1}'`; do cp /mingw64/bin/$i .;done
+          for i in `ldd hatari.exe |grep -v System32 |grep -v SYSTEM32|awk '{print $1}'`; do cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -v SYSTEM32|grep -v System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
           move hrdb.exe ..\hrdb64
 
       - name: "Post qt build steps"

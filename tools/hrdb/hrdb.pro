@@ -51,6 +51,7 @@ SOURCES += \
     ui/profilewindow.cpp \
     ui/registerwidget.cpp \
     ui/rundialog.cpp \
+    ui/searchdialog.cpp \
     ui/showaddressactions.cpp \
     ui/symboltext.cpp \
 
@@ -69,6 +70,7 @@ HEADERS += \
     models/profiledata.h \
     models/registers.h \
     models/session.h \
+    models/stringformat.h \
     models/stringparsers.h \
     models/stringsplitter.h \
     models/symboltable.h \
@@ -79,6 +81,7 @@ HEADERS += \
     transport/remotecommand.h \
     ui/addbreakpointdialog.h \
     ui/breakpointswidget.h \
+    ui/colouring.h \
     ui/consolewindow.h \
     ui/disasmwidget.h \
     ui/exceptiondialog.h \
@@ -92,6 +95,7 @@ HEADERS += \
     ui/quicklayout.h \
     ui/registerwidget.h \
     ui/rundialog.h \
+    ui/searchdialog.h \
     ui/showaddressactions.h \
     ui/symboltext.h
 

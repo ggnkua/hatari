@@ -9,6 +9,7 @@
 #include "../models/memory.h"
 #include "../models/session.h"
 #include "showaddressactions.h"
+#include "searchdialog.h"
 
 class TargetModel;
 class Dispatcher;
@@ -23,10 +24,9 @@ public:
     DisasmWidget(QWidget * parent, Session* m_pSession, int windowIndex);
     virtual ~DisasmWidget() override;
 
-    // "The model emits signals to indicate changes. For example, dataChanged() is emitted whenever items of data made available by the model are changed"
-    // So I expect we can emit that if we see the target has changed
-
     uint32_t GetAddress() const { return m_logicalAddr; }
+    bool GetAddressAtCursor(uint32_t& addr) const;
+
     int GetRowCount() const     { return m_rowCount; }
     bool GetFollowPC() const    { return m_bFollowPC; }
     bool GetShowHex() const     { return m_bShowHex; }
@@ -34,6 +34,7 @@ public:
     bool GetEA(int row, int operandIndex, uint32_t &addr);
 
     bool SetAddress(std::string addr);
+    bool SetSearchResultAddress(uint32_t addr);
     void MoveUp();
     void MoveDown();
 
@@ -50,23 +51,22 @@ public:
     void SetRowCount(int count);
     void SetShowHex(bool show);
     void SetFollowPC(bool follow);
-public slots:
 signals:
     void addressChanged(uint64_t addr);
 
-private slots:
-    void startStopChangedSlot();
-    void connectChangedSlot();
-    void memoryChangedSlot(int memorySlot, uint64_t commandId);
-    void breakpointsChangedSlot(uint64_t commandId);
-    void symbolTableChangedSlot(uint64_t commandId);
-    void otherMemoryChangedSlot(uint32_t address, uint32_t size);
-    void profileChangedSlot();
+private:
+    void startStopChanged();
+    void connectChanged();
+    void memoryChanged(int memorySlot, uint64_t commandId);
+    void breakpointsChanged(uint64_t commandId);
+    void symbolTableChanged(uint64_t commandId);
+    void otherMemoryChanged(uint32_t address, uint32_t size);
+    void profileChanged();
 
+    // From keyPressEvent
     void runToCursor();
     void toggleBreakpoint();
 
-private:
     virtual void paintEvent(QPaintEvent* ev) override;
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void mouseMoveEvent(QMouseEvent* event) override;
@@ -145,11 +145,6 @@ private:
     void setPCRightClick();
     void nopRightClick();
 
-    // Callbacks when the matching entry of m_pShowMemMenus is chosen
-    void showMemMenu0Shown();
-    void showMemMenu1Shown();
-    void showMemMenu2Shown();
-
     void settingsChangedSlot();
 
     // Layout functions
@@ -173,14 +168,12 @@ private:
     QAction*              m_pSetPcAction;
     QMenu*                m_pEditMenu;        // "edit this instruction" menu
     QAction*              m_pNopAction;
-    ShowAddressActions    m_showAddressActions;
 
     // "Show memory for $x" top-level menus:
     // Show Instruction
     // Show EA 0
     // Show EA 1
-    QMenu *               m_pShowMemMenus[3];
-    uint32_t              m_showMenuAddresses[3];
+    ShowAddressMenu       m_showAddressMenus[3];
 
     // Column layout
     bool                  m_bShowHex;
@@ -244,6 +237,11 @@ protected slots:
     void showHexClickedSlot();
     void followPCClickedSlot();
 
+    void findClickedSlot();
+    void nextClickedSlot();
+    void gotoClickedSlot();
+    void lockClickedSlot();
+    void searchResultsSlot(uint64_t responseId);
 private:
 
     void UpdateTextBox();
@@ -258,6 +256,9 @@ private:
     QAbstractItemModel* m_pSymbolTableModel;        // used for autocomplete
 
     int             m_windowIndex;
+
+    SearchSettings      m_searchSettings;
+    uint64_t            m_searchRequestId;
 };
 
 #endif // DISASMWINDOW_H

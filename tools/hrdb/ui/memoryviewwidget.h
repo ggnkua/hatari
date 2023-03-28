@@ -3,6 +3,7 @@
 
 #include <QDockWidget>
 #include <QTableView>
+#include "searchdialog.h"
 #include "showaddressactions.h"
 #include "../models/memory.h"
 #include "../models/session.h"
@@ -32,24 +33,21 @@ public:
     };
 
     MemoryWidget(QWidget* parent, Session* pSession, int windowIndex);
+    virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
     Mode GetMode() const { return m_mode; }
+    bool GetAddressAtCursor(uint32_t &address) const;
 
+    // Checks expression validity
+    bool CanSetExpression(std::string expression) const;
     // Set the text expression used as the address.
     // returns false if expression is invalid
     bool SetExpression(std::string expression);
+    void SetSearchResultAddress(uint32_t addr);
+
     void SetLock(bool locked);
     void SetMode(Mode mode);
-
-public slots:
-    void memoryChangedSlot(int memorySlot, uint64_t commandId);
-    void startStopChangedSlot();
-    void connectChangedSlot();
-    void registersChangedSlot();
-    void otherMemoryChangedSlot(uint32_t address, uint32_t size);
-    void symbolTableChangedSlot();
-    void settingsChangedSlot();
 
 protected:
     virtual void paintEvent(QPaintEvent*) override;
@@ -61,6 +59,14 @@ protected:
     virtual bool event(QEvent *event) override;
 
 private:
+    void memoryChanged(int memorySlot, uint64_t commandId);
+    void startStopChanged();
+    void connectChanged();
+    void registersChanged();
+    void otherMemoryChanged(uint32_t address, uint32_t size);
+    void symbolTableChanged();
+    void settingsChanged();
+
     void MoveUp();
     void MoveDown();
     void MoveLeft();
@@ -78,8 +84,14 @@ private:
     bool EditKey(char key);
     char IsEditKey(const QKeyEvent *event);
 
-    void SetAddress(uint32_t address);
-    void RequestMemory();
+    enum CursorMode
+    {
+        kNoMoveCursor,
+        kMoveCursor
+    };
+
+    void SetAddress(uint32_t address, CursorMode moveCursor);
+    void RequestMemory(CursorMode moveCursor);
 
     // Is we are locked to an expression recalc m_address
     void RecalcLockedExpression();
@@ -138,16 +150,19 @@ private:
 
     std::string m_addressExpression;
     bool        m_isLocked;
-    uint32_t    m_address;
 
     int         m_bytesPerRow;
     Mode        m_mode;
 
     int         m_rowCount;
+
+    // Memory requests
+    uint32_t    m_address;
     uint64_t    m_requestId;
+    CursorMode  m_requestCursorMode;
+
     int         m_windowIndex;        // e.g. "memory 0", "memory 1"
     MemorySlot  m_memSlot;
-
     Memory      m_previousMemory;       // Copy before we restarted the CPU
 
     // Cursor
@@ -160,11 +175,10 @@ private:
     QFont       m_monoFont;
 
     // Menu actions
-    QMenu*              m_pShowAddressMenu;
-    ShowAddressActions  m_showAddressActions;
+    ShowAddressMenu     m_showAddressMenus[2];   // 0 == "this address", 1 == "referenced address"
 
     // Mouse wheel
-    float                m_wheelAngleDelta;
+    float               m_wheelAngleDelta;
 };
 
 class MemoryWindow : public QDockWidget
@@ -182,12 +196,18 @@ public:
 public slots:
     void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
 
-    void textEditChangedSlot();
+    void returnPressedSlot();
+    void textEditedSlot();
     void lockChangedSlot();
     void modeComboBoxChanged(int index);
+    void findClickedSlot();
+    void nextClickedSlot();
+    void gotoClickedSlot();
+    void lockClickedSlot();
+    void searchResultsSlot(uint64_t responseId);
 
 private:
-    QLineEdit*          m_pLineEdit;
+    QLineEdit*          m_pAddressEdit;
     QComboBox*          m_pComboBox;
     QCheckBox*          m_pLockCheckBox;
     MemoryWidget*       m_pMemoryWidget;
@@ -197,6 +217,9 @@ private:
     Dispatcher*         m_pDispatcher;
     QAbstractItemModel* m_pSymbolTableModel;
     int                 m_windowIndex;
+
+    SearchSettings      m_searchSettings;
+    uint64_t            m_searchRequestId;
 };
 
 #endif // MEMORYVIEWWIDGET_H

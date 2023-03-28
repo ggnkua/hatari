@@ -3,9 +3,9 @@
 #include <QContextMenuEvent>
 #include "../models/session.h"
 
-ShowAddressActions::ShowAddressActions(Session* pSession) :
+ShowAddressActions::ShowAddressActions() :
     m_activeAddress(0),
-    m_pSession(pSession)
+    m_pSession(nullptr)
 {
     for (int i = 0; i < kNumDisasmViews; ++i)
         m_pDisasmWindowActions[i] = new QAction(QString::asprintf("Show in Disassembly %d", i + 1), this);
@@ -16,12 +16,12 @@ ShowAddressActions::ShowAddressActions(Session* pSession) :
     m_pGraphicsInspectorAction = new QAction("Show in Graphics Inspector", this);
 
     for (int i = 0; i < kNumDisasmViews; ++i)
-        connect(m_pDisasmWindowActions[i], &QAction::triggered, this, [=] () { this->disasmViewTrigger(i); } );
+        connect(m_pDisasmWindowActions[i], &QAction::triggered, this, [=] () { this->TriggerDisasmView(i); } );
 
     for (int i = 0; i < kNumMemoryViews; ++i)
-        connect(m_pMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->memoryViewTrigger(i); } );
+        connect(m_pMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->TriggerMemoryView(i); } );
 
-    connect(m_pGraphicsInspectorAction, &QAction::triggered, this, [=] () { this->graphicsInspectorTrigger(); } );
+    connect(m_pGraphicsInspectorAction, &QAction::triggered, this, [=] () { this->TriggerGraphicsInspector(); } );
 }
 
 ShowAddressActions::~ShowAddressActions()
@@ -40,30 +40,44 @@ void ShowAddressActions::addActionsToMenu(QMenu* pMenu) const
     pMenu->addAction(m_pGraphicsInspectorAction);
 }
 
-void ShowAddressActions::setAddress(uint32_t address)
+void ShowAddressActions::setAddress(Session* pSession, uint32_t address)
 {
     m_activeAddress = address;
+    m_pSession = pSession;
 }
 
-void ShowAddressActions::disasmViewTrigger(int windowIndex)
+void ShowAddressActions::TriggerDisasmView(int windowIndex)
 {
     emit m_pSession->addressRequested(Session::kDisasmWindow, windowIndex, m_activeAddress);
 }
 
-void ShowAddressActions::memoryViewTrigger(int windowIndex)
+void ShowAddressActions::TriggerMemoryView(int windowIndex)
 {
     emit m_pSession->addressRequested(Session::kMemoryWindow, windowIndex, m_activeAddress);
 }
 
-void ShowAddressActions::graphicsInspectorTrigger()
+void ShowAddressActions::TriggerGraphicsInspector()
 {
     emit m_pSession->addressRequested(Session::kGraphicsInspector, 0, m_activeAddress);
+}
+
+
+ShowAddressMenu::ShowAddressMenu()
+{
+    m_pMenu = new QMenu(nullptr);
+    addActionsToMenu(m_pMenu);
+}
+
+ShowAddressMenu::~ShowAddressMenu()
+{
+    delete m_pMenu;
 }
 
 ShowAddressLabel::ShowAddressLabel(Session *pSession) :
     m_pActions(nullptr)
 {
-    m_pActions = new ShowAddressActions(pSession);
+    m_pActions = new ShowAddressActions();
+    m_pActions->setAddress(pSession, 0);
 }
 
 ShowAddressLabel::~ShowAddressLabel()
@@ -71,11 +85,11 @@ ShowAddressLabel::~ShowAddressLabel()
     delete m_pActions;
 }
 
-void ShowAddressLabel::SetAddress(uint32_t address)
+void ShowAddressLabel::SetAddress(Session* pSession, uint32_t address)
 {
     this->setText(QString::asprintf("<a href=\"null\">$%x</a>", address));
     this->setTextFormat(Qt::TextFormat::RichText);
-    m_pActions->setAddress(address);
+    m_pActions->setAddress(pSession, address);
 }
 
 void ShowAddressLabel::contextMenuEvent(QContextMenuEvent *event)

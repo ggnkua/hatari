@@ -18,9 +18,11 @@
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
 #include "../models/stringparsers.h"
+#include "../models/stringformat.h"
 #include "../models/symboltablemodel.h"
 #include "../models/memory.h"
 #include "../models/session.h"
+#include "colouring.h"
 #include "quicklayout.h"
 #include "symboltext.h"
 
@@ -36,7 +38,6 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
-    m_showAddressActions(pSession),
     m_bShowHex(true),
     m_rightClickRow(-1),
     m_cursorRow(0),
@@ -65,32 +66,21 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     m_pEditMenu = new QMenu("Edit", this);
     m_pEditMenu->addAction(m_pNopAction);
 
-    // Add context for addresses
-    for (int showMenu = 0; showMenu < 3; ++showMenu)
-    {
-        m_pShowMemMenus[showMenu] = new QMenu("", this);
-        m_showAddressActions.addActionsToMenu(m_pShowMemMenus[showMenu]);
-    }
-
     // Target connects
-    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &DisasmWidget::startStopChangedSlot);
-    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &DisasmWidget::memoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &DisasmWidget::breakpointsChangedSlot);
-    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &DisasmWidget::symbolTableChangedSlot);
-    connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &DisasmWidget::connectChangedSlot);
+    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &DisasmWidget::startStopChanged);
+    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &DisasmWidget::memoryChanged);
+    connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &DisasmWidget::breakpointsChanged);
+    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &DisasmWidget::symbolTableChanged);
+    connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &DisasmWidget::connectChanged);
     connect(m_pTargetModel, &TargetModel::registersChangedSignal,   this, &DisasmWidget::CalcOpAddresses);
-    connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &DisasmWidget::otherMemoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::profileChangedSignal,     this, &DisasmWidget::profileChangedSlot);
+    connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &DisasmWidget::otherMemoryChanged);
+    connect(m_pTargetModel, &TargetModel::profileChangedSignal,     this, &DisasmWidget::profileChanged);
 
     // UI connects
     connect(m_pRunUntilAction,       &QAction::triggered, this, &DisasmWidget::runToCursorRightClick);
     connect(m_pBreakpointAction,     &QAction::triggered, this, &DisasmWidget::toggleBreakpointRightClick);
     connect(m_pSetPcAction,          &QAction::triggered, this, &DisasmWidget::setPCRightClick);
     connect(m_pNopAction,            &QAction::triggered, this, &DisasmWidget::nopRightClick);
-
-    connect(m_pShowMemMenus[0],      &QMenu::aboutToShow, this, &DisasmWidget::showMemMenu0Shown);
-    connect(m_pShowMemMenus[1],      &QMenu::aboutToShow, this, &DisasmWidget::showMemMenu1Shown);
-    connect(m_pShowMemMenus[2],      &QMenu::aboutToShow, this, &DisasmWidget::showMemMenu2Shown);
 
     connect(m_pSession, &Session::settingsChanged, this, &DisasmWidget::settingsChangedSlot);
 
@@ -102,6 +92,12 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
 DisasmWidget::~DisasmWidget()
 {
 
+}
+
+bool DisasmWidget::GetAddressAtCursor(uint32_t& addr) const
+{
+    addr = 0;
+    return GetInstructionAddr(m_cursorRow, addr);
 }
 
 void DisasmWidget::SetAddress(uint32_t addr)
@@ -158,6 +154,13 @@ bool DisasmWidget::SetAddress(std::string addrStr)
     }
 
     SetAddress(addr);
+    return true;
+}
+
+bool DisasmWidget::SetSearchResultAddress(uint32_t addr)
+{
+    SetAddress(addr);
+    m_cursorRow = 0;
     return true;
 }
 
@@ -310,7 +313,7 @@ void DisasmWidget::RunToRow(int row)
     }
 }
 
-void DisasmWidget::startStopChangedSlot()
+void DisasmWidget::startStopChanged()
 {
     // Request new memory for the view
     if (!m_pTargetModel->IsRunning())
@@ -340,7 +343,7 @@ void DisasmWidget::startStopChangedSlot()
     }
 }
 
-void DisasmWidget::connectChangedSlot()
+void DisasmWidget::connectChanged()
 {
     if (!m_pTargetModel->IsConnected())
     {
@@ -352,7 +355,7 @@ void DisasmWidget::connectChangedSlot()
     }
 }
 
-void DisasmWidget::memoryChangedSlot(int memorySlot, uint64_t commandId)
+void DisasmWidget::memoryChanged(int memorySlot, uint64_t commandId)
 {
     if (memorySlot != m_memSlot)
         return;
@@ -380,7 +383,7 @@ void DisasmWidget::memoryChangedSlot(int memorySlot, uint64_t commandId)
     update();
 }
 
-void DisasmWidget::breakpointsChangedSlot(uint64_t /*commandId*/)
+void DisasmWidget::breakpointsChanged(uint64_t /*commandId*/)
 {
     // Cache data
     m_breakpoints = m_pTargetModel->GetBreakpoints();
@@ -388,7 +391,7 @@ void DisasmWidget::breakpointsChangedSlot(uint64_t /*commandId*/)
     update();
 }
 
-void DisasmWidget::symbolTableChangedSlot(uint64_t /*commandId*/)
+void DisasmWidget::symbolTableChanged(uint64_t /*commandId*/)
 {
     // Don't copy here, just force a re-read
 //    emit dataChanged(this->createIndex(0, 0), this->createIndex(m_rowCount - 1, kColCount));
@@ -396,7 +399,7 @@ void DisasmWidget::symbolTableChangedSlot(uint64_t /*commandId*/)
     update();
 }
 
-void DisasmWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
+void DisasmWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     // Do a re-request if our memory is touched
     uint32_t ourAddr = m_logicalAddr;
@@ -405,7 +408,7 @@ void DisasmWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
         RequestMemory();
 }
 
-void DisasmWidget::profileChangedSlot()
+void DisasmWidget::profileChanged()
 {
     RecalcColums();
     CalcDisasm();
@@ -724,7 +727,12 @@ void DisasmWidget::CalcDisasm()
             uint32_t count, cycles;
             m_pTargetModel->GetProfileData(addr, count, cycles);
             if (count)
-                t.cycles = QString::asprintf("%d/%d", count, cycles);
+            {
+                 if (m_pSession->GetSettings().m_profileDisplayMode == Session::Settings::kTotal)
+                     t.cycles = QString::asprintf("%d/%d", count, cycles);
+                 else if (m_pSession->GetSettings().m_profileDisplayMode == Session::Settings::kMean)
+                     t.cycles = QString::asprintf("%d*%d", count, cycles/count);
+            }
         }
 
         // Disassembly
@@ -853,11 +861,12 @@ void DisasmWidget::CalcOpAddresses()
     m_opAddresses.clear();
     m_opAddresses.resize(m_disasm.lines.size());
     const Registers& regs = m_pTargetModel->GetRegs();
+    uint32_t pc = regs.Get(Registers::PC);
     for (int i = 0; i < m_disasm.lines.size(); ++i)
     {
         const instruction& inst = m_disasm.lines[i].inst;
         OpAddresses& addrs = m_opAddresses[i];
-        bool useRegs = (i == 0);
+        bool useRegs = inst.address == pc;
         addrs.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm.lines[i].address, addrs.address[0]);
         addrs.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm.lines[i].address, addrs.address[1]);
     }
@@ -948,6 +957,11 @@ void DisasmWidget::SetShowHex(bool show)
 void DisasmWidget::SetFollowPC(bool bFollow)
 {
     m_bFollowPC = bFollow;
+    if (bFollow)
+    {
+        uint32_t pc = m_pTargetModel->GetStartStopPC();
+        SetAddress(pc);
+    }
     update();
 }
 
@@ -990,9 +1004,9 @@ void DisasmWidget::contextMenuEvent(QContextMenuEvent *event)
     bool vis = GetInstructionAddr(m_rightClickRow, instAddr);
     if (vis)
     {
-        m_pShowMemMenus[0]->setTitle(QString::asprintf("$%x (this instruction)", instAddr));
-        menu.addMenu(m_pShowMemMenus[0]);
-        m_showMenuAddresses[0] = instAddr;
+        m_showAddressMenus[0].setTitle(QString::asprintf("$%x (this instruction)", instAddr));
+        m_showAddressMenus[0].setAddress(m_pSession, instAddr);
+        menu.addMenu(m_showAddressMenus[0].m_pMenu);
     }
 
     for (int32_t op = 0; op < 2; ++op)
@@ -1001,9 +1015,9 @@ void DisasmWidget::contextMenuEvent(QContextMenuEvent *event)
         uint32_t opAddr;
         if (GetEA(m_rightClickRow, op, opAddr))
         {
-            m_pShowMemMenus[menuIndex]->setTitle(QString::asprintf("$%x (Effective address %u)", opAddr, menuIndex));
-            menu.addMenu(m_pShowMemMenus[menuIndex]);
-            m_showMenuAddresses[menuIndex] = opAddr;
+            m_showAddressMenus[menuIndex].setTitle(QString::asprintf("$%x (Effective address %u)", opAddr, menuIndex));
+            m_showAddressMenus[menuIndex].setAddress(m_pSession, opAddr);
+            menu.addMenu(m_showAddressMenus[menuIndex].m_pMenu);
         }
     }
 
@@ -1033,21 +1047,6 @@ void DisasmWidget::nopRightClick()
 {
     NopRow(m_rightClickRow);
     m_rightClickRow = -1;
-}
-
-void DisasmWidget::showMemMenu0Shown()
-{
-    m_showAddressActions.setAddress(m_showMenuAddresses[0]);
-}
-
-void DisasmWidget::showMemMenu1Shown()
-{
-    m_showAddressActions.setAddress(m_showMenuAddresses[1]);
-}
-
-void DisasmWidget::showMemMenu2Shown()
-{
-    m_showAddressActions.setAddress(m_showMenuAddresses[2]);
 }
 
 void DisasmWidget::settingsChangedSlot()
@@ -1126,7 +1125,8 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
-    m_windowIndex(windowIndex)
+    m_windowIndex(windowIndex),
+    m_searchRequestId(0)
 {
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
     setObjectName(key);
@@ -1175,13 +1175,20 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     // Now that everything is set up we can load the setings
     loadSettings();
 
+    // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
+    new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+
     // Listen for start/stop, so we can update our memory request
-    connect(m_pDisasmWidget,&DisasmWidget::addressChanged,        this, &DisasmWindow::UpdateTextBox);
-    connect(m_pAddressEdit, &QLineEdit::returnPressed,            this, &DisasmWindow::returnPressedSlot);
-    connect(m_pAddressEdit, &QLineEdit::textEdited,               this, &DisasmWindow::textChangedSlot);
-    connect(m_pFollowPC,    &QCheckBox::clicked,                  this, &DisasmWindow::followPCClickedSlot);
-    connect(m_pShowHex,     &QCheckBox::clicked,                  this, &DisasmWindow::showHexClickedSlot);
-    connect(m_pSession,     &Session::addressRequested,           this, &DisasmWindow::requestAddress);
+    connect(m_pDisasmWidget,&DisasmWidget::addressChanged,            this, &DisasmWindow::UpdateTextBox);
+    connect(m_pAddressEdit, &QLineEdit::returnPressed,                this, &DisasmWindow::returnPressedSlot);
+    connect(m_pAddressEdit, &QLineEdit::textEdited,                   this, &DisasmWindow::textChangedSlot);
+    connect(m_pFollowPC,    &QCheckBox::stateChanged,                 this, &DisasmWindow::followPCClickedSlot);
+    connect(m_pShowHex,     &QCheckBox::stateChanged,                 this, &DisasmWindow::showHexClickedSlot);
+    connect(m_pSession,     &Session::addressRequested,               this, &DisasmWindow::requestAddress);
+    connect(m_pTargetModel, &TargetModel::searchResultsChangedSignal, this, &DisasmWindow::searchResultsSlot);
 
     this->resizeEvent(nullptr);
 }
@@ -1255,28 +1262,21 @@ void DisasmWindow::keyPageUpPressed()
 
 void DisasmWindow::returnPressedSlot()
 {
-    QColor col = m_pDisasmWidget->SetAddress(m_pAddressEdit->text().toStdString()) ?
-                      QGuiApplication::palette().base().color() : Qt::red;
-    QPalette pal = m_pAddressEdit->palette();
-    pal.setColor(QPalette::Base, col);
-    m_pAddressEdit->setAutoFillBackground(true);
-    m_pAddressEdit->setPalette(pal);
+    bool success = m_pDisasmWidget->SetAddress(m_pAddressEdit->text().toStdString());
+    Colouring::SetErrorState(m_pAddressEdit, success);
+    if (success)
+    {
+        m_pFollowPC->setChecked(false);
+        m_pDisasmWidget->setFocus();
+    }
 }
 
 void DisasmWindow::textChangedSlot()
 {
     uint32_t addr;
-    QColor col = Qt::green;
-    if (!StringParsers::ParseExpression(m_pAddressEdit->text().toStdString().c_str(), addr,
-                                       m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs()))
-    {
-        col = Qt::red;
-    }
-
-    QPalette pal = m_pAddressEdit->palette();
-    pal.setColor(QPalette::Base, col);
-    m_pAddressEdit->setAutoFillBackground(true);
-    m_pAddressEdit->setPalette(pal);
+    bool success = StringParsers::ParseExpression(m_pAddressEdit->text().toStdString().c_str(), addr,
+                                       m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
+    Colouring::SetErrorState(m_pAddressEdit, success);
 }
 
 void DisasmWindow::showHexClickedSlot()
@@ -1294,3 +1294,91 @@ void DisasmWindow::UpdateTextBox()
     uint32_t addr = m_pDisasmWidget->GetAddress();
     m_pAddressEdit->setText(QString::asprintf("$%x", addr));
 }
+
+void DisasmWindow::findClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    uint32_t addr = 0;
+    if (!m_pDisasmWidget->GetAddressAtCursor(addr))
+        return;
+
+    {
+        // Fill in the "default"
+        m_searchSettings.m_startAddress = addr;
+        if (m_searchSettings.m_endAddress == 0)
+            m_searchSettings.m_endAddress = m_pTargetModel->GetSTRamSize();
+
+        SearchDialog search(this, m_pTargetModel, m_searchSettings);
+        search.setModal(true);
+        int code = search.exec();
+        if (code == QDialog::DialogCode::Accepted &&
+            m_pTargetModel->IsConnected())
+        {
+            m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
+                                     m_searchSettings.m_startAddress,
+                                     m_searchSettings.m_endAddress);
+            m_pSession->SetMessage(QString("Searching: " + m_searchSettings.m_originalText));
+        }
+    }
+}
+
+void DisasmWindow::nextClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    uint32_t addr;
+    if (!m_pDisasmWidget->GetAddressAtCursor(addr))
+        return;
+
+    if (m_searchSettings.m_masksAndValues.size() != 0)
+    {
+        // Start address should already have been filled
+        {
+            m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
+                                     addr + 1,
+                                     m_searchSettings.m_endAddress);
+        }
+    }
+}
+
+void DisasmWindow::gotoClickedSlot()
+{
+    m_pAddressEdit->setFocus();
+}
+
+void DisasmWindow::lockClickedSlot()
+{
+    m_pFollowPC->toggle();
+}
+
+void DisasmWindow::searchResultsSlot(uint64_t responseId)
+{
+    if (responseId == m_searchRequestId)
+    {
+        const SearchResults& results = m_pTargetModel->GetSearchResults();
+        if (results.addresses.size() > 0)
+        {
+            uint32_t addr = results.addresses[0];
+            m_pDisasmWidget->SetFollowPC(false);
+            m_pFollowPC->setChecked(false);
+            m_pDisasmWidget->SetSearchResultAddress(addr);
+
+            // Allow the "next" operation to work
+            m_searchSettings.m_startAddress = addr + 1;
+            m_pDisasmWidget->setFocus();
+            m_pSession->SetMessage(QString("String '%1' found at %2").
+                                   arg(m_searchSettings.m_originalText).
+                                   arg(Format::to_hex32(addr)));
+        }
+        else
+        {
+            m_pSession->SetMessage(QString("String '%1' not found").
+                                   arg(m_searchSettings.m_originalText));
+        }
+        m_searchRequestId = 0;
+    }
+}
+

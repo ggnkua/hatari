@@ -14,19 +14,17 @@ class ShowAddressActions : public QObject
 {
     Q_OBJECT
 public:
-    ShowAddressActions(Session* pSession);
+    ShowAddressActions();
     virtual ~ShowAddressActions();
-
     void addActionsToMenu(QMenu* pMenu) const;
-    void setAddress(uint32_t address);
-
-private slots:
-    // Callbacks when "show in Memory X" etc is selected
-    void disasmViewTrigger(int windowIndex);
-    void memoryViewTrigger(int windowIndex);
-    void graphicsInspectorTrigger();
+    void setAddress(Session* pSession, uint32_t address);
 
 private:
+    // Functions (invoked via lambdas) when "show in Memory X" etc is selected
+    void TriggerDisasmView(int windowIndex);
+    void TriggerMemoryView(int windowIndex);
+    void TriggerGraphicsInspector();
+
     // What address will be set to the Window chosen
     uint32_t     m_activeAddress;
 
@@ -39,13 +37,28 @@ private:
     Session*     m_pSession;
 };
 
+// Contains the ShowAddressActions, plus a menu item
+class ShowAddressMenu : public ShowAddressActions
+{
+public:
+    ShowAddressMenu();
+    ~ShowAddressMenu();
+
+    void setTitle(const QString& title)
+    {
+        m_pMenu->setTitle(title);
+    }
+
+    QMenu*      m_pMenu;
+};
+
 class ShowAddressLabel : public QLabel
 {
 public:
     ShowAddressLabel(Session* pSession);
     ~ShowAddressLabel();
 
-    void SetAddress(uint32_t address);
+    void SetAddress(Session* pSession, uint32_t address);
     void contextMenuEvent(QContextMenuEvent *event);
 
     ShowAddressActions*      m_pActions;

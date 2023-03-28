@@ -263,8 +263,7 @@ ProfileTableView::ProfileTableView(QWidget* parent, ProfileTableModel* pModel, S
     QTableView(parent),
     m_pTableModel(pModel),
     m_pSession(pSession),
-    m_rightClickRow(-1),
-    m_showAddressActions(pSession)
+    m_rightClickRow(-1)
 {
     // This table gets the focus from the parent docking widget
     setFocus();
@@ -294,7 +293,7 @@ void ProfileTableView::contextMenuEvent(QContextMenuEvent *event)
         pAddressMenu->setTitle(QString::asprintf("Address $%08x", ent.address));
 
         m_showAddressActions.addActionsToMenu(pAddressMenu);
-        m_showAddressActions.setAddress(ent.address);
+        m_showAddressActions.setAddress(m_pSession, ent.address);
         menu.addMenu(pAddressMenu);
 
         // Run it
@@ -372,21 +371,21 @@ ProfileWindow::ProfileWindow(QWidget *parent, Session* pSession) :
 
     loadSettings();
 
-    connect(m_pTargetModel,     &TargetModel::connectChangedSignal,     this, &ProfileWindow::connectChangedSlot);
-    connect(m_pTargetModel,     &TargetModel::startStopChangedSignal,   this, &ProfileWindow::startStopChangedSlot);
-    connect(m_pTargetModel,     &TargetModel::startStopChangedSignalDelayed,   this, &ProfileWindow::startStopDelayeSlot);
-    connect(m_pTargetModel,     &TargetModel::profileChangedSignal,     this, &ProfileWindow::profileChangedSlot);
-    connect(m_pSession,         &Session::settingsChanged,              this, &ProfileWindow::settingsChangedSlot);
+    connect(m_pTargetModel,     &TargetModel::connectChangedSignal,     this, &ProfileWindow::connectChanged);
+    connect(m_pTargetModel,     &TargetModel::startStopChangedSignal,   this, &ProfileWindow::startStopChanged);
+    connect(m_pTargetModel,     &TargetModel::startStopChangedSignalDelayed,   this, &ProfileWindow::startStopDelayed);
+    connect(m_pTargetModel,     &TargetModel::profileChangedSignal,     this, &ProfileWindow::profileChanged);
+    connect(m_pSession,         &Session::settingsChanged,              this, &ProfileWindow::settingsChanged);
 
     connect(m_pStartStopButton, &QAbstractButton::clicked,              this, &ProfileWindow::startStopClicked);
     connect(m_pClearButton,     &QAbstractButton::clicked,              this, &ProfileWindow::resetClicked);
     connect(m_pGroupingComboBox,SIGNAL(currentIndexChanged(int)),       SLOT(groupingChangedSlot(int)));
 
     // Refresh enable state
-    connectChangedSlot();
+    connectChanged();
 
     // Refresh font
-    settingsChangedSlot();
+    settingsChanged();
 }
 
 ProfileWindow::~ProfileWindow()
@@ -421,25 +420,29 @@ void ProfileWindow::saveSettings()
     settings.endGroup();
 }
 
-void ProfileWindow::connectChangedSlot()
+void ProfileWindow::connectChanged()
+{
+    bool enable = m_pTargetModel->IsConnected() && !m_pTargetModel->IsRunning();
+    m_pStartStopButton->setEnabled(enable);
+
+    m_pClearButton->setEnabled(m_pTargetModel->IsConnected());
+    if (!m_pTargetModel->IsConnected())
+        m_pTargetModel->ProfileReset();
+}
+
+void ProfileWindow::startStopChanged()
 {
     bool enable = m_pTargetModel->IsConnected() && !m_pTargetModel->IsRunning();
     m_pStartStopButton->setEnabled(enable);
 }
 
-void ProfileWindow::startStopChangedSlot()
-{
-    bool enable = m_pTargetModel->IsConnected() && !m_pTargetModel->IsRunning();
-    m_pStartStopButton->setEnabled(enable);
-}
-
-void ProfileWindow::startStopDelayeSlot(int running)
+void ProfileWindow::startStopDelayed(int running)
 {
     if (m_pTargetModel->IsConnected() && !running)
         m_pTableModel->recalc();
 }
 
-void ProfileWindow::profileChangedSlot()
+void ProfileWindow::profileChanged()
 {
     if (m_pTargetModel->IsProfileEnabled())
     {
@@ -450,7 +453,7 @@ void ProfileWindow::profileChangedSlot()
     }
 }
 
-void ProfileWindow::settingsChangedSlot()
+void ProfileWindow::settingsChanged()
 {
     QFontMetrics fm(m_pSession->GetSettings().m_font);
 

@@ -18,7 +18,8 @@ public:
     {
         kNone,
         kBoot,
-        kProgStart
+        kProgStart,
+        kProgramBreakpoint
     };
 
     int m_breakMode;                // one of BreakMode above
@@ -27,7 +28,9 @@ public:
     QString m_workingDirectory;
     QString m_watcherFiles;
     QString m_argsTxt;
+    QString m_breakPointTxt;
     bool m_watcherActive;
+    bool m_fastLaunch;              // If true, start with --fast-forward and reset at program start
 };
 
 // Returns true on success (Qt doesn't offer more options?)

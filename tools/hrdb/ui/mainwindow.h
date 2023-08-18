@@ -56,9 +56,18 @@ private slots:
     void nextClickedSlot();
     void skipPressedSlot();
     void runToClickedSlot();
+    void cycleRunToSlot();
     void breakPressedSlot();
 
 private:
+    enum RunToMode
+    {
+        kRunToRts,
+        kRunToRte,
+        kRunToVbl,
+        kRunToHbl,
+        kRunToMax,
+    };
     void connectChanged();
     void startStopChanged();
     void memoryChanged(int slot, uint64_t commandId);
@@ -145,7 +154,7 @@ private:
     void createMenus();
 
     // Shared function to show a sub-window, called by Action callbacks
-    void enableVis(QWidget *pWidget);
+    void enableVis(QDockWidget *pWidget);
 
     QMenu* m_pFileMenu;
     QMenu* m_pEditMenu;

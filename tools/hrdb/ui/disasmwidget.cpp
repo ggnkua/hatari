@@ -443,9 +443,10 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
         }
 
         // Highlight the cursor row
+        QBrush cursorColour = hasFocus() ? pal.highlight() : pal.mid();
         if (m_cursorRow != -1)
         {
-            painter.setPen(QPen(palette().highlight(), 1, Qt::PenStyle::DashLine));
+            painter.setPen(QPen(cursorColour, 1, Qt::PenStyle::DashLine));
             painter.setBrush(Qt::BrushStyle::NoBrush);
             painter.drawRect(0, GetPixelFromRow(m_cursorRow), rect().width(), m_lineHeight);
         }
@@ -457,7 +458,7 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
             if (!t.isPc)
                 continue;
             painter.setPen(Qt::PenStyle::NoPen);
-            painter.setBrush(pal.highlight());
+            painter.setBrush(cursorColour);
             painter.drawRect(0, GetPixelFromRow(row), rect().width(), m_lineHeight);
             break;
         }
@@ -574,27 +575,31 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
 
 void DisasmWidget::keyPressEvent(QKeyEvent* event)
 {
-    // Handle keyboard shortcuts with scope here, since QShortcut is global
-    if (event->modifiers() == Qt::ControlModifier)
+    if (m_pTargetModel->IsConnected())
     {
-        switch (event->key())
+        // Handle keyboard shortcuts with scope here, since QShortcut is global
+        if (event->modifiers() == Qt::ControlModifier)
         {
-            case Qt::Key_H:         runToCursor();            return;
-            case Qt::Key_B:         toggleBreakpoint();       return;
+            switch (event->key())
+            {
+                case Qt::Key_H:         runToCursor();            return;
+                case Qt::Key_B:         toggleBreakpoint();       return;
+                case Qt::Key_Space:     KeyboardContextMenu();    return;
+                default: break;
+            }
+        }
+        else if (event->modifiers() == Qt::NoModifier)
+        {
+            switch (event->key())
+            {
+            case Qt::Key_Up:         MoveUp();              return;
+            case Qt::Key_Down:       MoveDown();            return;
+            case Qt::Key_PageUp:     PageUp();              return;
+            case Qt::Key_PageDown:   PageDown();            return;
             default: break;
+            }
         }
     }
-
-    // Movement currently doesn't care about modifiers
-    switch (event->key())
-    {
-    case Qt::Key_Up:         MoveUp();            return;
-    case Qt::Key_Down:       MoveDown();          return;
-    case Qt::Key_PageUp:     PageUp();            return;
-    case Qt::Key_PageDown:   PageDown();          return;
-    default: break;
-    }
-
     QWidget::keyPressEvent(event);
 }
 
@@ -894,7 +899,7 @@ void DisasmWidget::ToggleBreakpoint(int row)
     if (!removed)
     {
         QString cmd = QString::asprintf("pc = $%x", addr);
-        m_pDispatcher->SetBreakpoint(cmd.toStdString().c_str(), false);
+        m_pDispatcher->SetBreakpoint(cmd.toStdString().c_str(), Dispatcher::kBpFlagNone);
     }
 }
 
@@ -965,7 +970,6 @@ void DisasmWidget::SetFollowPC(bool bFollow)
     update();
 }
 
-
 void DisasmWidget::printEA(const operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
 {
     uint32_t ea;
@@ -981,48 +985,12 @@ void DisasmWidget::printEA(const operand& op, const Registers& regs, uint32_t ad
     };
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 void DisasmWidget::contextMenuEvent(QContextMenuEvent *event)
 {
-    m_rightClickRow = GetRowFromPixel(event->y());
-    if (m_rightClickRow < 0 || m_rightClickRow >= m_rowTexts.size())
+    int row = GetRowFromPixel(event->y());
+    if (row < 0 || row >= m_rowTexts.size())
         return;
-
-    // Right click menus are instantiated on demand, so we can
-    // dynamically add to them
-    QMenu menu(this);
-
-    // Add the default actions
-    menu.addAction(m_pRunUntilAction);
-    menu.addAction(m_pBreakpointAction);
-    menu.addAction(m_pSetPcAction);
-    menu.addMenu(m_pEditMenu);
-
-    // Set up relevant menu items
-    uint32_t instAddr;
-    bool vis = GetInstructionAddr(m_rightClickRow, instAddr);
-    if (vis)
-    {
-        m_showAddressMenus[0].setTitle(QString::asprintf("$%x (this instruction)", instAddr));
-        m_showAddressMenus[0].setAddress(m_pSession, instAddr);
-        menu.addMenu(m_showAddressMenus[0].m_pMenu);
-    }
-
-    for (int32_t op = 0; op < 2; ++op)
-    {
-        int32_t menuIndex = op + 1;
-        uint32_t opAddr;
-        if (GetEA(m_rightClickRow, op, opAddr))
-        {
-            m_showAddressMenus[menuIndex].setTitle(QString::asprintf("$%x (Effective address %u)", opAddr, menuIndex));
-            m_showAddressMenus[menuIndex].setAddress(m_pSession, opAddr);
-            menu.addMenu(m_showAddressMenus[menuIndex].m_pMenu);
-        }
-    }
-
-    // Run it
-    menu.exec(event->globalPos());
+    ContextMenu(row, event->globalPos());
 }
 
 void DisasmWidget::runToCursorRightClick()
@@ -1117,6 +1085,51 @@ int DisasmWidget::GetRowFromPixel(int y) const
     return (y - Session::kWidgetBorderY) / m_lineHeight;
 }
 
+void DisasmWidget::KeyboardContextMenu()
+{
+    ContextMenu(m_cursorRow,
+                   mapToGlobal(QPoint(100, GetPixelFromRow(m_cursorRow))));
+}
+
+void DisasmWidget::ContextMenu(int row, QPoint globalPos)
+{
+    m_rightClickRow = row;
+
+    // Right click menus are instantiated on demand, so we can dynamically add to them
+    QMenu menu(this);
+
+    // Add the default actions
+    menu.addAction(m_pRunUntilAction);
+    menu.addAction(m_pBreakpointAction);
+    menu.addAction(m_pSetPcAction);
+    menu.addMenu(m_pEditMenu);
+
+    // Set up relevant menu items
+    uint32_t instAddr;
+    bool vis = GetInstructionAddr(m_rightClickRow, instAddr);
+    if (vis)
+    {
+        m_showAddressMenus[0].setTitle(QString::asprintf("$%x (this instruction)", instAddr));
+        m_showAddressMenus[0].setAddress(m_pSession, instAddr);
+        menu.addMenu(m_showAddressMenus[0].m_pMenu);
+    }
+
+    for (int32_t op = 0; op < 2; ++op)
+    {
+        int32_t menuIndex = op + 1;
+        uint32_t opAddr;
+        if (GetEA(m_rightClickRow, op, opAddr))
+        {
+            m_showAddressMenus[menuIndex].setTitle(QString::asprintf("$%x (Effective address %u)", opAddr, menuIndex));
+            m_showAddressMenus[menuIndex].setAddress(m_pSession, opAddr);
+            menu.addMenu(m_showAddressMenus[menuIndex].m_pMenu);
+        }
+    }
+
+    // Run it
+    menu.exec(globalPos);
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
@@ -1205,6 +1218,7 @@ void DisasmWindow::requestAddress(Session::WindowType type, int windowIndex, uin
     m_pDisasmWidget->SetFollowPC(false);
     m_pFollowPC->setChecked(false);
     setVisible(true);
+    raise();
     this->keyFocus();
 }
 

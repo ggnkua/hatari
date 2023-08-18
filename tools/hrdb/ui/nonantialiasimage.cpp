@@ -4,7 +4,6 @@
 #include <QPainter>
 #include <QStyle>
 #include <QMenu>
-#include <QFileDialog>
 #include "../models/session.h"
 #include "../models/targetmodel.h"
 
@@ -13,15 +12,18 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
       m_pSession(pSession),
       m_pBitmap(nullptr),
       m_bitmapSize(0),
-      m_bRunningMask(false)
+      m_bRunningMask(false),
+      m_darken(false),
+      m_enableGrid(false)
 {
     m_renderRect = rect();
     setMouseTracking(true);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
-    m_pSaveImageAction = new QAction(tr("Save Image..."), this);
-
+    m_pixelInfo.isValid = false;
+    m_pixelInfo.x = 0;
+    m_pixelInfo.y = 0;
+    m_pixelInfo.pixelValue = 0;
     connect(m_pSession,         &Session::settingsChanged, this, &NonAntiAliasImage::settingsChanged);
-    connect(m_pSaveImageAction, &QAction::triggered,       this, &NonAntiAliasImage::saveImageClicked);
 }
 
 void NonAntiAliasImage::setPixmap(int width, int height)
@@ -31,8 +33,8 @@ void NonAntiAliasImage::setPixmap(int width, int height)
     m_img.setColorTable(m_colours);
     QPixmap pm = QPixmap::fromImage(m_img);
     m_pixmap = pm;
-    UpdateString();
-    emit StringChanged();
+    UpdateMouseInfo();
+    emit MouseInfoChanged();
     update();
 }
 
@@ -58,10 +60,31 @@ void NonAntiAliasImage::SetRunning(bool runFlag)
     update();
 }
 
+void NonAntiAliasImage::SetAnnotations(const QVector<NonAntiAliasImage::Annotation> &annots)
+{
+    m_annotations = annots;
+    update();
+}
+
+void NonAntiAliasImage::SetGrid(bool enable)
+{
+    m_enableGrid = enable;
+    update();
+}
+
+void NonAntiAliasImage::SetDarken(bool enable)
+{
+    m_darken = enable;
+    update();
+}
+
 void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 {
     QPainter painter(this);
-    const QRect& r = rect();
+    QRect r = rect();
+    const int border = 6;
+    // Reduce so that the border doesn't overlap the image
+    r.adjust(border, border, -border, -border);
 
     QPalette pal = this->palette();
     painter.setFont(m_pSession->GetSettings().m_font);
@@ -76,7 +99,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
                 float texelsToPixelsY = r.height() / static_cast<float>(m_pixmap.height());
                 float minRatio = std::min(texelsToPixelsX, texelsToPixelsY);
 
-                QRect fixedR(0, 0, minRatio * m_pixmap.width(), minRatio * m_pixmap.height());
+                QRect fixedR(r.x(), r.y(), minRatio * m_pixmap.width(), minRatio * m_pixmap.height());
                 painter.setRenderHint(QPainter::Antialiasing, false);
                 style()->drawItemPixmap(&painter, fixedR, Qt::AlignCenter, m_pixmap.scaled(fixedR.size()));
                 m_renderRect = fixedR;
@@ -87,15 +110,48 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
             }
         }
 
+        bool runningMask = m_bRunningMask && !m_pSession->GetSettings().m_liveRefresh;
+
+        bool darkenMask = runningMask || m_darken;
+
         // Darken the area if we don't have live refresh
-        if (m_bRunningMask && !m_pSession->GetSettings().m_liveRefresh)
+        if (darkenMask)
         {
             painter.setBrush(QBrush(QColor(0, 0, 0, 128)));
             painter.drawRect(r);
+        }
 
+        if (runningMask)
+        {
             painter.setPen(Qt::magenta);
             painter.setBrush(Qt::NoBrush);
             painter.drawText(r, Qt::AlignCenter, "Running...");
+        }
+
+        painter.setPen(Qt::magenta);
+        painter.setBrush(Qt::NoBrush);
+        for (const Annotation& annot : m_annotations)
+        {
+            QPoint pt = ScreenPointFromBitmapPoint(QPoint(annot.x, annot.y), m_renderRect);
+            painter.drawLine(pt, pt + QPoint(5, 0));
+            painter.drawLine(pt, pt + QPoint(0, 5));
+            //painter.drawText(QPoint(x, y), annot.text);
+        }
+
+        if (m_enableGrid)
+        {
+            for (int x = 0; x < m_pixmap.width(); x += 16)
+            {
+                QPoint pt0 = ScreenPointFromBitmapPoint(QPoint(x, 0), m_renderRect);
+                QPoint pt1 = ScreenPointFromBitmapPoint(QPoint(x, m_pixmap.height()), m_renderRect);
+                painter.drawLine(pt0, pt1);
+            }
+            for (int y = 0; y < m_pixmap.height(); y += 16)
+            {
+                QPoint pt0 = ScreenPointFromBitmapPoint(QPoint(0, y), m_renderRect);
+                QPoint pt1 = ScreenPointFromBitmapPoint(QPoint(m_pixmap.width(), y), m_renderRect);
+                painter.drawLine(pt0, pt1);
+            }
         }
     }
     else {
@@ -103,75 +159,81 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
     }
 
     painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
-    painter.drawRect(r);
+    painter.drawRect(rect());
     QWidget::paintEvent(ev);
 }
 
 void NonAntiAliasImage::mouseMoveEvent(QMouseEvent *event)
 {
     m_mousePos = event->localPos();
-    UpdateString();
-    emit StringChanged();
+    UpdateMouseInfo();
+    emit MouseInfoChanged();
     QWidget::mouseMoveEvent(event);
 }
 
-void NonAntiAliasImage::contextMenuEvent(QContextMenuEvent *event)
+void NonAntiAliasImage::leaveEvent(QEvent *event)
 {
-    // Right click menus are instantiated on demand, so we can
-    // dynamically add to them
-    QMenu menu(this);
-
-    // Add the default actions
-    menu.addAction(m_pSaveImageAction);
-    menu.exec(event->globalPos());
+    m_mousePos = QPoint(-1, -1);
+    UpdateMouseInfo();
+    emit MouseInfoChanged();
+    QWidget::leaveEvent(event);
 }
 
 void NonAntiAliasImage::settingsChanged()
 {
     // Force redraw in case square pixels changed
+    UpdateMouseInfo();
+    emit MouseInfoChanged();
     update();
 }
 
-void NonAntiAliasImage::saveImageClicked()
+void NonAntiAliasImage::UpdateMouseInfo()
 {
-    // Choose output file
-    QString filter = "Bitmap files (*.bmp *.png);;All files (*.*);";
-    QString filename = QFileDialog::getSaveFileName(
-          this,
-          tr("Choose image filename"),
-          QString(),
-          filter);
-
-    if (filename.size() != 0)
-        m_img.save(filename);
-}
-
-void NonAntiAliasImage::UpdateString()
-{
-    m_infoString.clear();
+    m_pixelInfo.isValid = false;
     if (m_pixmap.width() == 0)
         return;
 
     QPoint mpos(static_cast<int>(m_mousePos.x()), static_cast<int>(m_mousePos.y()));
     if (m_renderRect.contains(mpos))
     {
-        const QRect& r = m_renderRect;
-        double x_frac = (m_mousePos.x() - r.x()) / r.width();
-        double y_frac = (m_mousePos.y() - r.y()) / r.height();
+        // Calc bitmap pos from screen pos
+        QPoint bmPoint = BitmapPointFromScreenPoint(mpos, m_renderRect);
+        int x = bmPoint.x();
+        int y = bmPoint.y();
+        m_pixelInfo.x = x;
+        m_pixelInfo.y = y;
+        m_pixelInfo.pixelValue = -1;
 
-        double x_pix = x_frac * m_pixmap.width();
-        double y_pix = y_frac * m_pixmap.height();
-
-        int x = static_cast<int>(x_pix);
-        int y = static_cast<int>(y_pix);
-        m_infoString = QString::asprintf("X:%d Y:%d", x, y);
-
-        if (x < m_pixmap.width() && y < m_pixmap.height() &&
+        if (x >= 0 &&
+            x < m_pixmap.width() &&
+            y >= 0 &&
+            y < m_pixmap.height() &&
             m_pBitmap)
         {
-            uint8_t pixelValue = m_pBitmap[y * m_pixmap.width() + x];
-            m_infoString += QString::asprintf(", Pixel value: %u", pixelValue);
+            m_pixelInfo.pixelValue = m_pBitmap[y * m_pixmap.width() + x];
         }
+        m_pixelInfo.isValid = true;
     }
 }
 
+QPoint NonAntiAliasImage::ScreenPointFromBitmapPoint(const QPoint &bitmapPoint, const QRect &rect) const
+{
+    // Work out position as a proportion of the render rect
+    float x = rect.x() + (rect.width() * bitmapPoint.x()) / m_pixmap.width();
+    float y = rect.y() + (rect.height() * bitmapPoint.y()) / m_pixmap.height();
+    return QPoint(x, y);
+}
+
+QPoint NonAntiAliasImage::BitmapPointFromScreenPoint(const QPoint &bitmapPoint, const QRect &rect) const
+{
+    const QRect& r = rect;
+    double x_frac = double(bitmapPoint.x() - r.x()) / r.width();
+    double y_frac = double(bitmapPoint.y() - r.y()) / r.height();
+
+    double x_pix = x_frac * m_pixmap.width();
+    double y_pix = y_frac * m_pixmap.height();
+
+    int x = static_cast<int>(x_pix);
+    int y = static_cast<int>(y_pix);
+    return QPoint(x,y);
+}

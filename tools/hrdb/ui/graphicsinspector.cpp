@@ -10,18 +10,24 @@
 #include <QKeyEvent>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QMenu>
 
 #include <QFontDatabase>
 #include <QSettings>
 #include <QDebug>
+#include <QFileDialog>
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
 #include "../models/symboltablemodel.h"
+#include "../models/stringformat.h"
 #include "../models/stringparsers.h"
 #include "../models/session.h"
 #include "../hardware/regs_st.h"
+
+#include "elidedlabel.h"
 #include "quicklayout.h"
+#include "symboltext.h"
 
 /* A note on memory requests:
 
@@ -93,6 +99,10 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     // Make img widget first so that tab order "works"
     m_pImageWidget = new NonAntiAliasImage(this, pSession);
 
+    // Fill out starting mouseover data
+    m_mouseInfo = m_pImageWidget->GetMouseInfo();
+    m_addressUnderMouse = ~0U;
+
     // top line
     m_pBitmapAddressLineEdit = new QLineEdit(this);
     m_pLockAddressToVideoCheckBox = new QCheckBox(tr("Use Registers"), this);
@@ -112,7 +122,9 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pModeComboBox->addItem(tr("3 Plane"), Mode::k3Bitplane);
     m_pModeComboBox->addItem(tr("2 Plane"), Mode::k2Bitplane);
     m_pModeComboBox->addItem(tr("1 Plane"), Mode::k1Bitplane);
-    m_pWidthSpinBox->setRange(1, 40);
+
+    // Width is now 80 to support the "1280" special ST mode for @troed
+    m_pWidthSpinBox->setRange(1, 80);
     m_pWidthSpinBox->setValue(m_width);
     m_pHeightSpinBox->setRange(16, 256);
     m_pHeightSpinBox->setValue(m_height);
@@ -131,8 +143,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pPaletteComboBox->addItem(tr("Bitplane3"), kBitplane3);
     m_pPaletteAddressLineEdit = new QLineEdit(this);
     m_pPaletteAddressLineEdit->setCompleter(pCompl);    // use same completer as address box
-
-    m_pInfoLabel = new QLabel(this);
+    m_pInfoLabel = new ElidedLabel("", this);
 
     // Bottom
     m_pImageWidget->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding));
@@ -201,6 +212,17 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pLockAddressToVideoCheckBox->setChecked(true);
     m_pLockFormatToVideoCheckBox->setChecked(true);
 
+    // Actions
+    m_pSaveImageAction = new QAction(tr("Save Image..."), this);
+    m_pOverlayMenu = new QMenu("Overlays", this);
+    m_pOverlayDarkenAction = new QAction("Darken Image", this);
+    m_pOverlayDarkenAction->setCheckable(true);
+    m_pOverlayGridAction = new QAction("Grid", this);
+    m_pOverlayGridAction->setCheckable(true);
+
+    m_pOverlayMenu->addAction(m_pOverlayDarkenAction);
+    m_pOverlayMenu->addAction(m_pOverlayGridAction);
+
     // Keyboard shortcuts
     new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
@@ -224,9 +246,13 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pHeightSpinBox,   SIGNAL(valueChanged(int)),                SLOT(heightChangedSlot(int)));
     connect(m_pPaddingSpinBox,  SIGNAL(valueChanged(int)),                SLOT(paddingChangedSlot(int)));
 
-    connect(m_pImageWidget,  &NonAntiAliasImage::StringChanged,           this, &GraphicsInspectorWidget::tooltipStringChanged);
-
+    connect(m_pImageWidget,  &NonAntiAliasImage::MouseInfoChanged,        this, &GraphicsInspectorWidget::mouseOverChanged);
     connect(m_pSession,      &Session::addressRequested,                  this, &GraphicsInspectorWidget::RequestBitmapAddress);
+
+    // Context menus
+    connect(m_pSaveImageAction,             &QAction::triggered,          this, &GraphicsInspectorWidget::saveImageClicked);
+    connect(m_pOverlayDarkenAction,         &QAction::triggered,          this, &GraphicsInspectorWidget::overlayDarkenChanged);
+    connect(m_pOverlayGridAction,           &QAction::triggered,          this, &GraphicsInspectorWidget::overlayGridChanged);
 
     loadSettings();
     UpdateUIElements();
@@ -259,6 +285,12 @@ void GraphicsInspectorWidget::loadSettings()
 
     int palette = settings.value("palette", QVariant((int)Palette::kGreyscale)).toInt();
     m_pPaletteComboBox->setCurrentIndex(palette);
+
+    bool darken = settings.value("darken", QVariant(false)).toBool();
+    bool grid = settings.value("grid", QVariant(false)).toBool();
+    m_pImageWidget->SetDarken(darken);
+    m_pImageWidget->SetGrid(grid);
+
     UpdateUIElements();
     settings.endGroup();
 }
@@ -276,6 +308,8 @@ void GraphicsInspectorWidget::saveSettings()
     settings.setValue("lockFormat", m_pLockFormatToVideoCheckBox->isChecked());
     settings.setValue("mode", static_cast<int>(m_mode));
     settings.setValue("palette", m_pPaletteComboBox->currentIndex());
+    settings.setValue("darken", m_pImageWidget->GetDarken());
+    settings.setValue("grid", m_pImageWidget->GetGrid());
     settings.endGroup();
 }
 
@@ -289,40 +323,55 @@ void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)
     int32_t height = GetEffectiveHeight();
 
     bool shift = (ev->modifiers().testFlag(Qt::KeyboardModifier::ShiftModifier));
-
-    if (ev->key() == Qt::Key::Key_Up)
-        offset = shift ? -8 * data.bytesPerLine : -data.bytesPerLine;
-    else if (ev->key() == Qt::Key::Key_Down)
-        offset = shift ? 8 * data.bytesPerLine : data.bytesPerLine;
-    else if (ev->key() == Qt::Key::Key_PageUp)
-        offset = -height * data.bytesPerLine;
-    else if (ev->key() == Qt::Key::Key_PageDown)
-        offset = +height * data.bytesPerLine;
-    else if (ev->key() == Qt::Key::Key_Left)
-        offset = -2;
-    else if (ev->key() == Qt::Key::Key_Right)
-        offset = 2;
-
-    // Check nothing is being loaded still before moving
-    if (offset && m_requestBitmap.requestId == 0)
+    // Handle keyboard shortcuts with scope here, since QShortcut is global
+    if (ev->modifiers() == Qt::ControlModifier)
     {
-        // Going up or down by a small amount is OK
-        if (offset > 0 || m_bitmapAddress > -offset)
+        switch (ev->key())
         {
-            m_bitmapAddress += offset;
+            case Qt::Key_Space:     KeyboardContextMenu();    return;
+            default: break;
         }
-        else {
-            m_bitmapAddress = 0;
-        }
-        m_pLockAddressToVideoCheckBox->setChecked(false);
-        m_requestBitmap.Dirty();
-        UpdateMemoryRequests();
-        DisplayAddress();
+    }
+    else
+    {
+        if (ev->key() == Qt::Key::Key_Up)
+            offset = shift ? -8 * data.bytesPerLine : -data.bytesPerLine;
+        else if (ev->key() == Qt::Key::Key_Down)
+            offset = shift ? 8 * data.bytesPerLine : data.bytesPerLine;
+        else if (ev->key() == Qt::Key::Key_PageUp)
+            offset = -height * data.bytesPerLine;
+        else if (ev->key() == Qt::Key::Key_PageDown)
+            offset = +height * data.bytesPerLine;
+        else if (ev->key() == Qt::Key::Key_Left)
+            offset = -2;
+        else if (ev->key() == Qt::Key::Key_Right)
+            offset = 2;
 
-        return;
+        // Check nothing is being loaded still before moving
+        if (offset && m_requestBitmap.requestId == 0)
+        {
+            // Going up or down by a small amount is OK
+            if (offset > 0 || m_bitmapAddress > -offset)
+            {
+                m_bitmapAddress += offset;
+            }
+            else {
+                m_bitmapAddress = 0;
+            }
+            m_pLockAddressToVideoCheckBox->setChecked(false);
+            m_requestBitmap.Dirty();
+            UpdateMemoryRequests();
+            DisplayAddress();
+
+            return;
+        }
     }
     QDockWidget::keyPressEvent(ev);
+}
 
+void GraphicsInspectorWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    ContextMenu(event->globalPos());
 }
 
 void GraphicsInspectorWidget::connectChanged()
@@ -447,6 +496,18 @@ void GraphicsInspectorWidget::lockFormatToVideoChanged()
     UpdateUIElements();
 }
 
+void GraphicsInspectorWidget::overlayDarkenChanged()
+{
+    m_pImageWidget->SetDarken(!m_pImageWidget->GetDarken());
+    UpdateUIElements();
+}
+
+void GraphicsInspectorWidget::overlayGridChanged()
+{
+    m_pImageWidget->SetGrid(!m_pImageWidget->GetGrid());
+    UpdateUIElements();
+}
+
 void GraphicsInspectorWidget::modeChangedSlot(int index)
 {
     int modeInt = m_pModeComboBox->itemData(index).toInt();
@@ -529,9 +590,67 @@ void GraphicsInspectorWidget::paddingChangedSlot(int value)
     UpdateMemoryRequests();
 }
 
-void GraphicsInspectorWidget::tooltipStringChanged()
+void GraphicsInspectorWidget::saveImageClicked()
 {
-    m_pInfoLabel->setText(m_pImageWidget->GetString());
+    // Choose output file
+    QString filter = "Bitmap files (*.bmp *.png);;All files (*.*);";
+    QString filename = QFileDialog::getSaveFileName(
+          this,
+          tr("Choose image filename"),
+          QString(),
+          filter);
+
+    if (filename.size() != 0)
+        m_pImageWidget->GetImage().save(filename);
+}
+
+void GraphicsInspectorWidget::mouseOverChanged()
+{
+    const NonAntiAliasImage::MouseInfo& info = m_pImageWidget->GetMouseInfo();
+
+    // Take a copy for right-click events
+    m_mouseInfo = info;
+    m_addressUnderMouse = -1;
+
+    if (info.isValid)
+    {
+        // We can calculate the memory address here
+        uint32_t addr = ~0U;
+        uint32_t size = 0;
+        EffectiveData data;
+        GetEffectiveData(data);
+        switch(m_mode)
+        {
+        case Mode::k1Bitplane:
+        case Mode::k2Bitplane:
+        case Mode::k3Bitplane:
+        case Mode::k4Bitplane:
+            addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerMode(m_mode);
+            size = BytesPerMode(m_mode);
+            break;
+        default:
+            break;
+        }
+
+        QString str;
+        QTextStream ref(&str);
+        ref << "[" << info.x << ", " << info.y << "]";
+        if (info.pixelValue >= 0)
+            ref << " Pixel Value: " << info.pixelValue;
+        if (addr != ~0U)
+        {
+            ref << " Address: " << Format::to_hex32(addr);
+            QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr);
+            if (!symText.isEmpty())
+                ref << " (" << symText << ")";
+        }
+        m_pInfoLabel->setText(str);
+        m_addressUnderMouse = addr;
+    }
+    else
+    {
+        m_pInfoLabel->setText(QString());
+    }
 }
 
 void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address)
@@ -548,6 +667,7 @@ void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int
 
     m_requestBitmap.Dirty();
     UpdateMemoryRequests();
+    raise();
 }
 
 void GraphicsInspectorWidget::UpdateMemoryRequests()
@@ -815,6 +935,35 @@ void GraphicsInspectorWidget::UpdateImage()
         }
     }
     m_pImageWidget->setPixmap(width, height);
+
+#if 0
+    // Update annotations
+    //EffectiveData data;
+    //GetEffectiveData(data);
+    QVector<NonAntiAliasImage::Annotation> annots;
+    for (int i = 0; i < 8; ++i)
+    {
+        NonAntiAliasImage::Annotation annot;
+        uint32_t regAddr = m_pTargetModel->GetRegs().GetAReg(i);
+        if (CreateAnnotation(annot, regAddr, data, Registers::s_names[Registers::A0 + i]))
+            annots.append(annot);
+    }
+
+    uint32_t symAddr = m_bitmapAddress + data.requiredSize;
+    Symbol sym;
+    while (symAddr >= m_bitmapAddress)
+    {
+        if (!m_pTargetModel->GetSymbolTable().FindLowerOrEqual(symAddr, false, sym))
+            break;
+
+        NonAntiAliasImage::Annotation annot;
+        if (CreateAnnotation(annot, sym.address, data, sym.name.c_str()))
+            annots.append(annot);
+        symAddr = sym.address - 1;
+    }
+
+    m_pImageWidget->m_annotations = annots;
+#endif
 }
 
 void GraphicsInspectorWidget::UpdateUIElements()
@@ -830,6 +979,9 @@ void GraphicsInspectorWidget::UpdateUIElements()
     m_pModeComboBox->setEnabled(!m_pLockFormatToVideoCheckBox->isChecked());
 
     m_pPaletteAddressLineEdit->setVisible(m_paletteMode == kUserMemory);
+
+    m_pOverlayDarkenAction->setChecked(m_pImageWidget->GetDarken());
+    m_pOverlayGridAction->setChecked(m_pImageWidget->GetGrid());
     DisplayAddress();
 }
 
@@ -841,7 +993,11 @@ GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
     const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
     if (!pMem)
         return Mode::k4Bitplane;
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(pMem->ReadAddressByte(Regs::VID_SHIFTER_RES));
+
+    uint8_t val = 0;
+    if (!pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
+        return Mode::k1Bitplane;
+    Regs::RESOLUTION modeReg = (Regs::RESOLUTION)val;
     if (modeReg == Regs::RESOLUTION::LOW)
         return Mode::k4Bitplane;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)
@@ -861,14 +1017,18 @@ int GraphicsInspectorWidget::GetEffectiveWidth() const
 
     // Handle ST scroll
     int width = 0;
+    uint8_t tmpReg = 0;
     if (!IsMachineST(m_pTargetModel->GetMachineType()))
     {
-        uint8_t modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE));
+        uint8_t modeReg;
+        pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
+        modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(tmpReg);
         if (modeReg != 0)
             width = 1;  // extra read for scroll
     }
 
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(pMem->ReadAddressByte(Regs::VID_SHIFTER_RES));
+    pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
     if (modeReg == Regs::RESOLUTION::LOW)
         return width + 20;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)
@@ -884,7 +1044,9 @@ int GraphicsInspectorWidget::GetEffectiveHeight() const
     const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
     if (!pMem)
         return Mode::k4Bitplane;
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(pMem->ReadAddressByte(Regs::VID_SHIFTER_RES));
+    uint8_t tmpReg;
+    pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
     if (modeReg == Regs::RESOLUTION::LOW)
         return 200;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)
@@ -920,3 +1082,54 @@ int32_t GraphicsInspectorWidget::BytesPerMode(GraphicsInspectorWidget::Mode mode
     }
     return 0;
 }
+
+bool GraphicsInspectorWidget::CreateAnnotation(NonAntiAliasImage::Annotation &annot, uint32_t address,
+                                               const EffectiveData& data,
+                                               const char* label)
+{
+    if (address < m_bitmapAddress || address >= m_bitmapAddress + data.requiredSize)
+        return false;
+
+    uint32_t offset = address - m_bitmapAddress;
+    uint32_t y = offset / data.bytesPerLine;
+    uint32_t x_offset = offset - (y * data.bytesPerLine);
+
+    uint32_t chunk = x_offset / BytesPerMode(m_mode);
+    annot.x = chunk * 16;
+    annot.y = y;
+    annot.text = label;
+    return true;
+}
+
+void GraphicsInspectorWidget::KeyboardContextMenu()
+{
+    ContextMenu(mapToGlobal(QPoint(this->width() / 2, this->height() / 2)));
+}
+
+void GraphicsInspectorWidget::ContextMenu(QPoint pos)
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    // Right click menus are instantiated on demand, so we can
+    // dynamically add to them
+    QMenu menu(this);
+
+    // Add the default actions
+    menu.addAction(m_pSaveImageAction);
+    menu.addMenu(m_pOverlayMenu);
+
+    m_showAddressMenus[0].setAddress(m_pSession, m_bitmapAddress);
+    m_showAddressMenus[0].setTitle(Format::to_hex32(m_bitmapAddress) + QString(" (Bitmap address)"));
+    menu.addMenu(m_showAddressMenus[0].m_pMenu);
+
+    if (m_mouseInfo.isValid && m_addressUnderMouse != ~0U)
+    {
+        m_showAddressMenus[1].setAddress(m_pSession, m_addressUnderMouse);
+        m_showAddressMenus[1].setTitle(Format::to_hex32(m_addressUnderMouse) + QString(" (Mouse Cursor address)"));
+        menu.addMenu(m_showAddressMenus[1].m_pMenu);
+    }
+
+    menu.exec(pos);
+}
+

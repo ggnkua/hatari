@@ -2,7 +2,7 @@
 #define MEMORYVIEWWIDGET_H
 
 #include <QDockWidget>
-#include <QTableView>
+#include <QAbstractItemModel>
 #include "searchdialog.h"
 #include "showaddressactions.h"
 #include "../models/memory.h"
@@ -12,6 +12,7 @@ class TargetModel;
 class Dispatcher;
 class QComboBox;
 class QCheckBox;
+class ElidedLabel;
 
 class MemoryWidget : public QWidget
 {
@@ -25,19 +26,36 @@ public:
         kColCount
     };
 
-    enum Mode
+    enum SizeMode
     {
         kModeByte,
         kModeWord,
         kModeLong
     };
 
+    enum WidthMode
+    {
+        k4,
+        k8,
+        k16,
+        k32,
+        k64,
+        kAuto = 100,  // Not currently supported, but here for future expansion
+    };
+
+    struct CursorInfo
+    {
+        uint32_t m_address;
+        bool     m_isValid;
+    };
+
     MemoryWidget(QWidget* parent, Session* pSession, int windowIndex);
     virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
-    Mode GetMode() const { return m_mode; }
-    bool GetAddressAtCursor(uint32_t &address) const;
+    SizeMode GetSizeMode() const { return m_sizeMode; }
+    WidthMode GetWidthMode() const { return m_widthMode; }
+    const CursorInfo& GetCursorInfo() const { return m_cursorInfo; }
 
     // Checks expression validity
     bool CanSetExpression(std::string expression) const;
@@ -47,8 +65,12 @@ public:
     void SetSearchResultAddress(uint32_t addr);
 
     void SetLock(bool locked);
-    void SetMode(Mode mode);
+    void SetSizeMode(SizeMode mode);
+    void SetWidthMode(WidthMode widthMode);
 
+signals:
+    // Flagged when cursor position or memory under cursor changes
+    void cursorChangedSignal();
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void keyPressEvent(QKeyEvent*) override;
@@ -59,6 +81,14 @@ protected:
     virtual bool event(QEvent *event) override;
 
 private:
+    struct ViewState
+    {
+        uint32_t address;
+        int rowCount;
+        int bytesPerRow;
+        SizeMode sizeMode;
+    };
+
     void memoryChanged(int memorySlot, uint64_t commandId);
     void startStopChanged();
     void connectChanged();
@@ -67,8 +97,8 @@ private:
     void symbolTableChanged();
     void settingsChanged();
 
-    void MoveUp();
-    void MoveDown();
+    void CursorUp();
+    void CursorDown();
     void MoveLeft();
     void MoveRight();
     void PageUp();
@@ -95,8 +125,17 @@ private:
 
     // Is we are locked to an expression recalc m_address
     void RecalcLockedExpression();
+
+    // Rearrange the layout to match width/format decisions
+    void RecalcColumnLayout();
     void RecalcText();
     void RecalcRowCount();
+
+    // Calculate number of bytes to fit current window width
+    void RecalcRowWidth();
+
+    // Update cursor data and emit cursorChangedSignal
+    void RecalcCursorInfo();
 
     QString CalcMouseoverText(int mouseX, int mouseY);
 
@@ -112,62 +151,76 @@ private:
     // Convert from pixel Y to a row ID
     int GetRowFromPixel(int y) const;
 
-    // Find a valid entry under the pixel
-    bool FindInfo(int x, int y, int& row, int& col);
+    // Create context menu at the cursor pos
+    void KeyboardContextMenu();
 
+    // Create a context menu based on a grid position
+    void ContextMenu(int row, int col, QPoint globalPos);
+
+    // Find a valid entry under the pixel
+    bool CalcRowColFromMouse(int x, int y, int& row, int& col);
 
     void SetRowCount(int rowCount);
+
+    uint32_t CalcAddress(int row, int col) const;
 
     Session*        m_pSession;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
 
-    // These are taken at the same time. Is there a race condition...?
-    struct Row
+    enum ColumnType
     {
-        uint32_t m_address;
+        kSpace,
+        kTopNybble,
+        kBottomNybble,
+        kASCII,
+        kInvalid            // for when memory is not available (yet)
+    } type;
 
-        QVector<uint8_t> m_rawBytes;
+    // These are taken at the same time. Is there a race condition...?
+    struct RowData
+    {
+        QVector<ColumnType> m_types;
         QVector<bool> m_byteChanged;
         QVector<int> m_symbolId;
         QString m_text;
     };
-
-    QVector<Row> m_rows;
-    struct ColInfo
-    {
-        enum Type
-        {
-            kSpace,
-            kTopNybble,
-            kBottomNybble,
-            kASCII
-        } type;
-        uint32_t byteOffset;     // offset into memory
-    };
-
-    QVector<ColInfo> m_columnMap;
+    // This is the visible UI information
+    QVector<RowData> m_rows;
 
     std::string m_addressExpression;
     bool        m_isLocked;
 
+    // This block effectively stores the whole current UI state.
+    // If anything changes
+    uint32_t    m_address;
+    WidthMode   m_widthMode;
+    SizeMode    m_sizeMode;
     int         m_bytesPerRow;
-    Mode        m_mode;
-
     int         m_rowCount;
+    int         m_cursorRow;
+    int         m_cursorCol;
+
+    // This describes the layout of characters in each column of the grid.
+    // It updates based on width mode and bytes-per-row.
+    struct ColInfo
+    {
+        ColumnType type;         // what sort of entry this is
+        uint32_t byteOffset;     // offset into memory when type != kSpace
+    };
+    QVector<ColInfo> m_columnMap;
 
     // Memory requests
-    uint32_t    m_address;
     uint64_t    m_requestId;
     CursorMode  m_requestCursorMode;
 
-    int         m_windowIndex;        // e.g. "memory 0", "memory 1"
+    int         m_windowIndex;          // e.g. "memory 0", "memory 1"
     MemorySlot  m_memSlot;
+
+    Memory      m_currentMemory;        // Latest copy available
     Memory      m_previousMemory;       // Copy before we restarted the CPU
 
-    // Cursor
-    int         m_cursorRow;
-    int         m_cursorCol;
+    CursorInfo  m_cursorInfo;
 
     // rendering info
     int         m_charWidth;            // font width in pixels
@@ -197,9 +250,11 @@ public slots:
     void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
 
     void returnPressedSlot();
+    void cursorChangedSlot();
     void textEditedSlot();
     void lockChangedSlot();
-    void modeComboBoxChanged(int index);
+    void sizeModeComboBoxChangedSlot(int index);
+    void widthComboBoxChangedSlot(int index);
     void findClickedSlot();
     void nextClickedSlot();
     void gotoClickedSlot();
@@ -208,8 +263,10 @@ public slots:
 
 private:
     QLineEdit*          m_pAddressEdit;
-    QComboBox*          m_pComboBox;
+    QComboBox*          m_pSizeModeComboBox;
+    QComboBox*          m_pWidthComboBox;
     QCheckBox*          m_pLockCheckBox;
+    ElidedLabel*        m_pCursorInfoLabel;
     MemoryWidget*       m_pMemoryWidget;
 
     Session*            m_pSession;

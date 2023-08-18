@@ -64,22 +64,40 @@ public:
         return m_addr;
     }
 
-    bool HasAddress(uint32_t address) const
+    // Check if all of a given memory range is contained in this memblock.
+    bool HasAddressRange(uint32_t address, uint32_t numBytes) const
     {
+        // Shift the values in to a range of offsets.
+
+        // Since we use unsigned arithmtic, at this point, any
+        // "offset >= m_size" is out-of-range, even for addresses
+        // below the start of the memory block, which makes
+        // comparison simpler.
+        // This logic should also work for memory addresses which wrap
+        // around, for whatever reason.
         uint32_t offset = address - m_addr;
-        return offset < m_size;
+        if (offset >= m_size)
+            return false;       // start address is too low
+
+        // This check is ">" since ">=" matches the range fitting exactly.
+        if (offset + numBytes > m_size)
+            return false;       // end address is too high
+
+        return true;
     }
 
-    uint8_t ReadAddressByte(uint32_t address) const
+    bool ReadAddressByte(uint32_t address, uint8_t& value) const
     {
+        value = 0U;
+        if (!HasAddressRange(address, 1U))
+            return false;
         uint32_t offset = address - m_addr;
-        assert(offset < m_size);
-        return Get(offset);
+        value = m_pData[offset];
+        return true;
     }
 
-    bool HasAddressMulti(uint32_t address, uint32_t numBytes) const;
     // Read multiple bytes and put into 32-bit word. So can read byte/word/long
-    uint32_t ReadAddressMulti(uint32_t address, uint32_t numBytes = 1) const;
+    bool ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const;
 
     uint32_t GetSize() const
     {

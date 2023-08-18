@@ -64,10 +64,10 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pRunToButton->setToolTip("U: Run until specified condition");
 
     m_pRunToCombo = new QComboBox(this);
-    m_pRunToCombo->insertItem(0, "RTS");
-    m_pRunToCombo->insertItem(1, "RTE");
-    m_pRunToCombo->insertItem(2, "Next VBL");
-    m_pRunToCombo->insertItem(3, "Next HBL");
+    m_pRunToCombo->insertItem(kRunToRts, "RTS");
+    m_pRunToCombo->insertItem(kRunToRte, "RTE");
+    m_pRunToCombo->insertItem(kRunToVbl, "Next VBL");
+    m_pRunToCombo->insertItem(kRunToHbl, "Next HBL");
 
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
@@ -78,13 +78,18 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
             m_pDisasmWidgets[i]->setWindowTitle(QString::asprintf("Disassembly %d", i + 1));
     }
 
+    static const char* windowTitles[4] =
+    {
+        "Memory 1 (Alt+M)",
+        "Memory 2 (Alt+2)",
+        "Memory 3 (Alt+3)",
+        "Memory 4 (Alt+4)"
+    };
+
     for (int i = 0; i < kNumMemoryViews; ++i)
     {
         m_pMemoryViewWidgets[i] = new MemoryWindow(this, &m_session, i);
-        if (i == 0)
-            m_pMemoryViewWidgets[i]->setWindowTitle("Memory 1 (Alt+M)");
-        else
-            m_pMemoryViewWidgets[i]->setWindowTitle(QString::asprintf("Memory %d", i + 1));
+        m_pMemoryViewWidgets[i]->setWindowTitle(windowTitles[i]);
     }
 
     m_pGraphicsInspector = new GraphicsInspectorWidget(this, &m_session);
@@ -172,6 +177,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(QKeySequence("Ctrl+S"),         this, SLOT(skipPressedSlot()));
     new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
     new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
+    new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
 
     // Try initial connect
     ConnectTriggered();
@@ -352,18 +358,25 @@ void MainWindow::runToClickedSlot()
     if (m_pTargetModel->IsRunning())
         return;
 
-    if (m_pRunToCombo->currentIndex() == 0)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", true);      // RTS
-    else if (m_pRunToCombo->currentIndex() == 1)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", true);      // RTE
-    else if (m_pRunToCombo->currentIndex() == 2)
-        m_pDispatcher->SetBreakpoint("VBL ! VBL", true);        // VBL
-        //m_pDispatcher->SetBreakpoint("pc = ($70).l", true);        // VBL interrupt code
-    else if (m_pRunToCombo->currentIndex() == 3)
-        m_pDispatcher->SetBreakpoint("HBL ! HBL", true);        // VBL
+    if (m_pRunToCombo->currentIndex() == kRunToRts)
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
+    else if (m_pRunToCombo->currentIndex() == kRunToRte)
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
+    else if (m_pRunToCombo->currentIndex() == kRunToVbl)
+        m_pDispatcher->SetBreakpoint("VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
+    else if (m_pRunToCombo->currentIndex() == kRunToHbl)
+        m_pDispatcher->SetBreakpoint("HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
     else
         return;
     m_pDispatcher->Run();
+}
+
+void MainWindow::cycleRunToSlot()
+{
+    int current = m_pRunToCombo->currentIndex();
+    current++;
+    current %= kRunToMax;
+    m_pRunToCombo->setCurrentIndex(current);
 }
 
 void MainWindow::addBreakpointPressed()
@@ -442,7 +455,7 @@ void MainWindow::PopulateRunningSquare()
     {
         col = Qt::green;
     }
-    pal.setColor(QPalette::Background, col);
+    pal.setColor(QPalette::Window, col);
     m_pRunningSquare->setAutoFillBackground(true);
     m_pRunningSquare->setPalette(pal);
 }
@@ -680,14 +693,19 @@ void MainWindow::createActions()
             m_pDisasmWindowActs[i]->setShortcut(QKeySequence("Alt+D"));
     }
 
+    static const char* windowShortcuts[4] =
+    {
+        "Alt+M",
+        "Alt+2",
+        "Alt+3",
+        "Alt+4"
+    };
     for (int i = 0; i < kNumMemoryViews; ++i)
     {
         m_pMemoryWindowActs[i] = new QAction(m_pMemoryViewWidgets[i]->windowTitle(), this);
         m_pMemoryWindowActs[i]->setStatusTip(tr("Show the memory window"));
         m_pMemoryWindowActs[i]->setCheckable(true);
-
-        if (i == 0)
-            m_pMemoryWindowActs[i]->setShortcut(QKeySequence("Alt+M"));
+        m_pMemoryWindowActs[i]->setShortcut(QKeySequence(windowShortcuts[i]));
     }
 
     m_pGraphicsInspectorAct = new QAction(tr("&Graphics Inspector"), this);
@@ -701,6 +719,7 @@ void MainWindow::createActions()
     m_pBreakpointsWindowAct->setCheckable(true);
 
     m_pConsoleWindowAct = new QAction(tr("&Console"), this);
+    m_pConsoleWindowAct->setShortcut(QKeySequence("Alt+C"));
     m_pConsoleWindowAct->setStatusTip(tr("Show the Console window"));
     m_pConsoleWindowAct->setCheckable(true);
 
@@ -710,6 +729,7 @@ void MainWindow::createActions()
     m_pHardwareWindowAct->setCheckable(true);
 
     m_pProfileWindowAct = new QAction(tr("&Profile"), this);
+    m_pProfileWindowAct->setShortcut(QKeySequence("Alt+P"));
     m_pProfileWindowAct->setStatusTip(tr("Show the Profile window"));
     m_pProfileWindowAct->setCheckable(true);
 
@@ -744,6 +764,7 @@ void MainWindow::createToolBar()
     pToolbar->addAction(m_pLaunchAct);
     pToolbar->addSeparator();
     pToolbar->addAction(m_pWarmResetAct);
+    pToolbar->addSeparator();
     pToolbar->addAction(m_pFastForwardAct);
 
     this->addToolBar(Qt::ToolBarArea::TopToolBarArea, pToolbar);
@@ -788,11 +809,14 @@ void MainWindow::createMenus()
     m_pHelpMenu->addAction(m_pAboutQtAct);
 }
 
-void MainWindow::enableVis(QWidget* pWidget)
+void MainWindow::enableVis(QDockWidget* pWidget)
 {
     // This used to be a toggle
     pWidget->setVisible(true);
-    pWidget->setHidden(false);
+    //pWidget->activateWindow();
+    // I took 2 years to find this!
+    // https://stackoverflow.com/questions/1290882/focusing-on-a-tabified-qdockwidget-in-pyqt
+    pWidget->raise();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)

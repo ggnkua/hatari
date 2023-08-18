@@ -1,6 +1,51 @@
 hrdb Release Notes
 ==================
 
+v0.008 (???)
+
+- Memory Window
+  - Added search feature on Ctrl+F. Search supports hex or text, with case
+    sensitivity.
+  - Added selection of row widths of 4, 8, 16, 32 or 64 bytes, or auto-sizing.
+  - Window shows the address of the active editing cursor.
+    (request from zChris)
+  - Fix tooltip crash bug when viewing the first byte in the window if window
+    address is set to an odd value.
+  - Added Ctrl+Space shortcut for context menu.
+  - Large internal rewrite for stability.
+
+- Launch Dialog
+  - Added "Fast Launch" to run Hatari with --fast-forward until selected .prg
+    is about to start.
+
+- Graphics Inspector
+  - Allow width up to 80 chunks to support 1280 mode. This enables previewing of 
+    the 1280x200 video mode created by running the Shifter in mono with the GLUE 
+    in colour. (request from Troed/SYNC)
+  - Added Ctrl+Space shortcut for context menu.
+  - Show memory address(es) of pixel under mouse pointer (suggestion by ggn/KÜA)
+
+- Disassembly Window
+  - Supported decoding of 68020 and 68030 instructions (except for floating-
+    point co-processor instructions).
+  - Added Ctrl+Space shortcut for context menu.
+
+- Register Window
+  - Added display of 68020 and 68030 register values when appropriate.
+
+- Breakpoints Window
+  - Fixed "Trace" flag when creating breakpoints.
+  - Removed unnecessary columns from display.
+
+- General
+  - Add application window icon.
+  - Docked and tabbed windows now appear correctly when using Alt+ shortcuts to
+    switch to them.
+  - Add shortcuts for nearly all windows: Alt+P for Profile Window, Alt+C for
+    Console Window, Alt+2/3/4 for Memory Windows 2/3/4.
+  - Symbol system now supports comments; comments are added for the internal
+    hardware registers, vectors and TOS variables.
+
 v0.007 (August 2022)
 
 - Profile Window
@@ -11,7 +56,7 @@ v0.007 (August 2022)
   - Added view of used instructions/cycles when profiling is enabled.
   - Added "Set PC to here" right-click menu option.
   - Fixed decoding of EXG operands.
-  - Fixed decodeing of xx(pc) effective addresses in MOVEM instructions.
+  - Fixed decoding of xx(pc) effective addresses in MOVEM instructions.
   - Added support for optional display of relative offsets as hexadecimal.
     Thanks to tIn/Newline for providing this patch!
   - Tweaked mousewheel scrolling after suggestions from Rati/OVR

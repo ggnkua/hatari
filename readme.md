@@ -19,6 +19,7 @@ mingw-w64-i686-gcc mingw-w64-i686-SDL2 mingw64/mingw-w64-x86_64-portmidi```. (``
 You might want to install git while
 you're at it. I don't do that.
    1. You can now close the mingw32 command line
+   1. For 64bit builds just open a mingw64 console and type `q`pacman -S mingw64/mingw-w64-x86_64-attica-qt5 mingw64/mingw-w64-x86_64-SDL2 mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-portmidi``` (let's be serious, who even uses 32 bit builds anymore)
    1. ~~Check your /usr/include folder for ```memory.h```. If such a file is not present then create one that contains the following single line: ```#include <string.h>```.~~ Not needed anymore, thanks to tIn for the detective work
 1. Checkout this repository
 1. Open ```fastbuild\fbuild.bff``` in a text editor and change the 3 top

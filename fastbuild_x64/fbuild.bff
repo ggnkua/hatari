@@ -1,8 +1,8 @@
 ; You need to define these 3 things depending on your install.
 ; They cannot be derived easily sadly
 .GCC_BIN_DIR="C:\msys64\mingw64\bin"
-;.SRC_DIR="D:\a\hatari\hatari"
-.SRC_DIR="C:\msys64\home\ggn\hatari"
+.SRC_DIR="D:\a\hatari\hatari"
+;.SRC_DIR="C:\msys64\home\ggn\hatari"
 .MINGW_ROOT="C:\msys64\mingw64"
 .PLATFORM_NAME="x86_64-w64-mingw64"
 
@@ -473,9 +473,6 @@ Executable( "hatari_exe" )        ; (optional) Alias
 ; | | | | | | (_| | |_) |
 ; |_| |_|_|  \__,_|_.__/ 
 
-; This used to require a ton of junk rules to run moc and rcc, but now it doesn't for some reason
-; So "hrdb_obj" now doesn't prebuild those rules
-
 .RCC         ="$GCC_BIN_DIR$\rcc.exe"
 .MOC         ="$GCC_BIN_DIR$\moc.exe"
 .MOC_DEFINES ="-DUNICODE"
@@ -579,6 +576,8 @@ ObjectList( "hrdb_qrc" )         ; Alias
 }
 
 ; Finally, compile the actual and generated code
+; Note: some mingw setups require the "moc"/"qrc" rules
+; to be run in "hrdb_obj", others don't. I have no idea why this happens
 ObjectList( "hrdb_obj" )         ; Alias
 {
   .Compiler                 ="gpp"                                    ; Compiler to use
@@ -586,7 +585,7 @@ ObjectList( "hrdb_obj" )         ; Alias
   .CompilerInputPath        ={"$SRC_DIR$/tools/hrdb"}
   .CompilerInputPattern     ="*.cpp"
   .CompilerOutputPath       ="hrdb"                                   ; Path to store intermediate objects
-;  .CompilerInputObjectLists ={"hrdb_moc","hrdb_qrc"}                  ; (optional) ObjectList(s) whos output should be used as an input
+  .CompilerInputObjectLists ={"hrdb_moc","hrdb_qrc"}                  ; (optional) ObjectList(s) whos output should be used as an input
 }
 
 Executable( "hrdb_exe" )        ; (optional) Alias

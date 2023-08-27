@@ -75,15 +75,16 @@ jobs:
           # -no-translations is a workaround for some versions of windeployqt barfing due to a regression. See https://forum.qt.io/topic/124947/error-running-windeployqt/9 and hope that tat doesn't add translations soon?
           #windeployqt . -no-translations
           #mv ../fastbuild/hatari.exe .
+          set -x
           cd hrdb64
           for i in `ldd hrdb.exe | awk '{print $3}'`; do echo $i; cp $i .;done
           for i in `ldd hatari.exe | awk '{print $3}'`; do echo $i; cp $i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
           export PATH=/mingw64/bin:$PATH
           /C/msys64/mingw64/bin/windeployqt.exe . -no-translations
           

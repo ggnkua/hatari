@@ -113,8 +113,8 @@ jobs:
         shell: msys2 {0}
         run: |
           cd hrdb
-          for i in `ldd hrdb.exe |grep -vi System32|awk '{print $1}'`; do cp /mingw32/bin/$i .;done
-          for i in `ldd hatari.exe |grep -vi System32|awk '{print $1}'`; do cp /mingw32/bin/$i .;done
+          for i in `ldd hrdb.exe | awk '{print $3}'`; do cp $i .;done
+          for i in `ldd hatari.exe | awk '{print $3}'`; do cp $i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
@@ -125,8 +125,8 @@ jobs:
           windeployqt . -no-translations
           mv ../fastbuild/hatari.exe .
           cd ../hrdb64
-          for i in `ldd hrdb.exe |grep -vi System32|awk '{print $1}'`; do cp /mingw64/bin/$i .;done
-          for i in `ldd hatari.exe |grep -vi System32|awk '{print $1}'`; do cp /mingw64/bin/$i .;done
+          for i in `ldd hrdb.exe | awk '{print $3}'`; do cp $i .;done
+          for i in `ldd hatari.exe | awk '{print $3}'`; do cp $i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done

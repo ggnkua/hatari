@@ -77,8 +77,8 @@ jobs:
           #mv ../fastbuild/hatari.exe .
           set -x
           cd hrdb64
-          for i in `ldd hrdb.exe | awk '{print $3}'`; do echo $i; cp $i .;done
-          for i in `ldd hatari.exe | awk '{print $3}'`; do echo $i; cp $i .;done
+          for i in `ldd hrdb.exe | awk '{print $3}'|grep -vi not`; do echo $i; cp $i .;done
+          for i in `ldd hatari.exe | awk '{print $3}'|grep -vi not`; do echo $i; cp $i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done

@@ -58,6 +58,7 @@ jobs:
           cd fastbuild_x64
           fbuild -showcmds
           move hrdb.exe ..\hrdb64
+          move hatari.exe ..\hrdb64
 
       - name: "Post qt build steps"
         shell: msys2 {0}
@@ -85,7 +86,6 @@ jobs:
           for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
           export PATH=/mingw64/bin:$PATH
           /C/msys64/mingw64/bin/windeployqt.exe . -no-translations
-          mv ../fastbuild_x64/hatari.exe .
           
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2

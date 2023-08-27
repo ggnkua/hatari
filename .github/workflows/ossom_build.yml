@@ -22,7 +22,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: ${{ matrix.msystem }}
-          install: git base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
+          install: git base-devel mingw-w64-x86_64-toolchain #mingw-w64-i686-toolchain 
           #update: true
           release: false
 
@@ -31,108 +31,58 @@ jobs:
       - name: "Copy qt dll files"
         shell: msys2 {0}
         run: |
-          pacman --noconfirm -S make mingw32/mingw-w64-i686-attica-qt5 mingw-w64-i686-SDL2 mingw-w64-x86_64-qt5 mingw-w64-x86_64-SDL2 mingw64/mingw-w64-x86_64-portmidi mingw32/mingw-w64-i686-portmidi
-          mkdir hrdb
+          pacman --noconfirm -S make mingw-w64-x86_64-qt5 mingw-w64-x86_64-SDL2 mingw64/mingw-w64-x86_64-portmidi #mingw32/mingw-w64-i686-attica-qt5 mingw-w64-i686-SDL2 mingw32/mingw-w64-i686-portmidi 
+          #mkdir hrdb
           mkdir hrdb64
-          cd hrdb
-          #cp /C/msys64/mingw32/bin/libgcc_s_dw2-1.dll .
-          #cp /C/msys64/mingw32/bin/libstdc++-6.dll .
-          #cp /C/msys64/mingw32/bin/libbrotlicommon.dll .
-          #cp /C/msys64/mingw32/bin/libbrotlidec.dll .
-          #cp /C/msys64/mingw32/bin/libharfbuzz-0.dll .
-          #cp /C/msys64/mingw32/bin/libglib-2.0-0.dll .
-          #cp /C/msys64/mingw32/bin/libfreetype-6.dll .
-          #cp /C/msys64/mingw32/bin/libiconv-2.dll .
-          #cp /C/msys64/mingw32/bin/libintl-8.dll .
-          #cp /C/msys64/mingw32/bin/libwinpthread-1.dll .
-          #cp /C/msys64/mingw32/bin/libgraphite2.dll .
-          #cp /C/msys64/mingw32/bin/libzstd.dll .
-          #cp /C/msys64/mingw32/bin/libpcre2-16-0.dll .
-          #cp /C/msys64/mingw32/bin/libicudt*.dll .
-          #cp /C/msys64/mingw32/bin/libicuin*.dll .
-          #cp /C/msys64/mingw32/bin/libicuuc*.dll .
-          #cp /C/msys64/mingw32/bin/libpcre-1.dll .
-          #cp /C/msys64/mingw32/bin/libbz2-1.dll .
-          #cp /C/msys64/mingw32/bin/libdouble-conversion.dll .
-          #cp /C/msys64/mingw32/bin/zlib1.dll .
-          #cp /C/msys64/mingw32/bin/libpng16-16.dll .
-          #cp /C/msys64/mingw32/bin/SDL2.dll .
-          # Remove unneeded dlls
-          #rm -f libicuucd*.dll
-          #rm -f libicudtd*.dll
-          cd ../hrdb64
-          #cp /C/msys64/mingw64/bin/libgcc_s_seh-1.dll .
-          #cp /C/msys64/mingw64/bin/libstdc++-6.dll .
-          #cp /C/msys64/mingw64/bin/libbrotlicommon.dll .
-          #cp /C/msys64/mingw64/bin/libbrotlidec.dll .
-          #cp /C/msys64/mingw64/bin/libharfbuzz-0.dll .
-          #cp /C/msys64/mingw64/bin/libglib-2.0-0.dll .
-          #cp /C/msys64/mingw64/bin/libfreetype-6.dll .
-          #cp /C/msys64/mingw64/bin/libiconv-2.dll .
-          #cp /C/msys64/mingw64/bin/libintl-8.dll .
-          #cp /C/msys64/mingw64/bin/libwinpthread-1.dll .
-          #cp /C/msys64/mingw64/bin/libgraphite2.dll .
-          #cp /C/msys64/mingw64/bin/libzstd.dll .
-          #cp /C/msys64/mingw64/bin/libpcre2-16-0.dll .
-          #cp /C/msys64/mingw64/bin/libicudt*.dll .
-          #cp /C/msys64/mingw64/bin/libicuin*.dll .
-          #cp /C/msys64/mingw64/bin/libicuuc*.dll .
-          #cp /C/msys64/mingw64/bin/libpcre-1.dll .
-          #cp /C/msys64/mingw64/bin/libbz2-1.dll .
-          #cp /C/msys64/mingw64/bin/libdouble-conversion.dll .
-          #cp /C/msys64/mingw64/bin/zlib1.dll .
-          #cp /C/msys64/mingw64/bin/libpng16-16.dll .
-          #cp /C/msys64/mingw64/bin/SDL2.dll .
-          # Remove unneeded dlls
-          #rm -f libicuucd*.dll
-          #rm -f libicudtd*.dll
-          cd ..
-          mkdir -p fastbuild/cpu
-          mkdir -p fastbuild/debug
-          mkdir -p fastbuild/falcon
-          mkdir -p fastbuild/floppy
-          mkdir -p fastbuild/guisdl
-          mkdir -p fastbuild/hatari
-          mkdir -p fastbuild/uaecpu
-          chmod 777 -R fastbuild
-          chmod 777 fastbuild
+          #cd hrdb
+          #cd ../hrdb64
+          #cd ..
+          #mkdir -p fastbuild/cpu
+          #mkdir -p fastbuild/debug
+          #mkdir -p fastbuild/falcon
+          #mkdir -p fastbuild/floppy
+          #mkdir -p fastbuild/guisdl
+          #mkdir -p fastbuild/hatari
+          #mkdir -p fastbuild/uaecpu
+          #chmod 777 -R fastbuild
+          #chmod 777 fastbuild
           chmod 777 -R fastbuild_x64
           chmod 777 fastbuild_x64
 
       - name: "Build hatari"
         shell: cmd
         run: |
-          cd fastbuild
-          fbuild -showcmds
-          move hrdb.exe ..\hrdb
-          cd ..\fastbuild_x64
+          #cd fastbuild
+          #fbuild -showcmds
+          #move hrdb.exe ..\hrdb
+          cd fastbuild_x64
           fbuild -showcmds
           move hrdb.exe ..\hrdb64
 
       - name: "Post qt build steps"
         shell: msys2 {0}
         run: |
-          cd hrdb
-          for i in `ldd hrdb.exe | awk '{print $3}'`; do cp $i .;done
-          for i in `ldd hatari.exe | awk '{print $3}'`; do cp $i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          #cd hrdb
+          #for i in `ldd hrdb.exe | awk '{print $3}'`; do cp $i .;done
+          #for i in `ldd hatari.exe | awk '{print $3}'`; do cp $i .;done
+          #for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          #for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          #for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          #for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          #for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
+          #for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw32/bin/$i .;done
           # -no-translations is a workaround for some versions of windeployqt barfing due to a regression. See https://forum.qt.io/topic/124947/error-running-windeployqt/9 and hope that tat doesn't add translations soon?
-          windeployqt . -no-translations
-          mv ../fastbuild/hatari.exe .
-          cd ../hrdb64
-          for i in `ldd hrdb.exe | awk '{print $3}'`; do cp $i .;done
-          for i in `ldd hatari.exe | awk '{print $3}'`; do cp $i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
-          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do cp /mingw64/bin/$i .;done
+          #windeployqt . -no-translations
+          #mv ../fastbuild/hatari.exe .
+          cd hrdb64
+          for i in `ldd hrdb.exe | awk '{print $3}'`; do echo $i; cp $i .;done
+          for i in `ldd hatari.exe | awk '{print $3}'`; do echo $i; cp $i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
+          for i in `for j in $(ls *.dll); do ldd $j;done|grep -vi System32|awk '{print $1}'|sort -u`; do echo $i; cp /mingw64/bin/$i .;done
           export PATH=/mingw64/bin:$PATH
           /C/msys64/mingw64/bin/windeployqt.exe . -no-translations
           mv ../fastbuild_x64/hatari.exe .
@@ -142,5 +92,5 @@ jobs:
         with:
           name: hatari-debugger-${{ github.sha }}
           path: |
-              hrdb/
+              #hrdb/
               hrdb64/

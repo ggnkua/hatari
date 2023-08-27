@@ -86,7 +86,7 @@ jobs:
           for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
           for i in `for j in $(ls *.dll); do ldd $j;done|awk '{print $3}'|sort -u|grep -vi not|grep -vi $PWD`; do echo $i; cp $i .;done
           export PATH=/mingw64/bin:$PATH
-          /C/msys64/mingw64/bin/windeployqt.exe . -no-translations
+          /C/msys64/mingw64/bin/windeployqt.exe hrdb.exe -no-translations
           
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2

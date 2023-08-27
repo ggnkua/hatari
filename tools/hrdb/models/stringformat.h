@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <QString>
+#include <QTextStream>
 
 namespace Format
 {
@@ -16,19 +17,26 @@ namespace Format
     // Format a value as signed decimal or hexadecimal.
     // Handles the nasty "-$5" case
     inline QString to_signed(int32_t val, bool isHex);
+
+    inline QTextStream &flush(QTextStream &stream);
+
+    // This is a wrapper for Qt::endl() which isn't available
+    // in Qt 5.12, but TextStream::endl() causes deprecation warnings.
+    // We don't need to flush either.
+    inline QTextStream &endl(QTextStream &stream);
 };
 
 // ----------------------------------------------------------------------------
 //	INSTRUCTION DISPLAY FORMATTING
 // ----------------------------------------------------------------------------
-inline QString Format::to_hex32(uint32_t val)
+QString Format::to_hex32(uint32_t val)
 {
     QString tmp;
     tmp = QString::asprintf("$%x", val);
     return tmp;
 }
 
-inline QString Format::to_abs_word(uint16_t val)
+QString Format::to_abs_word(uint16_t val)
 {
     QString tmp;
     if (val & 0x8000)
@@ -39,7 +47,7 @@ inline QString Format::to_abs_word(uint16_t val)
     return tmp;
 }
 
-inline QString Format::to_signed(int32_t val, bool isHex)
+QString Format::to_signed(int32_t val, bool isHex)
 {
     QString tmp;
     if (isHex)
@@ -53,6 +61,17 @@ inline QString Format::to_signed(int32_t val, bool isHex)
     {
         return QString::asprintf("%d", val);
     }
+}
+
+QTextStream &Format::flush(QTextStream &stream)
+{
+    stream.flush();
+    return stream;
+}
+
+QTextStream &Format::endl(QTextStream &stream)
+{
+    return stream << QLatin1Char('\n') << Format::flush;
 }
 
 #endif // STRINGFORMAT_H

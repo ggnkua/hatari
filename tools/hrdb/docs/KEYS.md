@@ -1,42 +1,84 @@
 Normal focus
 ============
-(always active unless in dialog, text boxes)
 
-- Ctrl+R       - Start/stop
-- Esc          - Stop
-- S            - Step (execute next instruction)
-- Ctrl+S       - Skip (move to next instruction without executing current)
-- N            - Next (step through bsr/jsr)
-- U            - Run Until (RTS/RTE/VBL/HBL)
-- Ctrl+Shift+U - Cycle "Run Until.." choice
-- Alt+Shift+B  - Add breakpoint (dialog)
-- Alt+D - Focus Disassembly View
-- Alt+M - Focus Memory View 1
-- Alt+2 - Focus Memory View 2
-- Alt+3 - Focus Memory View 3
-- Alt+4 - Focus Memory View 4
-- Alt+G - Focus Graphics Inspector
-- Alt+B - Focus Breakpoints View
-- Alt+H - Focus Hardware View
-- Alt+P - Focus Profile Window
-- Alt+C - Focus Console Window
-- Alt+L - Launch (run Hatari dialog)
-- Alt+Q - QuickLaunch (run Hatari with previous settings)
+Basic program control:
+| Key           | Operation                                    |
+|---------------|----------------------------------------------|
+| Ctrl+R        | Start/stop                                   |
+| Esc           | Stop                                         |
+| S             | Step (execute next instruction)              |
+| Ctrl+S        | Skip (jump over instruction                  |
+| N             | Next (execute, but step through bsr/jsr/dbf) |
+| U             | Run Until RTS/RTE/VBL/HBL/RAM                |
+| Ctrl+Shift+U  | Cycle "Run Until.." choice                   |
+| Ctrl+U, S     | Run To RTS                                   |
+| Ctrl+U, E     | Run To RTE                                   |
+| Ctrl+U, V     | Run To VBL                                   |
+| Ctrl+U, H     | Run To HBL                                   |
+| Ctrl+U, R     | Run To RAM (exits e.g. TOS, cartridge)       |
+| Alt+Shift+B   | Add breakpoint (dialog)                      |
+
+Window focus:
+| Key           | Operation                |
+|---------------|--------------------------|
+| Alt+D         | Focus Disassembly View   |
+| Alt+M         | Focus Memory View 1      |
+| Alt+2         | Focus Memory View 2      |
+| Alt+3         | Focus Memory View 3      |
+| Alt+4         | Focus Memory View 4      |
+| Alt+G         | Focus Graphics Inspector |
+| Alt+B         | Focus Breakpoints View   |
+| Alt+H         | Focus Hardware View      |
+| Alt+P         | Focus Profile Window     |
+| Alt+C         | Focus Console Window     |
+
+Running Hatari:
+| Key           | Operation                     |
+|---------------|-------------------------------|
+| Alt+L         | Launch Dialog (to run Hatari) |
+| Alt+Q         | QuickLaunch                   |
+
+Visual Studio control:
+
+| Key           | Operation                        |
+|---------------|----------------------------------|
+| F5            | Start/stop                       |
+| F10           | Step (execute next instruction)  |
+| F11           | Next (step through bsr/jsr)      |
 
 Disassembly focus
 =================
-- Up/Down Cursor movement, Page Up/Down - line navigation
-- Ctrl+B - Toggle breakpoint (cursor position)
-- Ctrl+H - Run to "Here" (cursor position)
-- Ctrl+Space - show Context Menu
+| Key           | Operation                           |
+|---------------|-------------------------------------|
+| Up/Down       | Move Cursor                         |
+| Page Up/Down  | Move by several lines               |
+| Ctrl+B        | Toggle breakpoint (cursor position) |
+| Ctrl+F        | Search for text/hexadecimal string  |
+| Ctrl+H        | Run to "Here" (cursor position)     |
+| Ctrl+Space    | Show Context Menu                   |
+
+Visual Studio control:
+| Key           | Operation                           |
+|---------------|-------------------------------------|
+| F9            | Toggle breakpoint (cursor position) |
+| Ctrl+F10      | Run to "Here" (cursor position)     |
 
 Memory Window focus
 ===================
-- Cursor movement, Page Up/Down - navigation
-- Ctrl+F - Search for text/hexadecimal string
-- Ctrl+Space - show Context Menu
+| Key           | Operation                          |
+|---------------|------------------------------------|
+| Cursor kyes   | Move editing cursor                |
+| Page Up/Down  | Move to previous/next page         |
+| Ctrl+F        | Search for text/hexadecimal string |
+| Ctrl+W        | Write memory to file               |
+| Ctrl+Space    | Show Context Menu                  |
 
 Graphics Inspector focus
 ========================
-- Ctrl+Space - show Context Menu
+| Key           | Operation               |
+|---------------|-------------------------|
+| Up/Down       | move by one bitmap line |
+| Shift+Up/Down | move by 8 lines         |
+| Left/Right    | move by 2 bytes         |
+| Ctrl+Space    | Show Context Menu       |
 

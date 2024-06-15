@@ -85,6 +85,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_height(200),
     m_padding(0),
     m_paletteMode(kRegisters),
+    m_cachedResolution(Regs::RESOLUTION::LOW),
     m_annotateRegisters(false)
 {
     m_paletteAddress = Regs::VID_PAL_0;
@@ -431,6 +432,15 @@ void GraphicsInspectorWidget::memoryChanged(int /*memorySlot*/, uint64_t command
         // We should have registers now, so use them
         if (m_pLockAddressToVideoCheckBox->isChecked())
             SetBitmapAddressFromVideoRegs();
+
+        // Update cached resolution
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
+        if (pMem)
+        {
+            uint8_t val = 0;
+            if (pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
+                m_cachedResolution = Regs::GetField_VID_SHIFTER_RES_RES(val);
+        }
 
         // See if bitmap etc can now be requested
         UpdateMemoryRequests();
@@ -830,6 +840,21 @@ void GraphicsInspectorWidget::UpdateImage()
             break;
     }
 
+    if (m_paletteMode == kRegisters)
+    {
+        if (m_cachedResolution == Regs::RESOLUTION::HIGH)
+        {
+            const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
+            uint32_t colour0 = 0;
+            if (pMem && pMem->ReadAddressMulti(Regs::VID_PAL_0, 2, colour0))
+            {
+                int ind = colour0 & 1;
+                m_pImageWidget->m_colours[ind    ] = 0xff000000 | 0x000000;
+                m_pImageWidget->m_colours[ind ^ 1] = 0xff000000 | 0xffffff;
+            }
+        }
+    }
+
     const Memory* pMemOrig = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspector);
     if (!pMemOrig)
         return;
@@ -996,7 +1021,8 @@ GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
     uint8_t val = 0;
     if (!pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
         return Mode::k1Bitplane;
-    Regs::RESOLUTION modeReg = (Regs::RESOLUTION)val;
+
+    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(val);
     if (modeReg == Regs::RESOLUTION::LOW)
         return Mode::k4Bitplane;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)

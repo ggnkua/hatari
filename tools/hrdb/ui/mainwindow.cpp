@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QDesktopServices>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
@@ -68,6 +69,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pRunToCombo->insertItem(kRunToRte, "RTE");
     m_pRunToCombo->insertItem(kRunToVbl, "Next VBL");
     m_pRunToCombo->insertItem(kRunToHbl, "Next HBL");
+    m_pRunToCombo->insertItem(kRunToRam, "In RAM");
 
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
@@ -157,6 +159,8 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,       this, &MainWindow::memoryChanged);
     connect(m_pTargetModel, &TargetModel::runningRefreshTimerSignal, this, &MainWindow::runningRefreshTimer);
     connect(m_pTargetModel, &TargetModel::flushSignal,               this, &MainWindow::flush);
+    connect(m_pTargetModel, &TargetModel::protocolMismatchSignal,    this, &MainWindow::protocolMismatch);
+    connect(m_pTargetModel, &TargetModel::saveBinCompleteSignal,     this, &MainWindow::saveBinComplete);
 
     // Wire up buttons to actions
     connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
@@ -178,6 +182,16 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
     new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
     new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
+    // Specific "Run until" modes
+    new QShortcut(QKeySequence("Ctrl+U,S"),       this, SLOT(runToRtsSlot()));
+    new QShortcut(QKeySequence("Ctrl+U,E"),       this, SLOT(runToRteSlot()));
+    new QShortcut(QKeySequence("Ctrl+U,V"),       this, SLOT(runToVblSlot()));
+    new QShortcut(QKeySequence("Ctrl+U,H"),       this, SLOT(runToHblSlot()));
+    new QShortcut(QKeySequence("Ctrl+U,R"),       this, SLOT(runToRamSlot()));
+
+    new QShortcut(QKeySequence("F5"),            this, SLOT(startStopClickedSlot()));
+    new QShortcut(QKeySequence("F11"),           this, SLOT(singleStepClickedSlot()));
+    new QShortcut(QKeySequence("F10"),           this, SLOT(nextClickedSlot()));
 
     // Try initial connect
     ConnectTriggered();
@@ -271,6 +285,28 @@ void MainWindow::flush(const TargetChangedFlags& /*flags*/, uint64_t commandId)
     }
 }
 
+void MainWindow::protocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol)
+{
+    // Ensure that auto-connect gets turned off!
+    m_session.Disconnect();
+    QString text;
+    QTextStream ref(&text);
+    ref.setIntegerBase(16);
+    ref << "Protocol version mismatch:\n";
+    ref << "\nHatari protocol version is: 0x" << hatariProtocol;
+    ref << "\nbut hrdb expects version: 0x" << hrdbProtocol;
+    QMessageBox box(QMessageBox::Critical, "Can't connect", text);
+    box.exec();
+}
+
+void MainWindow::saveBinComplete(uint64_t /*commandId*/, uint32_t errorCode)
+{
+    if (!errorCode)
+        messageSet("File saved.");
+    else
+        messageSet(QString::asprintf("Unable to save file (error %d)", errorCode));
+}
+
 void MainWindow::startStopClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
@@ -297,6 +333,9 @@ void MainWindow::nextClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
+
+    m_pDispatcher->SendSaveBin(0x0, 0x1000, std::string("/tmp/saved.bin"));
+
 
     if (m_pTargetModel->IsRunning())
         return;
@@ -358,17 +397,7 @@ void MainWindow::runToClickedSlot()
     if (m_pTargetModel->IsRunning())
         return;
 
-    if (m_pRunToCombo->currentIndex() == kRunToRts)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
-    else if (m_pRunToCombo->currentIndex() == kRunToRte)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
-    else if (m_pRunToCombo->currentIndex() == kRunToVbl)
-        m_pDispatcher->SetBreakpoint("VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
-    else if (m_pRunToCombo->currentIndex() == kRunToHbl)
-        m_pDispatcher->SetBreakpoint("HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
-    else
-        return;
-    m_pDispatcher->Run();
+    runTo((RunToMode)m_pRunToCombo->currentIndex());
 }
 
 void MainWindow::cycleRunToSlot()
@@ -569,6 +598,29 @@ void MainWindow::saveSettings()
     m_pProfileWindow->saveSettings();
 }
 
+void MainWindow::runTo(MainWindow::RunToMode mode)
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+    if (m_pTargetModel->IsRunning())
+        return;
+
+    if (mode == kRunToRts)
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
+    else if (mode == kRunToRte)
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
+    else if (mode == kRunToVbl)
+        m_pDispatcher->SetBreakpoint("VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
+    else if (mode == kRunToHbl)
+        m_pDispatcher->SetBreakpoint("HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
+    else if (mode == kRunToRam)
+        m_pDispatcher->SetBreakpoint("PC < $e00000", Dispatcher::kBpFlagOnce);     // Not in TOS
+    else
+        return;
+    // start execution again
+    m_pDispatcher->Run();
+}
+
 void MainWindow::menuConnect()
 {
     ConnectTriggered();
@@ -608,6 +660,11 @@ void MainWindow::about()
 
 void MainWindow::aboutQt()
 {
+}
+
+void MainWindow::onlineHelp()
+{
+    QDesktopServices::openUrl(QUrl(HELP_URL));
 }
 
 void MainWindow::messageSet(const QString &msg)
@@ -750,6 +807,11 @@ void MainWindow::createActions()
     m_pAboutAct->setStatusTip(tr("Show the application's About box"));
     connect(m_pAboutAct, &QAction::triggered, this, &MainWindow::about);
 
+    // "About"
+    m_pOnlineHelpAct = new QAction(tr("Online Help"), this);
+    m_pOnlineHelpAct->setStatusTip(tr("Access online help page"));
+    connect(m_pOnlineHelpAct, &QAction::triggered, this, &MainWindow::onlineHelp);
+
     m_pAboutQtAct = new QAction(tr("About &Qt"), this);
     m_pAboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
     connect(m_pAboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
@@ -805,6 +867,7 @@ void MainWindow::createMenus()
     m_pWindowMenu->addAction(m_pProfileWindowAct);
 
     m_pHelpMenu = menuBar()->addMenu(tr("Help"));
+    m_pHelpMenu->addAction(m_pOnlineHelpAct);
     m_pHelpMenu->addAction(m_pAboutAct);
     m_pHelpMenu->addAction(m_pAboutQtAct);
 }

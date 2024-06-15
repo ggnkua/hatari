@@ -50,6 +50,17 @@ public:
 protected:
     virtual void closeEvent(QCloseEvent *event) override;
 
+private:
+    enum RunToMode
+    {
+        kRunToRts,
+        kRunToRte,
+        kRunToVbl,
+        kRunToHbl,
+        kRunToRam,
+        kRunToMax,
+    };
+
 private slots:
     void startStopClickedSlot();
     void singleStepClickedSlot();
@@ -60,19 +71,13 @@ private slots:
     void breakPressedSlot();
 
 private:
-    enum RunToMode
-    {
-        kRunToRts,
-        kRunToRte,
-        kRunToVbl,
-        kRunToHbl,
-        kRunToMax,
-    };
     void connectChanged();
     void startStopChanged();
     void memoryChanged(int slot, uint64_t commandId);
     void runningRefreshTimer();
     void flush(const TargetChangedFlags& flags, uint64_t commandId);
+    void protocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol);
+    void saveBinComplete(uint64_t commandId, uint32_t errorCode);
 
     // Button callbacks
     void addBreakpointPressed();
@@ -83,6 +88,7 @@ private:
 
     void about();
     void aboutQt();
+    void onlineHelp();
 
     // status
     void messageSet(const QString& msg);
@@ -110,6 +116,17 @@ private:
     void loadSettings();
     void saveSettings();
 
+    // Exection
+    void runTo(RunToMode mode);
+
+private slots:
+    void runToRtsSlot() { runTo(RunToMode::kRunToRts); }
+    void runToRteSlot() { runTo(RunToMode::kRunToRte); }
+    void runToVblSlot() { runTo(RunToMode::kRunToVbl); }
+    void runToHblSlot() { runTo(RunToMode::kRunToHbl); }
+    void runToRamSlot() { runTo(RunToMode::kRunToRam); }
+
+private:
     // Our UI widgets
     QWidget*        m_pRunningSquare;
     QPushButton*    m_pStartStopButton;
@@ -183,6 +200,7 @@ private:
     QAction* m_pHardwareWindowAct;
     QAction* m_pProfileWindowAct;
 
+    QAction* m_pOnlineHelpAct;
     QAction* m_pAboutAct;
     QAction* m_pAboutQtAct;
 };

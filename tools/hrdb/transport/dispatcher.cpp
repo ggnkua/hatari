@@ -11,6 +11,9 @@
 
 //#define DISPATCHER_DEBUG
 
+// Protocol ID which needs to match the Hatari target
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1007)
+
 //-----------------------------------------------------------------------------
 // Character value for the separator in responses/notifications from the target
 static const char SEP_CHAR = 1;
@@ -62,8 +65,8 @@ uint64_t Dispatcher::InsertFlush()
 
 uint64_t Dispatcher::ReadMemory(MemorySlot slot, uint32_t address, uint32_t size)
 {
-    std::string command = std::string("mem ") + std::to_string(address) + " " + std::to_string(size);
-    return SendCommandShared(slot, command);
+    QString tmp = QString::asprintf("mem %x %x", address, size);
+    return SendCommandShared(slot, tmp.toStdString());
 }
 
 uint64_t Dispatcher::ReadInfoYm()
@@ -88,7 +91,7 @@ uint64_t Dispatcher::ReadSymbols()
 
 uint64_t Dispatcher::WriteMemory(uint32_t address, const QVector<uint8_t> &data)
 {
-    QString command = QString::asprintf("memset %u %d ", address, data.size());
+    QString command = QString::asprintf("memset %x %x ", address, data.size());
     for (int i = 0; i <  data.size(); ++i)
         command += QString::asprintf("%02x", data[i]);
 
@@ -142,7 +145,7 @@ uint64_t Dispatcher::SetBreakpoint(std::string expression, uint64_t optionFlags)
 
 uint64_t Dispatcher::DeleteBreakpoint(uint32_t breakpointId)
 {
-    QString cmd = QString::asprintf("bpdel %d", breakpointId);
+    QString cmd = QString::asprintf("bpdel %x", breakpointId);
     SendCommandPacket(cmd.toStdString().c_str());
     return SendCommandPacket("bplist");
 }
@@ -157,7 +160,7 @@ uint64_t Dispatcher::SetRegister(int reg, uint32_t val)
 
 uint64_t Dispatcher::SetExceptionMask(uint32_t mask)
 {
-    return SendCommandPacket(QString::asprintf("exmask %u", mask).toStdString().c_str());
+    return SendCommandPacket(QString::asprintf("exmask %x", mask).toStdString().c_str());
 }
 
 uint64_t Dispatcher::SetLoggingFile(const std::string& filename)
@@ -193,12 +196,18 @@ uint64_t Dispatcher::SendConsoleCommand(const std::string& cmd)
 
 uint64_t Dispatcher::SendMemFind(const QVector<uint8_t>& valuesAndMasks, uint32_t startAddress, uint32_t endAddress)
 {
-    std::string packet = "memfind ";
-    QString command = QString::asprintf("memfind %u %d ", startAddress, endAddress - startAddress);
+    QString command = QString::asprintf("memfind %x %x ", startAddress, endAddress - startAddress);
 
     for (int i = 0; i <  valuesAndMasks.size(); ++i)
         command += QString::asprintf("%02x", valuesAndMasks[i]);
 
+    return SendCommandPacket(command.toStdString().c_str());
+}
+
+uint64_t Dispatcher::SendSaveBin(uint32_t startAddress, uint32_t size, const std::string &filename)
+{
+    QString command = QString::asprintf("savebin %x %x %s", startAddress, size,
+                                        filename.c_str());
     return SendCommandPacket(command.toStdString().c_str());
 }
 
@@ -388,8 +397,21 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
     std::string cmd_status = splitResp.Split(SEP_CHAR);
     if (cmd_status != std::string("OK"))
     {
-        std::cout << "Repsonse dropped: " << cmd.m_response << std::endl;
-        std::cout << "Original command: " << cmd.m_cmd << std::endl;
+        assert(cmd_status == "NG");
+        std::cout << "WARNING: Repsonse dropped: " << cmd.m_response << std::endl;
+        std::cout << "WARNING: Original command: " << cmd.m_cmd << std::endl;
+
+        // "NG" commands return a value now, so parse that
+        // for future information
+        std::string valueStr = splitResp.Split(SEP_CHAR);
+        uint32_t value;
+        if (!StringParsers::ParseHexString(valueStr.c_str(), value))
+            return;
+
+        // Send signals for some packet types
+        if (type == "savebin")
+            m_pTargetModel->saveBinCompleteSignal(cmd.m_uid, value);
+
         return;
     }
 
@@ -595,6 +617,10 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         }
         m_pTargetModel->SetSearchResults(cmd.m_uid, results);
     }
+    else if (type == "savebin")
+    {
+       m_pTargetModel->SaveBinComplete(cmd.m_uid, 0U);
+    }
     else
     {
         // For debugging
@@ -608,8 +634,43 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
     std::cout << "NOTIFICATION:" << cmd.m_payload << std::endl;
 #endif
     StringSplitter s(cmd.m_payload);
-
     std::string type = s.Split(SEP_CHAR);
+
+    // Only accept one message type if we are awaiting a protcol ack
+    if (m_waitingConnectionAck)
+    {
+        if (type == "!connected")
+        {
+            // Check the protocol
+            std::string protoColIdStr = s.Split(SEP_CHAR);
+            uint32_t protocolId;
+            if (!StringParsers::ParseHexString(protoColIdStr.c_str(), protocolId))
+                return;
+
+            if (protocolId != REMOTEDEBUG_PROTOCOL_ID)
+            {
+                std::cout << "Connection refused (wrong protocol)" << std::endl;
+                m_pTcpSocket->disconnectFromHost();
+                disconnected(); // do our cleanup too
+                m_waitingConnectionAck = false;
+                m_pTargetModel->SetProtocolMismatch(protocolId, REMOTEDEBUG_PROTOCOL_ID);
+                return;
+            }
+            // This connection looks ok
+            // Allow new command responses to be processed.
+            m_waitingConnectionAck = false;
+
+            std::cout << "Connection acknowleged by server" << std::endl;
+            m_pTargetModel->SetConnected(1);
+        }
+        return;
+    }
+
+    // Ditch any notifications that might still be coming through after a
+    // connection rejection
+    if (!m_portConnected)
+        return;
+
     if (type == "!status")
     {
         std::string runningStr = s.Split(SEP_CHAR);
@@ -645,14 +706,6 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             return;
         m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize);
         this->InsertFlush();
-    }
-    else if (type == "!connected")
-    {
-        // Allow new command responses to be processed.
-        m_waitingConnectionAck = false;
-        std::cout << "Connection acknowleged by server" << std::endl;
-        // Flag for the UI to request the data it wants
-        m_pTargetModel->SetConnected(1);
     }
     else if (type == "!profile")
     {

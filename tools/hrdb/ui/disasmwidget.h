@@ -21,7 +21,7 @@ class DisasmWidget : public QWidget
 {
     Q_OBJECT
 public:
-    DisasmWidget(QWidget * parent, Session* m_pSession, int windowIndex);
+    DisasmWidget(QWidget * parent, Session* m_pSession, int windowIndex, QAction* pSearchAction);
     virtual ~DisasmWidget() override;
 
     uint32_t GetAddress() const { return m_logicalAddr; }
@@ -88,6 +88,7 @@ private:
     {
         bool valid[2];
         uint32_t address[2];
+        QString annotationText;     // Extra info like trap call name, line-A in future?
     };
 
     Disassembler::disassembly m_disasm;
@@ -171,6 +172,8 @@ private:
     QAction*              m_pSetPcAction;
     QMenu*                m_pEditMenu;        // "edit this instruction" menu
     QAction*              m_pNopAction;
+
+    QAction*              m_pSearchAction;    // Passed from parent window...
 
     // "Show memory for $x" top-level menus:
     // Show Instruction

@@ -19,6 +19,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     hardware/hardware_st.cpp \
     hardware/regs_st.cpp \
+    hardware/tos.cpp \
     hopper/decode.cpp \
     hopper/instruction.cpp \
     hrdbapplication.cpp \
@@ -53,6 +54,7 @@ SOURCES += \
     ui/profilewindow.cpp \
     ui/registerwidget.cpp \
     ui/rundialog.cpp \
+    ui/savebindialog.cpp \
     ui/searchdialog.cpp \
     ui/showaddressactions.cpp \
     ui/symboltext.cpp \
@@ -60,6 +62,7 @@ SOURCES += \
 HEADERS += \
     hardware/hardware_st.h \
     hardware/regs_st.h \
+    hardware/tos.h \
     hopper/buffer.h \
     hopper/decode.h \
     hopper/instruction.h \
@@ -98,6 +101,7 @@ HEADERS += \
     ui/quicklayout.h \
     ui/registerwidget.h \
     ui/rundialog.h \
+    ui/savebindialog.h \
     ui/searchdialog.h \
     ui/showaddressactions.h \
     ui/symboltext.h

@@ -84,6 +84,8 @@ public:
     void SetStatus(bool running, uint32_t pc, bool ffwd);
     void SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize);
 
+    void SetProtocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol);
+
     // These are called by the Dispatcher when responses arrive
     // emits registersChangedSignal()
     void SetRegisters(const Registers& regs, uint64_t commandId);
@@ -111,6 +113,9 @@ public:
 
     // emits searchResultsChangedSignal()
     void SetSearchResults(uint64_t commmandId, const SearchResults& results);
+
+    // emits saveBinComplete()
+    void SaveBinComplete(uint64_t commmandId, uint32_t errorCode);
 
     // The following 2 commands are processed as a batch
     // Update profiling data. Does not emit signal
@@ -169,6 +174,9 @@ signals:
     // connect/disconnect change
     void connectChangedSignal();
 
+    // connection failure
+    void protocolMismatchSignal(uint32_t hatariProtocol, uint32_t hrdbProtocol);
+
     // When start/stop status is changed
     void startStopChangedSignal();
 
@@ -194,6 +202,9 @@ signals:
 
     // When search results returned. Use GetSearchResults()
     void searchResultsChangedSignal(uint64_t commandId);
+
+    // When a flle write completed
+    void saveBinCompleteSignal(uint64_t commandId, uint32_t errorCode);
 
     // When exception mask updated
     void exceptionMaskChanged();

@@ -15,6 +15,7 @@
 #include <QSettings>
 #include <QGuiApplication>
 
+#include "../hardware/tos.h"
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
 #include "../models/stringparsers.h"
@@ -26,7 +27,7 @@
 #include "quicklayout.h"
 #include "symboltext.h"
 
-DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
+DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, QAction* pSearchAction):
     QWidget(parent),
     m_memory(0, 0),
     m_rowCount(25),
@@ -38,6 +39,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
+    m_pSearchAction(pSearchAction),
     m_bShowHex(true),
     m_rightClickRow(-1),
     m_cursorRow(0),
@@ -583,6 +585,7 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
                 case Qt::Key_H:         runToCursor();            return;
                 case Qt::Key_B:         toggleBreakpoint();       return;
                 case Qt::Key_Space:     KeyboardContextMenu();    return;
+                case Qt::Key_F10:       runToCursor();            return;
                 default: break;
             }
         }
@@ -594,6 +597,7 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
             case Qt::Key_Down:       MoveDown();            return;
             case Qt::Key_PageUp:     PageUp();              return;
             case Qt::Key_PageDown:   PageDown();            return;
+            case Qt::Key_F9:         toggleBreakpoint();       return;
             default: break;
             }
         }
@@ -674,6 +678,8 @@ void DisasmWidget::CalcDisasm()
     buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
     m_disasm.lines.clear();
     Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), m_logicalAddr, m_rowCount);
+
+    // Annotate traps
     CalcOpAddresses();
 
     // Recalc Text (which depends on e.g. symbols
@@ -749,6 +755,8 @@ void DisasmWidget::CalcDisasm()
         if (t.comments.size() != 0)
             refC << "  ";
         printEA(line.inst.op1, regs, line.address, refC);
+
+        refC << m_opAddresses[row].annotationText;
 
         // Breakpoint/PC
         for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
@@ -867,11 +875,14 @@ void DisasmWidget::CalcOpAddresses()
     uint32_t pc = regs.Get(Registers::PC);
     for (int i = 0; i < m_disasm.lines.size(); ++i)
     {
-        const instruction& inst = m_disasm.lines[i].inst;
+        const Disassembler::line& line = m_disasm.lines[i];
+        const instruction& inst = line.inst;
         OpAddresses& addrs = m_opAddresses[i];
         bool useRegs = inst.address == pc;
         addrs.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm.lines[i].address, addrs.address[0]);
         addrs.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm.lines[i].address, addrs.address[1]);
+
+        addrs.annotationText = GetTOSAnnotation(m_memory, line.address, inst);
     }
 }
 
@@ -1124,6 +1135,8 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
         }
     }
 
+    menu.addAction(m_pSearchAction);
+
     // Run it
     menu.exec(globalPos);
 }
@@ -1142,8 +1155,12 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
     setObjectName(key);
 
+    // Search action created first so we can pass it to the child widget
+    QAction* pMenuSearchAction = new QAction("Search...", this);
+    connect(pMenuSearchAction, &QAction::triggered, this, &DisasmWindow::findClickedSlot);
+
     // Construction. Do in order of tabbing
-    m_pDisasmWidget = new DisasmWidget(this, pSession, windowIndex);
+    m_pDisasmWidget = new DisasmWidget(this, pSession, windowIndex, pMenuSearchAction);
     m_pDisasmWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
     m_pAddressEdit = new QLineEdit(this);
     m_pFollowPC = new QCheckBox("Follow PC", this);

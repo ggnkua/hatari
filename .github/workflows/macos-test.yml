@@ -4,6 +4,8 @@ name: macos-build-hrdb
 
 # Controls when the workflow will run
 on:
+  push:
+  pull_request:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -31,6 +33,7 @@ jobs:
            hdiutil attach SDL2-2.0.18.dmg
            ls -Rl /Volumes/SDL2/
            git clone https://github.com/tattlemuss/hatari/ tatari
+           cd tatari
            git checkout hrdb-main
       - name: Build hatari
         run: |

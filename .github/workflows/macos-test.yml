@@ -29,9 +29,12 @@ jobs:
            echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
            echo "Qt5_DIR=/usr/local/opt/qt@5/lib/cmake/Qt5" >> $GITHUB_ENV
            mkdir output
-           curl -O https://www.libsdl.org/release/SDL2-2.0.18.dmg
-           hdiutil attach SDL2-2.0.18.dmg
+           curl -O https://www.libsdl.org/release/SDL2-2.32.0.dmg
+           hdiutil attach SDL2-2.32.0.dmg
            ls -Rl /Volumes/SDL2/
+           #brew install SDL2
+           #brew install SDL2_image
+           #brew install SDL2_ttf
            git clone https://github.com/tattlemuss/hatari/ tatari
            cd tatari
            git checkout hrdb-main
